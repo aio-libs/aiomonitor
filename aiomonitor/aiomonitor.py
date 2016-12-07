@@ -7,6 +7,8 @@ import threading
 
 from asyncio.coroutines import _format_coroutine
 
+import aioconsole
+
 from .utils import _format_stack, cancel_task, task_by_id
 
 __all__ = ('Monitor',)
@@ -16,6 +18,7 @@ log = logging.getLogger(__name__)
 
 MONITOR_HOST = '127.0.0.1'
 MONITOR_PORT = 50123
+CONSOLE_PORT = 50124
 
 
 class Monitor:
@@ -33,6 +36,9 @@ class Monitor:
         self._ui_thread.start()
 
     def __enter__(self):
+        coro = aioconsole.start_interactive_server(
+            host=MONITOR_HOST, port=CONSOLE_PORT)
+        asyncio.run_coroutine_threadsafe(coro, loop=self.loop)
         return self
 
     def __exit__(self, type, value, traceback):
