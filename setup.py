@@ -44,7 +44,7 @@ classifiers = [
 ]
 
 
-setup(name='aiohttp-admin',
+setup(name='aiomonitor',
       version=read_version(),
       description=('aiomonitor'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
