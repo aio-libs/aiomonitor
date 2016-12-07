@@ -1,14 +1,13 @@
+import asyncio
+import logging
 import os
-import traceback
-import linecache
 import signal
 import socket
 import threading
-import logging
-import asyncio
-import janus
 
 from asyncio.coroutines import _format_coroutine
+
+from .utils import _format_stack, cancel_task, task_by_id
 
 __all__ = ('Monitor',)
 
@@ -17,53 +16,6 @@ log = logging.getLogger(__name__)
 
 MONITOR_HOST = '127.0.0.1'
 MONITOR_PORT = 50123
-
-
-def _get_stack(task):
-    frames = []
-    coro = task._coro
-    while coro:
-        if hasattr(coro, 'cr_frame') or hasattr(coro, 'gi_frame'):
-            f = coro.cr_frame if hasattr(coro, 'cr_frame') else coro.gi_frame
-        else:
-            f = None
-
-        if f is not None:
-            frames.append(f)
-
-        if hasattr(coro, 'cr_await') or hasattr(coro, 'gi_yieldfrom'):
-            coro = (coro.cr_await if hasattr(coro, 'cr_await')
-                    else coro.gi_yieldfrom)
-        else:
-            coro = None
-    return frames
-
-
-def _format_stack(task):
-    extracted_list = []
-    checked = set()
-    for f in _get_stack(task):
-        lineno = f.f_lineno
-        co = f.f_code
-        filename = co.co_filename
-        name = co.co_name
-        if filename not in checked:
-            checked.add(filename)
-            linecache.checkcache(filename)
-        line = linecache.getline(filename, lineno, f.f_globals)
-        extracted_list.append((filename, lineno, name, line))
-    if not extracted_list:
-        resp = 'No stack for %r' % task
-    else:
-        resp = 'Stack for %r (most recent call last):\n' % task
-        resp += ''.join(traceback.format_list(extracted_list))
-    return resp
-
-
-def task_by_id(taskid, loop):
-    for task in asyncio.Task.all_tasks(loop=loop):
-        if id(task) == taskid:
-            return task
 
 
 class Monitor:
@@ -79,9 +31,6 @@ class Monitor:
             target=self.server, args=(), daemon=True)
         self._closing = threading.Event()
         self._ui_thread.start()
-        self.monitor_queue = janus.Queue(loop=loop)
-        self._fut = asyncio.run_coroutine_threadsafe(
-            self.monitor_task(), loop=self.loop)
 
     def __enter__(self):
         return self
@@ -90,21 +39,8 @@ class Monitor:
         self.close()
 
     def close(self):
-        self.monitor_queue.close()
-        self._fut.cancel()
         self._closing.set()
         self._ui_thread.join()
-
-    async def monitor_task(self):
-        async_q = self.monitor_queue.async_q
-        while True:
-            task = await async_q.get()
-            async_q.task_done()
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
     def server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -207,14 +143,7 @@ class Monitor:
     def command_where(self, sout, taskid):
         task = task_by_id(taskid, self.loop)
         if task:
-            sout.write('--------\n')
-            sout.write(_format_coroutine(task._coro))
-            sout.write('--------\n')
             sout.write(_format_stack(task))
-            # sout.write('--------\n')
-            # buffer = io.StringIO()
-            # task.print_stack(file=buffer)
-            # sout.write(buffer.getvalue())
             sout.write('\n')
         else:
             sout.write('No task %d\n' % taskid)
@@ -230,8 +159,9 @@ class Monitor:
         task = task_by_id(taskid, self.loop)
         if task:
             sout.write('Cancelling task %d\n' % taskid)
-            sync_q = self.monitor_queue.sync_q
-            sync_q.put(task)
+            fut = asyncio.run_coroutine_threadsafe(
+                cancel_task(task), loop=self.loop)
+            fut.result()
 
     def command_exit(self, sout):
         sout.write('Leaving monitor. Hit Ctrl-C to exit\n')
