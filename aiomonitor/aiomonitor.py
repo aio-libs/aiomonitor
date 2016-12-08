@@ -87,7 +87,7 @@ class Monitor:
                         sout = client.makefile('w', encoding='utf-8')
                         sin = client.makefile('r', encoding='utf-8')
                         self.interactive_loop(sout, sin)
-                except socket.timeout:
+                except (socket.timeout, OSError):
                     continue
 
     def monitor_commans(self, sin, sout, resp):
