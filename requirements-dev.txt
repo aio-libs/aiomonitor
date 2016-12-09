@@ -5,3 +5,4 @@ pytest-cov==2.4.0
 pytest-sugar==0.7.1
 pytest==3.0.5
 uvloop==0.6.7
+aiohttp==1.1.6
