@@ -16,11 +16,60 @@ Library provides an python console using aioconsole_ library, it is possible
 to execute asynchronous command inside your running application.
 
 
-Install
-------
+Installation
+------------
 Installation process is simple, just::
 
     $ pip install aiomonitor
+
+
+Example
+-------
+Monitor has context manager interface::
+
+    from aiomonitor import Monitor
+
+    loop = asyncio.get_event_loop()
+    with Monitor(loop=loop):
+        loop.run_forever()
+
+Now from separate terminal it is possible to connect to the application::
+
+    $ nc localhost 50101
+
+or using included python client::
+
+    $ python -m aiomonitor.cli
+
+
+Full example in aiohttp_ application::
+
+    import asyncio
+
+    from aiohttp import web
+    from aiomonitor import Monitor
+
+    async def simple(request):
+        loop = request.app.loop
+        print('Start sleeping')
+        await asyncio.sleep(100, loop=loop)
+        return web.Response(text="Simple answer")
+
+    async def init(loop):
+        app = web.Application(loop=loop)
+        app.router.add_get('/simple', simple)
+        return app
+
+    loop = asyncio.get_event_loop()
+    app = loop.run_until_complete(init(loop))
+
+    # init monitor just befor run_app
+    with Monitor(loop=loop):
+        web.run_app(app, port=8090, host='localhost')
+
+And now one can connect with same command as in previous example::
+
+    $ nc localhost 50101
 
 
 Run tests
