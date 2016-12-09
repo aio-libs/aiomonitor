@@ -7,13 +7,13 @@ flake:
 	flake8 aiomonitor tests examples setup.py
 
 test: flake
-	py.test -s -v --no-pull$(FLAGS) ./tests/
+	py.test -s -v $(FLAGS) ./tests/
 
 vtest:
-	py.test -s -v --no-pull$(FLAGS) ./tests/
+	py.test -s -v $(FLAGS) ./tests/
 
 cov cover coverage: flake
-	py.test -s -v --no-pull --cov-report term --cov-report html --cov aiomonitor ./tests
+	py.test -s -v --cov-report term --cov-report html --cov aiomonitor ./tests
 	@echo "open file://`pwd`/htmlcov/index.html"
 
 ci: flake
