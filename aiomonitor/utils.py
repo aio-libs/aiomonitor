@@ -1,8 +1,16 @@
 import asyncio
+import contextlib
 import linecache
+import logging
+import selectors
+import telnetlib
 import traceback
 
-from contextlib import suppress
+import aioconsole
+
+
+log = logging.getLogger(__name__)
+run_coro = asyncio.run_coroutine_threadsafe
 
 
 def _get_stack(task):
@@ -52,6 +60,47 @@ def task_by_id(taskid, loop):
 
 
 async def cancel_task(task):
-    with suppress(asyncio.CancelledError):
+    with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
+
+
+def init_console_server(host, port, loop):
+    log.info('Starting console at %s:%d', host, port)
+    coro = aioconsole.start_interactive_server(
+        host=host, port=port, loop=loop)
+    console_future = run_coro(coro, loop=loop)
+    return console_future
+
+
+if hasattr(selectors, 'PollSelector'):
+    _TelnetSelector = selectors.PollSelector
+else:
+    _TelnetSelector = selectors.SelectSelector
+
+
+def console_proxy(sin, sout, host, port):
+    tn = telnetlib.Telnet()
+    with contextlib.closing(tn):
+        tn.open(host, port, timeout=10)
+        with _TelnetSelector() as selector:
+            selector.register(tn, selectors.EVENT_READ)
+            selector.register(sin, selectors.EVENT_READ)
+
+            while True:
+                for key, events in selector.select():
+                    if key.fileobj is tn:
+                        try:
+                            data = tn.read_eager()
+                        except EOFError:
+                            print('*Connection closed by remote host*')
+                            return
+
+                        if data:
+                            sout.write(data.decode('ascii'))
+                            sout.flush()
+                    else:
+                        resp = sin.readline()
+                        if not resp:
+                            return
+                        tn.write(resp.encode('ascii'))
