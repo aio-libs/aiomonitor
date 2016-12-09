@@ -97,10 +97,10 @@ def console_proxy(sin, sout, host, port):
                             return
 
                         if data:
-                            sout.write(data.decode('ascii'))
+                            sout.write(data.decode('utf-8'))
                             sout.flush()
                     else:
                         resp = sin.readline()
                         if not resp:
                             return
-                        tn.write(resp.encode('ascii'))
+                        tn.write(resp.encode('utf-8'))
