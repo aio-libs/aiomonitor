@@ -92,6 +92,8 @@ def test_cancel_where_tasks(monitor, tn_client, loop):
 
 def test_monitor_with_console(monitor, tn_client):
     tn = tn_client
+    # TODO: fix this, we need proper way to wait for console to start
+    monitor._console_future.result()
     resp = execute(tn, 'console\n')
     assert 'This console is running in an asyncio event loop' in resp
     execute(tn, 'await asyncio.sleep(0, loop=loop)\n')
