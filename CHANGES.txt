@@ -1,2 +1,4 @@
 CHANGES
 =======
+
+* Initial release.
