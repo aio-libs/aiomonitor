@@ -137,6 +137,7 @@ class Monitor:
              where taskid     : Show stack frames for a task
              cancel taskid    : Cancel an indicated task
              signal signame   : Send a Unix signal
+             console          : Switch to async Python REPL
              quit             : Leave the monitor
             ''')
         sout.write('\n')
@@ -186,4 +187,6 @@ class Monitor:
         if not self._console_enabled:
             sout.write('Python console disabled for this sessiong\n')
             sout.flush()
+
+        self._console_future.result()
         console_proxy(sin, sout, self._host, self._console_port)
