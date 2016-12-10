@@ -11,14 +11,17 @@ from aiomonitor.aiomonitor import MONITOR_HOST, MONITOR_PORT
 @pytest.yield_fixture
 def monitor(loop):
     mon = Monitor(loop)
+    ev = threading.Event()
 
-    def f():
+    def f(mon, loop, ev):
         asyncio.set_event_loop(loop)
         with mon:
+            ev.set()
             loop.run_forever()
 
-    thread = threading.Thread(target=f, args=())
+    thread = threading.Thread(target=f, args=(mon, loop, ev))
     thread.start()
+    ev.wait()
     yield mon
     loop.call_soon_threadsafe(loop.stop)
     thread.join()
