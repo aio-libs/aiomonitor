@@ -1,4 +1,15 @@
 CHANGES
 =======
 
+0.0.2 (YYYY-MM-DD)
+^^^^^^^^^^^^^^^^^^
+
+* Tests more stable now
+
+* Added simple tutorial to README.rst
+
+
+0.0.1 (2016-12-10)
+^^^^^^^^^^^^^^^^^^
+
 * Initial release.
