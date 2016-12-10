@@ -5,7 +5,7 @@ import threading
 import time
 
 from aiomonitor import Monitor
-from aiomonitor.aiomonitor import MONITOR_HOST, MONITOR_PORT
+from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 
 
 @pytest.yield_fixture
