@@ -3,7 +3,7 @@
 FLAGS=
 
 
-flake:
+flake: checkrst
 	flake8 aiomonitor tests examples setup.py
 
 test: flake
@@ -12,7 +12,15 @@ test: flake
 vtest:
 	py.test -s -v $(FLAGS) ./tests/
 
-cov cover coverage: flake
+checkrst:
+	python setup.py check --restructuredtext
+
+testloop:
+	while true ; do \
+        py.test -s -v $(FLAGS) ./tests/ ; \
+    done
+
+cov cover coverage: flake checkrst
 	py.test -s -v --cov-report term --cov-report html --cov aiomonitor ./tests
 	@echo "open file://`pwd`/htmlcov/index.html"
 
