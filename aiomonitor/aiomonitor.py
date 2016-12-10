@@ -173,7 +173,6 @@ class Monitor:
         task = task_by_id(taskid, self._loop)
         if task:
             fut = run_coro(cancel_task(task), loop=self._loop)
-            # TODO: should we guard this with try except
             fut.result(timeout=3)
             sout.write('Cancel task %d\n' % taskid)
         else:
