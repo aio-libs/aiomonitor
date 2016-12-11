@@ -12,7 +12,7 @@ Task monitor that runs concurrently to the asyncio_ loop (or fast drop in
 replacement uvloop_) in a separate thread. This can inspect the loop and
 provide debugging capabilities.
 
-Library provides an python console using aioconsole_ library, it is possible
+Library provides an python console using aioconsole_ module, it is possible
 to execute asynchronous command inside your running application.
 
 
@@ -69,9 +69,9 @@ integrates with it.
     app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
-    # init monitor just befor run_app
+    # init monitor just before run_app
     with Monitor(loop=loop):
-        # run application with built in aoihttp run_app function
+        # run application with built in aiohttp run_app function
         web.run_app(app, port=8090, host='localhost')
 
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
