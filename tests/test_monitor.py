@@ -4,7 +4,7 @@ import telnetlib
 import threading
 import time
 
-from aiomonitor import Monitor
+from aiomonitor import Monitor, start
 from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 
 
@@ -30,7 +30,15 @@ def monitor(loop):
 @pytest.yield_fixture
 def tn_client(monitor):
     tn = telnetlib.Telnet()
-    tn.open(MONITOR_HOST, MONITOR_PORT, timeout=5)
+    for _ in range(10):
+        try:
+            tn.open(MONITOR_HOST, MONITOR_PORT, timeout=5)
+            break
+        except OSError as e:
+            print("Retrying after error: {}".format(str(e)))
+        time.sleep(1)
+    else:
+        pytest.fail("Can not connect to the telnet server")
     tn.read_until(b'monitor >>>', 10)
     yield tn
     tn.close()
@@ -38,8 +46,27 @@ def tn_client(monitor):
 
 def test_ctor(loop, unused_port):
 
-    with Monitor(loop):
-        loop.run_until_complete(asyncio.sleep(1, loop=loop))
+    with Monitor(loop, console_enabled=False):
+        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+
+    with start(loop, console_enabled=False) as m:
+        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+    assert m.closed
+
+    m = Monitor(loop, console_enabled=False)
+    m.start()
+    try:
+        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+    finally:
+        m.close()
+        m.close()  # make sure call is idempotent
+    assert m.closed
+
+    m = Monitor(loop, console_enabled=False)
+    m.start()
+    with m:
+        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+    assert m.closed
 
 
 def execute(tn, command, pattern=b'>>>'):
@@ -61,6 +88,9 @@ def test_basic_monitor(monitor, tn_client, loop):
     assert 'Unknown command' in resp
 
     resp = execute(tn, 'ps\n')
+    assert 'Task' in resp
+
+    resp = execute(tn, 'ps 123\n')
     assert 'Task' in resp
 
     resp = execute(tn, 'signal name\n')
