@@ -1,16 +1,11 @@
 import asyncio
 import contextlib
 import linecache
-import logging
 import selectors
 import telnetlib
 import traceback
 
 import aioconsole
-
-
-log = logging.getLogger(__name__)
-run_coro = asyncio.run_coroutine_threadsafe
 
 
 def _get_stack(task):
@@ -66,10 +61,8 @@ async def cancel_task(task):
 
 
 def init_console_server(host, port, loop):
-    log.info('Starting console at %s:%d', host, port)
-    coro = aioconsole.start_interactive_server(
-        host=host, port=port, loop=loop)
-    console_future = run_coro(coro, loop=loop)
+    coro = aioconsole.start_interactive_server(host=host, port=port, loop=loop)
+    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
     return console_future
 
 
