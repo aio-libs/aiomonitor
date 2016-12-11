@@ -76,10 +76,12 @@ class Monitor:
         self.close()
 
     def close(self):
-        self._closing.set()
-        self._ui_thread.join()
-        if self._console_future:
-            self._console_future.result(timeout=5)
+        if not self._closed:
+            self._closing.set()
+            self._ui_thread.join()
+            if self._console_future:
+                self._console_future.result(timeout=15)
+            self._closed = True
 
     def server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
