@@ -1,7 +1,7 @@
 import asyncio
 
+import aiomonitor
 from aiohttp import web
-from aiomonitor import Monitor
 
 
 async def simple(request):
@@ -19,5 +19,5 @@ async def init(loop):
 loop = asyncio.get_event_loop()
 app = loop.run_until_complete(init(loop))
 
-with Monitor(loop=loop):
+with aiomonitor.start_monitor(loop=loop):
     web.run_app(app, port=8090, host='localhost')
