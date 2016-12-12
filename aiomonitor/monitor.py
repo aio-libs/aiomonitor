@@ -11,9 +11,8 @@ from terminaltables import AsciiTable
 from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
                     init_console_server)
 
-__all__ = ('Monitor',)
 
-
+__all__ = ('Monitor', 'start')
 log = logging.getLogger(__name__)
 
 
@@ -22,7 +21,13 @@ MONITOR_PORT = 50101
 CONSOLE_PORT = 50102
 
 
-run_coro = asyncio.run_coroutine_threadsafe
+def start(loop, host=MONITOR_HOST, port=MONITOR_PORT,
+          console_port=CONSOLE_PORT, console_enabled=True):
+
+    m = Monitor(loop, host=host, port=port, console_port=console_port,
+                console_enabled=console_enabled)
+    m.start()
+    return m
 
 
 class Monitor:
@@ -41,25 +46,42 @@ class Monitor:
         self._ui_thread = threading.Thread(target=self.server, args=(),
                                            daemon=True)
         self._closing = threading.Event()
-        self._ui_thread.start()
-
-        # python console
+        # self._ui_thread.start()
+        self._closed = False
+        self._started = False
         self._console_future = None
+
+    def start(self):
+        assert not self._closed
+        assert not self._started
+
+        self._started = True
+        h, p = self._host, self._port
+        self._ui_thread.start()
         if self._console_enabled:
+            log.info('Starting console at %s:%d', h, p)
             self._console_future = init_console_server(
                 self._host, self._console_port, self._loop)
 
+    @property
+    def closed(self):
+        return self._closed
+
     def __enter__(self):
+        if not self._started:
+            self.start()
         return self
 
     def __exit__(self, type, value, traceback):
         self.close()
 
     def close(self):
-        self._closing.set()
-        self._ui_thread.join()
-        if self._console_future:
-            self._console_future.result(timeout=5)
+        if not self._closed:
+            self._closing.set()
+            self._ui_thread.join()
+            if self._console_future:
+                self._console_future.result(timeout=15)
+            self._closed = True
 
     def server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -143,7 +165,7 @@ class Monitor:
         sout.write('\n')
 
     def command_ps(self, sout):
-        headers = ('Task', 'State', 'Task')
+        headers = ('Task ID', 'State', 'Task')
         table_data = [headers]
         for task in sorted(asyncio.Task.all_tasks(loop=self._loop), key=id):
             taskid = id(task)
@@ -172,7 +194,8 @@ class Monitor:
     def command_cancel(self, sout, taskid):
         task = task_by_id(taskid, self._loop)
         if task:
-            fut = run_coro(cancel_task(task), loop=self._loop)
+            fut = asyncio.run_coroutine_threadsafe(
+                cancel_task(task), loop=self._loop)
             fut.result(timeout=3)
             sout.write('Cancel task %d\n' % taskid)
         else:
