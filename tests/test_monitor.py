@@ -4,7 +4,7 @@ import telnetlib
 import threading
 import time
 
-from aiomonitor import Monitor, start
+from aiomonitor import Monitor, start_monitor
 from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 
 
@@ -49,7 +49,7 @@ def test_ctor(loop, unused_port):
     with Monitor(loop, console_enabled=False):
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
 
-    with start(loop, console_enabled=False) as m:
+    with start_monitor(loop, console_enabled=False) as m:
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
     assert m.closed
 

@@ -12,7 +12,7 @@ from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
                     init_console_server)
 
 
-__all__ = ('Monitor', 'start')
+__all__ = ('Monitor', 'start_monitor')
 log = logging.getLogger(__name__)
 
 
@@ -21,8 +21,8 @@ MONITOR_PORT = 50101
 CONSOLE_PORT = 50102
 
 
-def start(loop, host=MONITOR_HOST, port=MONITOR_PORT,
-          console_port=CONSOLE_PORT, console_enabled=True):
+def start_monitor(loop, *, host=MONITOR_HOST, port=MONITOR_PORT,
+                  console_port=CONSOLE_PORT, console_enabled=True):
 
     m = Monitor(loop, host=host, port=port, console_port=console_port,
                 console_enabled=console_enabled)
