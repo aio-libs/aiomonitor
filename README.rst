@@ -29,10 +29,10 @@ Monitor has context manager interface:
 
 .. code:: python
 
-    from aiomonitor import Monitor
+    import aiomonitor
 
     loop = asyncio.get_event_loop()
-    with Monitor(loop=loop):
+    with aiomonitor.start_monitor(loop=loop):
         loop.run_forever()
 
 Now from separate terminal it is possible to connect to the application::
@@ -53,8 +53,8 @@ integrates with it.
 
     import asyncio
 
+    import aiomonitor
     from aiohttp import web
-    from aiomonitor import Monitor
 
     # Simple handler that returns response after 100s
     async def simple(request):
@@ -70,7 +70,7 @@ integrates with it.
     app.router.add_get('/simple', simple)
 
     # init monitor just before run_app
-    with Monitor(loop=loop):
+    with aiomonitor.start_monitor(loop=loop):
         # run application with built in aiohttp run_app function
         web.run_app(app, port=8090, host='localhost')
 

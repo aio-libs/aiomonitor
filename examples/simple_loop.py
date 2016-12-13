@@ -1,7 +1,7 @@
 import asyncio
-from aiomonitor import Monitor
+import aiomonitor
 
 loop = asyncio.get_event_loop()
-with Monitor(loop=loop):
+with aiomonitor.start_monitor(loop=loop):
     print("Now you can connect with: nc localhost 50101")
     loop.run_forever()

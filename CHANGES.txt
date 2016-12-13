@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+0.0.4 (YYYY-MM-DD)
+------------------
+
+* Added missed LICENSE file
+
+* Updated API, added start_monitor() function
+
+
 0.0.3 (2016-12-11)
 ------------------
 
