@@ -20,8 +20,10 @@ Alternatively you can use more verbose try/finally approach::
         m.close()
 """
 
-from .monitor import Monitor, start_monitor
+from .monitor import (Monitor, start_monitor,
+                      MONITOR_HOST, MONITOR_PORT, CONSOLE_PORT)
 
 
-__all__ = ('Monitor', 'start_monitor')
+__all__ = ('Monitor', 'start_monitor', 'MONITOR_HOST', 'MONITOR_PORT',
+           'CONSOLE_PORT')
 __version__ = '0.0.4a0'
