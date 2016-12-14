@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-0.0.4 (YYYY-MM-DD)
+0.1.0 (2016-12-14)
 ------------------
 
 * Added missed LICENSE file
