@@ -1,9 +1,9 @@
 aiomonitor
 ==========
-.. image:: https://travis-ci.org/jettify/aiomonitor.svg?branch=master
-    :target: https://travis-ci.org/jettify/aiomonitor
-.. image:: https://codecov.io/gh/jettify/aiomonitor/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/jettify/aiomonitor
+.. image:: https://travis-ci.org/aio-libs/aiomonitor.svg?branch=master
+    :target: https://travis-ci.org/aio-libs/aiomonitor
+.. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/aio-libs/aiomonitor
 
 
 **aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities

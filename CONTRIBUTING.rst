@@ -4,14 +4,14 @@ Contributing
 Running Tests
 -------------
 
-.. _GitHub: https://github.com/jettify/aiomonitor
+.. _GitHub: https://github.com/aio-libs/aiomonitor
 
 Thanks for your interest in contributing to ``aiomonitor``, there are multiple
 ways and places you can contribute.
 
 Fist of all just clone repository::
 
-    $ git clone git@github.com:jettify/aiomonitor.git
+    $ git clone git@github.com:aio-libs/aiomonitor.git
 
 Create virtualenv with python3.5 (older version are not supported). For example
 using *virtualenvwrapper* commands could look like::
