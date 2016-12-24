@@ -1,5 +1,5 @@
 aioconsole==0.1.2
-aiohttp==1.1.6
+aiohttp==1.2.0
 docutils==0.13.1
 flake8==3.2.1
 ipdb==0.10.1
@@ -7,4 +7,4 @@ pytest-cov==2.4.0
 pytest-sugar==0.7.1
 pytest==3.0.5
 terminaltables==3.1.0
-uvloop==0.6.7
+uvloop==0.7.0
