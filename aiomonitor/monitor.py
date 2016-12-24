@@ -43,7 +43,7 @@ class Monitor:
 
         # The monitor launches both a separate thread and helper task
         # that runs inside curio itself to manage cancellation events
-        self._ui_thread = threading.Thread(target=self.server, args=(),
+        self._ui_thread = threading.Thread(target=self._server, args=(),
                                            daemon=True)
         self._closing = threading.Event()
         # self._ui_thread.start()
@@ -83,7 +83,7 @@ class Monitor:
                 self._console_future.result(timeout=15)
             self._closed = True
 
-    def server(self):
+    def _server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -103,40 +103,40 @@ class Monitor:
                     with client:
                         sout = client.makefile('w', encoding='utf-8')
                         sin = client.makefile('r', encoding='utf-8')
-                        self.interactive_loop(sout, sin)
+                        self._interactive_loop(sout, sin)
                 except (socket.timeout, OSError):
                     continue
 
-    def monitor_commans(self, sin, sout, resp):
+    def _monitor_commans(self, sin, sout, resp):
         if not resp or resp.startswith(('q', 'exit')):
-            self.command_exit(sout)
+            self._command_exit(sout)
             return
 
         elif resp.startswith('p'):
-            self.command_ps(sout)
+            self._command_ps(sout)
 
         elif resp.startswith('cancel'):
             _, taskid_s = resp.split()
-            self.command_cancel(sout, int(taskid_s))
+            self._command_cancel(sout, int(taskid_s))
 
         elif resp.startswith('signal'):
             _, signame = resp.split()
-            self.command_signal(sout, signame)
+            self._command_signal(sout, signame)
 
         elif resp.startswith('w'):
             _, taskid_s = resp.split()
-            self.command_where(sout, int(taskid_s))
+            self._command_where(sout, int(taskid_s))
 
         elif resp.startswith('h'):
-            self.command_help(sout)
+            self._command_help(sout)
 
         elif resp.startswith('console'):
-            self.command_console(sin, sout)
+            self._command_console(sin, sout)
 
         else:
             sout.write('Unknown command. Type help.\n')
 
-    def interactive_loop(self, sout, sin):
+    def _interactive_loop(self, sout, sin):
         """Main interactive loop of the monitor
         """
         (sout.write('\nAsyncio Monitor: %d tasks running\n' %
@@ -147,12 +147,12 @@ class Monitor:
             sout.flush()
             try:
                 resp = sin.readline()
-                self.monitor_commans(sin, sout, resp)
+                self._monitor_commans(sin, sout, resp)
             except Exception as e:
                 sout.write('Bad command. %s\n' % e)
                 sout.flush()
 
-    def command_help(self, sout):
+    def _command_help(self, sout):
         sout.write(
          '''Commands:
              ps               : Show task table
@@ -164,7 +164,7 @@ class Monitor:
             ''')
         sout.write('\n')
 
-    def command_ps(self, sout):
+    def _command_ps(self, sout):
         headers = ('Task ID', 'State', 'Task')
         table_data = [headers]
         for task in sorted(asyncio.Task.all_tasks(loop=self._loop), key=id):
@@ -177,7 +177,7 @@ class Monitor:
         sout.write('\n')
         sout.flush()
 
-    def command_where(self, sout, taskid):
+    def _command_where(self, sout, taskid):
         task = task_by_id(taskid, self._loop)
         if task:
             sout.write(_format_stack(task))
@@ -185,13 +185,13 @@ class Monitor:
         else:
             sout.write('No task %d\n' % taskid)
 
-    def command_signal(self, sout, signame):
+    def _command_signal(self, sout, signame):
         if hasattr(signal, signame):
             os.kill(os.getpid(), getattr(signal, signame))
         else:
             sout.write('Unknown signal %s\n' % signame)
 
-    def command_cancel(self, sout, taskid):
+    def _command_cancel(self, sout, taskid):
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(
@@ -201,11 +201,11 @@ class Monitor:
         else:
             sout.write('No task %d\n' % taskid)
 
-    def command_exit(self, sout):
+    def _command_exit(self, sout):
         sout.write('Leaving monitor. Hit Ctrl-C to exit\n')
         sout.flush()
 
-    def command_console(self, sin, sout):
+    def _command_console(self, sin, sout):
         if not self._console_enabled:
             sout.write('Python console disabled for this sessiong\n')
             sout.flush()
