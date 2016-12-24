@@ -1,5 +1,5 @@
 aioconsole==0.1.2
-aiohttp==1.1.6
+aiohttp==1.2.0
 docutils==0.13.1
 flake8==3.2.1
 ipdb==0.10.1
