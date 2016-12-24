@@ -4,6 +4,11 @@ CHANGES
 0.2.0 (YYYY-MM-DD)
 ------------------
 
+* Added basic documentation
+
+* Most of method of Monitor class not private api
+
+
 0.1.0 (2016-12-14)
 ------------------
 
