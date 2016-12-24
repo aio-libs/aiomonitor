@@ -15,6 +15,8 @@ provide debugging capabilities.
 Library provides an python console using aioconsole_ module, it is possible
 to execute asynchronous command inside your running application.
 
+.. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/master/docs/tty.gif
+
 
 Installation
 ------------
