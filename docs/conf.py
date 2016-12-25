@@ -110,8 +110,16 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
-
+aiomonitor_desc = ('module that adds monitor and cli capabilities'
+                   'for asyncio application')
+html_theme_options = {
+    'description': aiomonitor_desc,
+    'github_user': 'aio-libs',
+    'github_repo': 'aiomonitor',
+    'github_button': True,
+    'github_type': 'star',
+    'github_banner': True,
+}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
@@ -170,7 +178,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'aiomonitor', 'aiomonitor Documentation',
-     author, 'aiomonitor', 'One line description of project.',
+     author, 'aiomonitor', aiomonitor_desc,
      'Miscellaneous'),
 ]
 
