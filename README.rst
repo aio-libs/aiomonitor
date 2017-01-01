@@ -6,7 +6,9 @@ aiomonitor
     :target: https://codecov.io/gh/aio-libs/aiomonitor
 .. image:: https://img.shields.io/pypi/v/aiomonitor.svg
     :target: https://pypi.python.org/pypi/aiomonitor
-
+.. image:: https://readthedocs.org/projects/aiomonitor/badge/?version=latest
+    :target: http://aiomonitor.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 **aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities
 for asyncio_ application. Idea and code borrowed from curio_ project.
