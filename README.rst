@@ -4,6 +4,8 @@ aiomonitor
     :target: https://travis-ci.org/aio-libs/aiomonitor
 .. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/aio-libs/aiomonitor
+.. image:: https://img.shields.io/pypi/v/aiomonitor.svg
+    :target: https://pypi.python.org/pypi/aiomonitor
 
 
 **aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities
