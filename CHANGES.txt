@@ -1,8 +1,10 @@
 CHANGES
 =======
 
-0.3.0 (YYYY-MM-DD)
+0.2.1 (2016-01-03)
 ------------------
+
+* Fixed import in telnet cli in #12 (thanks @hellysmile)
 
 
 0.2.0 (2016-01-01)
