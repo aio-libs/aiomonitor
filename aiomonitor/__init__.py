@@ -1,4 +1,4 @@
-"""Debugging monitor for asyncio with asynchronous python REPL capablities
+"""Debugging monitor for asyncio app with asynchronous python REPL capabilities
 
 To enable the monitor, just use context manager protocol with start function::
 
@@ -26,4 +26,4 @@ from .monitor import (Monitor, start_monitor,
 
 __all__ = ('Monitor', 'start_monitor', 'MONITOR_HOST', 'MONITOR_PORT',
            'CONSOLE_PORT')
-__version__ = '0.2.1'
+__version__ = '0.2.2a0'
