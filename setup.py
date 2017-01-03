@@ -38,8 +38,8 @@ classifiers = [
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
     'Operating System :: POSIX',
-    'Environment :: Web Environment',
     'Development Status :: 3 - Alpha',
 ]
 
@@ -54,7 +54,7 @@ setup(name='aiomonitor',
       author="Nikolay Novik",
       author_email="nickolainovik@gmail.com",
       url='https://github.com/aio-libs/aiomonitor',
-      download_url='https://github.com/aio-libs/aiomonitor',
+      download_url='https://pypi.python.org/pypi/aiomonitor',
       license='Apache 2',
       packages=find_packages(),
       install_requires=install_requires,
