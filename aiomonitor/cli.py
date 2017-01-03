@@ -1,7 +1,7 @@
 import argparse
 import telnetlib
 
-from .aiomonitor import MONITOR_HOST, MONITOR_PORT
+from .monitor import MONITOR_HOST, MONITOR_PORT
 
 
 def monitor_client(host, port):
