@@ -13,8 +13,8 @@ aiomonitor
 **aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities
 for asyncio_ application. Idea and code borrowed from curio_ project.
 Task monitor that runs concurrently to the asyncio_ loop (or fast drop in
-replacement uvloop_) in a separate thread. This can inspect the loop and
-provide debugging capabilities.
+replacement uvloop_) in a separate thread as result monitor will work even if
+event loop is blocked for some reason.
 
 Library provides an python console using aioconsole_ module, it is possible
 to execute asynchronous command inside your running application.
@@ -72,7 +72,7 @@ integrates with it.
         return web.Response(text="Simple answer")
 
     loop = asyncio.get_event_loop()
-    # create application and register route create route
+    # create application and register route
     app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
