@@ -2,7 +2,7 @@ aioconsole==0.1.2
 aiohttp==1.2.0
 docutils==0.13.1
 flake8==3.2.1
-ipdb==0.10.1
+ipdb==0.10.2
 pytest-cov==2.4.0
 pytest-sugar==0.8.0
 pytest==3.0.5
