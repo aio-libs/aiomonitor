@@ -5,6 +5,6 @@ flake8==3.3.0
 ipdb==0.10.2
 pytest-cov==2.4.0
 pytest-sugar==0.8.0
-pytest==3.0.5
+pytest==3.0.6
 terminaltables==3.1.0
 uvloop==0.7.2
