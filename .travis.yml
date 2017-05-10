@@ -1,13 +1,16 @@
 language: python
 sudo: required
 
+
+python:
+  - '3.6'
+  - '3.5'
 matrix:
   include:
-  - python: "3.5"
-  - python: "3.6"
+    - python: '3.6'
+      env: TOKIO="y"
   allow_failures:
-  - python: "3.6"
-    env: TOKIO="y"
+    - env: TOKIO="y"
 
 install:
     - pip install --upgrade setuptools
