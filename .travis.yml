@@ -3,12 +3,23 @@ sudo: required
 python:
     - 3.5
     - 3.6
+matrix:
+  include:
+  - python: "3.5"
+  - python: "3.6"
+  allow_failures:
+  - python: "3.6"
+    env: TOKIO="y"
 
 install:
     - pip install --upgrade setuptools
     - pip install codecov
     - pip install -Ur requirements-dev.txt
     - python setup.py develop
+    - |
+        if [ "$TOKIO" = "y" ]; then
+          pip install -U git+git://github.com/PyO3/tokio.git@master
+        fi;
 
 script:
     make cov
