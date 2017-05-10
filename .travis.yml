@@ -1,8 +1,13 @@
 language: python
 sudo: required
-python:
-    - 3.5
-    - 3.6
+
+matrix:
+  include:
+  - python: "3.5"
+  - python: "3.6"
+  allow_failures:
+  - python: "3.6"
+    env: TOKIO="y"
 
 install:
     - pip install --upgrade setuptools
@@ -18,11 +23,3 @@ script:
     make cov
 after_success:
     codecov
-
-matrix:
-  include:
-  - python: "3.5"
-  - python: "3.6"
-  allow_failures:
-  - python: "3.6"
-    env: TOKIO="y"
