@@ -5,12 +5,14 @@ sudo: required
 python:
   - '3.6'
   - '3.5'
+
 matrix:
   include:
     - python: '3.6'
       env: TOKIO="y" RUST_VERSION=1.17.0
+
   allow_failures:
-      env: TOKIO="y" RUST_VERSION=1.17.0
+    - env: TOKIO="y" RUST_VERSION=1.17.0
 
 install:
     - pip install --upgrade setuptools
