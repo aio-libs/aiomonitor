@@ -9,6 +9,9 @@ aiomonitor
 .. image:: https://readthedocs.org/projects/aiomonitor/badge/?version=latest
     :target: http://aiomonitor.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+    :target: https://gitter.im/aio-libs/Lobby
+    :alt: Chat on Gitter
 
 **aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities
 for asyncio_ application. Idea and code borrowed from curio_ project.
