@@ -33,9 +33,10 @@ async def init(loop):
     app.router.add_get('/hello', hello)
     return app
 
+host, port = "localhost", 8090
 loop = uvloop.new_event_loop()
 asyncio.set_event_loop(loop)
 app = loop.run_until_complete(init(loop))
 
-with aiomonitor.start_monitor(loop):
-    web.run_app(app, port=8090, host='localhost')
+with aiomonitor.start_monitor(loop, locals=locals()):
+    web.run_app(app, port=port, host=host)

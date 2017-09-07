@@ -46,7 +46,8 @@ Refernece
 
     Specifies the default port for asynchronous python REPL
 
-.. function:: start_monitor(loop, host=None, port=MONITOR_PORT, console_port=CONSOLE_PORT, console_enabled=True)
+.. function:: start_monitor(loop, host=None, port=MONITOR_PORT, console_port=CONSOLE_PORT,
+                            console_enabled=True, locals=None)
 
     Factory function, creates instance of :class:`Monitor` and starts
     monitoring thread.
@@ -56,6 +57,8 @@ Refernece
     :param int console_port: python REPL port, by default 50102
     :param bool console_enabled: flag indicates if python REPL is requred
         to start with instance of monitor.
+    :param dict locals: dictionary with variables exposed in python console
+        environment
 
 .. class:: Monitor
 

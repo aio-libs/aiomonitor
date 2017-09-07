@@ -79,10 +79,14 @@ integrates with it.
     app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
+    # it is possible to pass dictionary with local variables
+    # to the python console environment
+    host, port = "localhost", 8090
+    locals_ = {"port": port, "host": host}
     # init monitor just before run_app
-    with aiomonitor.start_monitor(loop=loop):
+    with aiomonitor.start_monitor(loop=loop, locals=locals_):
         # run application with built in aiohttp run_app function
-        web.run_app(app, port=8090, host='localhost')
+        web.run_app(app, port=port, host=host)
 
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
 
