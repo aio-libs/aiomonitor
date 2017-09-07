@@ -27,7 +27,7 @@ Basic aiohttp server
     app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
-    # init monitor just befor run_app
+    # init monitor just before run_app
     with aiomonitor.start_monitor(loop):
         # run application with built in aoihttp run_app function
         web.run_app(app, port=8090, host='localhost')
@@ -114,5 +114,26 @@ To leave console type ``exit()``::
     >>> exit()
     monitor >>>
 
+
+Expose Local Variables in Python REPL
+-------------------------------------
+
+Local variables can be exposed in Python REPL by passing additional
+``locals`` dictionary with mapping variable name in console to the value.
+
+.. code:: python
+
+    locals = {"foo": "bar"}
+    with aiomonitor.start_monitor(loop):
+        web.run_app(app, port=8090, host='localhost')
+
+
+As result variable ``foo`` available in console::
+
+    monitor >>> console
+    >>> foo
+    >>> bar
+    >>> exit()
+    monitor >>>
 
 .. _aiohttp: https://github.com/KeepSafe/aiohttp

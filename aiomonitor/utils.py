@@ -60,8 +60,13 @@ async def cancel_task(task):
         await task
 
 
-def init_console_server(host, port, loop):
-    coro = aioconsole.start_interactive_server(host=host, port=port, loop=loop)
+def init_console_server(host, port, locals, loop):
+    def _factory(streams=None):
+        return aioconsole.AsynchronousConsole(
+            locals=locals, streams=streams, loop=loop)
+
+    coro = aioconsole.start_interactive_server(
+        host=host, port=port, factory=_factory, loop=loop)
     console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
     return console_future
 
