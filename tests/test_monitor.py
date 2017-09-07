@@ -10,7 +10,10 @@ from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 
 @pytest.yield_fixture
 def monitor(loop):
-    mon = Monitor(loop)
+    def make_baz():
+        return "baz"
+    locals_ = {"foo": "bar", "make_baz": make_baz}
+    mon = Monitor(loop, locals=locals_)
     ev = threading.Event()
 
     def f(mon, loop, ev):
@@ -128,6 +131,12 @@ def test_monitor_with_console(monitor, tn_client):
     resp = execute(tn, 'console\n')
     assert 'This console is running in an asyncio event loop' in resp
     execute(tn, 'await asyncio.sleep(0, loop=loop)\n')
+
+    resp = execute(tn, 'foo\n')
+    assert ' bar\n>>>' == resp
+    resp = execute(tn, 'make_baz()\n')
+    assert ' baz\n>>>' == resp
+
     execute(tn, 'exit()\n')
 
     resp = execute(tn, 'help\n')
