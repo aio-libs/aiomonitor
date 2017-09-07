@@ -22,22 +22,25 @@ CONSOLE_PORT = 50102
 
 
 def start_monitor(loop, *, host=MONITOR_HOST, port=MONITOR_PORT,
-                  console_port=CONSOLE_PORT, console_enabled=True):
+                  console_port=CONSOLE_PORT, console_enabled=True,
+                  locals=None):
 
     m = Monitor(loop, host=host, port=port, console_port=console_port,
-                console_enabled=console_enabled)
+                console_enabled=console_enabled, locals=locals)
     m.start()
     return m
 
 
 class Monitor:
     def __init__(self, loop, *, host=MONITOR_HOST, port=MONITOR_PORT,
-                 console_port=CONSOLE_PORT, console_enabled=True):
+                 console_port=CONSOLE_PORT, console_enabled=True,
+                 locals=None):
         self._loop = loop or asyncio.get_event_loop()
         self._host = host
         self._port = port
         self._console_port = console_port
         self._console_enabled = console_enabled
+        self._locals = locals
 
         log.info('Starting aiomonitor at %s:%d', host, port)
 
@@ -61,7 +64,7 @@ class Monitor:
         if self._console_enabled:
             log.info('Starting console at %s:%d', h, p)
             self._console_future = init_console_server(
-                self._host, self._console_port, self._loop)
+                self._host, self._console_port, self._locals, self._loop)
 
     @property
     def closed(self):
