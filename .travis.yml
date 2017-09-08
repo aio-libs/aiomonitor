@@ -17,8 +17,7 @@ matrix:
 install:
     - pip install --upgrade setuptools
     - pip install codecov
-    - pip install -Ur requirements-dev.txt
-    - python setup.py develop
+    - pip install -r requirements-dev.txt
     - |
         if [ "$TOKIO" = "y" ]; then
             mkdir ~/rust-installer
