@@ -1,8 +1,10 @@
 CHANGES
 =======
 
-0.2.X (XXXX-XX-XX)
+0.3.0 (2017-09-08)
 ------------------
+
+* Added _locals_ parameter for passing environment to python REPL
 
 
 0.2.1 (2016-01-03)
