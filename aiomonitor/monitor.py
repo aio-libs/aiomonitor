@@ -44,12 +44,9 @@ class Monitor:
 
         log.info('Starting aiomonitor at %s:%d', host, port)
 
-        # The monitor launches both a separate thread and helper task
-        # that runs inside curio itself to manage cancellation events
         self._ui_thread = threading.Thread(target=self._server, args=(),
                                            daemon=True)
         self._closing = threading.Event()
-        # self._ui_thread.start()
         self._closed = False
         self._started = False
         self._console_future = None
