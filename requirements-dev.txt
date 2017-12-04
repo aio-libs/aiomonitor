@@ -1,6 +1,6 @@
 -e .
 aioconsole==0.1.4
-aiohttp==2.3.5
+aiohttp==2.3.6
 docutils==0.14
 flake8==3.5.0
 ipdb==0.10.3
