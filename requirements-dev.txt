@@ -1,5 +1,5 @@
 -e .
-aioconsole==0.1.4
+aioconsole==0.1.5
 aiohttp==2.3.6
 docutils==0.14
 flake8==3.5.0
