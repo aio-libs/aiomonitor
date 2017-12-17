@@ -86,7 +86,7 @@ def console_proxy(sin, sout, host, port):
             selector.register(sin, selectors.EVENT_READ)
 
             while True:
-                for key, events in selector.select():
+                for key, _ in selector.select():
                     if key.fileobj is tn:
                         try:
                             data = tn.read_eager()
