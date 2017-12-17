@@ -4,6 +4,9 @@ aiomonitor
     :target: https://travis-ci.org/aio-libs/aiomonitor
 .. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/aio-libs/aiomonitor
+.. image:: https://api.codeclimate.com/v1/badges/d14af4cfb0c4ff52b1ef/maintainability
+   :target: https://codeclimate.com/github/aio-libs/aiomonitor/maintainability
+   :alt: Maintainability
 .. image:: https://img.shields.io/pypi/v/aiomonitor.svg
     :target: https://pypi.python.org/pypi/aiomonitor
 .. image:: https://readthedocs.org/projects/aiomonitor/badge/?version=latest
