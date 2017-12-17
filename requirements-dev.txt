@@ -2,6 +2,8 @@
 aioconsole==0.1.5
 aiohttp==2.3.6
 docutils==0.14
+flake8-bugbear==17.12.0
+flake8-quotes==0.11.0
 flake8==3.5.0
 ipdb==0.10.3
 pytest-cov==2.5.1
