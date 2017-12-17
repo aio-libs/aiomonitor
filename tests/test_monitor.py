@@ -11,8 +11,8 @@ from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 @pytest.yield_fixture
 def monitor(loop):
     def make_baz():
-        return "baz"
-    locals_ = {"foo": "bar", "make_baz": make_baz}
+        return 'baz'
+    locals_ = {'foo': 'bar', 'make_baz': make_baz}
     mon = Monitor(loop, locals=locals_)
     ev = threading.Event()
 
@@ -38,10 +38,10 @@ def tn_client(monitor):
             tn.open(MONITOR_HOST, MONITOR_PORT, timeout=5)
             break
         except OSError as e:
-            print("Retrying after error: {}".format(str(e)))
+            print('Retrying after error: {}'.format(str(e)))
         time.sleep(1)
     else:
-        pytest.fail("Can not connect to the telnet server")
+        pytest.fail('Can not connect to the telnet server')
     tn.read_until(b'monitor >>>', 10)
     yield tn
     tn.close()

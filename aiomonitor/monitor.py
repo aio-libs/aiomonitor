@@ -51,6 +51,11 @@ class Monitor:
         self._started = False
         self._console_future = None
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        return '<{name}: {host}:{port}>'.format(
+            name=name, host=self._host, port=self._port)
+
     def start(self):
         assert not self._closed
         assert not self._started
@@ -154,14 +159,14 @@ class Monitor:
 
     def _command_help(self, sout):
         sout.write(
-         '''Commands:
+         """Commands:
              ps               : Show task table
              where taskid     : Show stack frames for a task
              cancel taskid    : Cancel an indicated task
              signal signame   : Send a Unix signal
              console          : Switch to async Python REPL
              quit             : Leave the monitor
-            ''')
+            """)
         sout.write('\n')
 
     def _command_ps(self, sout):

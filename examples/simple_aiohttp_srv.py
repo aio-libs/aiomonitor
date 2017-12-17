@@ -8,7 +8,7 @@ async def simple(request):
     loop = request.app.loop
     print('Start sleeping')
     await asyncio.sleep(100, loop=loop)
-    return web.Response(text="Simple answer")
+    return web.Response(text='Simple answer')
 
 
 async def init(loop):

@@ -10,7 +10,7 @@ async def simple(request):
     loop = request.app.loop
     await asyncio.sleep(10, loop=loop)
     await asyncio.sleep(10, loop=loop)
-    return web.Response(text="Simple answer")
+    return web.Response(text='Simple answer')
 
 
 async def hello(request):
@@ -33,7 +33,7 @@ async def init(loop):
     app.router.add_get('/hello', hello)
     return app
 
-host, port = "localhost", 8090
+host, port = 'localhost', 8090
 loop = uvloop.new_event_loop()
 asyncio.set_event_loop(loop)
 app = loop.run_until_complete(init(loop))

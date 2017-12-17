@@ -21,7 +21,7 @@ def pytest_generate_tests(metafunc):
         loop_type = ['asyncio', 'uvloop']
         if os.environ.get('TOKIO') == 'y':
             loop_type.append('tokio')
-        metafunc.parametrize("loop_type", loop_type)
+        metafunc.parametrize('loop_type', loop_type)
 
 
 @pytest.yield_fixture
