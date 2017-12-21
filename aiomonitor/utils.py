@@ -4,12 +4,16 @@ import linecache
 import selectors
 import telnetlib
 import traceback
+from concurrent.futures import Future  # noqa
+from typing import IO, Any, Optional, List, Set
 
 import aioconsole
 
+from .mypy_types import Loop, OptLocals
 
-def _get_stack(task):
-    frames = []
+
+def _get_stack(task: asyncio.Task) -> List[Any]:
+    frames = []  # type: List[Any]
     coro = task._coro
     while coro:
         if hasattr(coro, 'cr_frame') or hasattr(coro, 'gi_frame'):
@@ -28,9 +32,9 @@ def _get_stack(task):
     return frames
 
 
-def _format_stack(task):
+def _format_stack(task: asyncio.Task) -> str:
     extracted_list = []
-    checked = set()
+    checked = set()  # type: Set[str]
     for f in _get_stack(task):
         lineno = f.f_lineno
         co = f.f_code
@@ -49,18 +53,21 @@ def _format_stack(task):
     return resp
 
 
-def task_by_id(taskid, loop):
+def task_by_id(taskid: int, loop: Loop) -> Optional[asyncio.Task]:
     tasks = asyncio.Task.all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
-async def cancel_task(task):
+async def cancel_task(task: asyncio.Task) -> None:
     with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
 
 
-def init_console_server(host, port, locals, loop):
+def init_console_server(host: str,
+                        port: int,
+                        locals: OptLocals,
+                        loop: Loop) -> Future:
     def _factory(streams=None):
         return aioconsole.AsynchronousConsole(
             locals=locals, streams=streams, loop=loop)
@@ -71,13 +78,12 @@ def init_console_server(host, port, locals, loop):
     return console_future
 
 
-if hasattr(selectors, 'PollSelector'):
-    _TelnetSelector = selectors.PollSelector
-else:
-    _TelnetSelector = selectors.SelectSelector
+_TelnetSelector = getattr(
+    selectors, 'PollSelector',
+    selectors.SelectSelector)  # Type: selectors.BaseSelector
 
 
-def console_proxy(sin, sout, host, port):
+def console_proxy(sin: IO[str], sout: IO[str], host: str, port: int) -> None:
     tn = telnetlib.Telnet()
     with contextlib.closing(tn):
         tn.open(host, port, timeout=10)
