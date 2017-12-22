@@ -5,7 +5,7 @@ import signal
 import socket
 import threading
 from textwrap import wrap
-from typing import IO, Dict, Any, Optional
+from typing import IO, Dict, Any, Optional  # noqa
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable

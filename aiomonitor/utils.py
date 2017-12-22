@@ -5,7 +5,7 @@ import selectors
 import telnetlib
 import traceback
 from concurrent.futures import Future  # noqa
-from typing import IO, Any, Optional, List, Set
+from typing import IO, Any, Optional, List, Set  # noqa
 
 import aioconsole
 
@@ -14,7 +14,7 @@ from .mypy_types import Loop, OptLocals
 
 def _get_stack(task: asyncio.Task) -> List[Any]:
     frames = []  # type: List[Any]
-    coro = task._coro
+    coro = task._coro  # type: ignore
     while coro:
         if hasattr(coro, 'cr_frame') or hasattr(coro, 'gi_frame'):
             f = coro.cr_frame if hasattr(coro, 'cr_frame') else coro.gi_frame
@@ -49,7 +49,7 @@ def _format_stack(task: asyncio.Task) -> str:
         resp = 'No stack for %r' % task
     else:
         resp = 'Stack for %r (most recent call last):\n' % task
-        resp += ''.join(traceback.format_list(extracted_list))
+        resp += ''.join(traceback.format_list(extracted_list))  # type: ignore
     return resp
 
 
