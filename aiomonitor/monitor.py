@@ -59,7 +59,7 @@ class Monitor:
         self._closing = threading.Event()
         self._closed = False
         self._started = False
-        self._console_future: Optional[Future[Any]] = None
+        self._console_future = None  # type: Optional[Future[Any]]
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
