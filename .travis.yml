@@ -6,30 +6,11 @@ python:
   - '3.6'
   - '3.5'
 
-matrix:
-  include:
-    - python: '3.6'
-      env: TOKIO="y" RUST_VERSION=1.17.0
-
-  allow_failures:
-    - env: TOKIO="y" RUST_VERSION=1.17.0
 
 install:
     - pip install --upgrade setuptools
     - pip install codecov
     - pip install -r requirements-dev.txt
-    - |
-        if [ "$TOKIO" = "y" ]; then
-            mkdir ~/rust-installer
-            curl -sL https://static.rust-lang.org/rustup.sh -o ~/rust-installer/rustup.sh
-            sh ~/rust-installer/rustup.sh --prefix=~/rust --spec=$RUST_VERSION -y --disable-sudo
-            export PATH="$HOME/rust/bin:$PATH"
-            export PYTHON_LIB=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-            export LIBRARY_PATH="$LIBRARY_PATH:$PYTHON_LIB"
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PYTHON_LIB:$HOME/rust/lib"
-            rustc -V
-            pip install -U git+git://github.com/PyO3/tokio.git@master
-        fi;
 
 script:
     make cov
