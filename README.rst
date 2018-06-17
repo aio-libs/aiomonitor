@@ -1,7 +1,7 @@
 aiomonitor
 ==========
-.. image:: https://travis-ci.org/aio-libs/aiomonitor.svg?branch=master
-    :target: https://travis-ci.org/aio-libs/aiomonitor
+.. image:: https://travis-ci.com/aio-libs/aiomonitor.svg?branch=master
+    :target: https://travis-ci.com/aio-libs/aiomonitor
 .. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/aio-libs/aiomonitor
 .. image:: https://api.codeclimate.com/v1/badges/d14af4cfb0c4ff52b1ef/maintainability
