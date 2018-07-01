@@ -40,6 +40,8 @@ def start_monitor(loop: Loop, *,
 
 
 class Monitor:
+    _event_loop_thread_id = None  # type: int
+
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
                  host: str=MONITOR_HOST,
@@ -62,7 +64,6 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
-        self._event_loop_thread_id = None
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
