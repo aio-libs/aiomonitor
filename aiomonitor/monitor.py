@@ -3,7 +3,9 @@ import logging
 import os
 import signal
 import socket
+import sys
 import threading
+import traceback
 from textwrap import wrap
 from typing import IO, Dict, Any, Optional  # noqa
 from concurrent.futures import Future  # noqa
@@ -60,6 +62,7 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
+        self._event_loop_thread_id = None
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -72,6 +75,7 @@ class Monitor:
 
         self._started = True
         h, p = self._host, self._port
+        self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
         if self._console_enabled:
             log.info('Starting console at %s:%d', h, p)
@@ -138,6 +142,9 @@ class Monitor:
             _, signame = resp.split()
             self._command_signal(sout, signame)
 
+        elif resp.startswith('stacktrace'):
+            self._command_stacktrace(sout)
+
         elif resp.startswith('w'):
             _, taskid_s = resp.split()
             self._command_where(sout, int(taskid_s))
@@ -174,6 +181,7 @@ class Monitor:
              where taskid     : Show stack frames for a task
              cancel taskid    : Cancel an indicated task
              signal signame   : Send a Unix signal
+             stacktrace       : Print a stack trace from the event loop thread
              console          : Switch to async Python REPL
              quit             : Leave the monitor
             """)
@@ -205,6 +213,10 @@ class Monitor:
             os.kill(os.getpid(), getattr(signal, signame))
         else:
             sout.write('Unknown signal %s\n' % signame)
+
+    def _command_stacktrace(self, sout: IO[str]) -> None:
+        frame = sys._current_frames()[self._event_loop_thread_id]
+        traceback.print_stack(frame, file=sout)
 
     def _command_cancel(self, sout: IO[str], taskid) -> None:
         task = task_by_id(taskid, self._loop)
