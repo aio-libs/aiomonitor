@@ -113,6 +113,7 @@ Now you can type commands, for instance ``help``::
                  where taskid     : Show stack frames for a task
                  cancel taskid    : Cancel an indicated task
                  signal signame   : Send a Unix signal
+                 stacktrace       : Print a stack trace from the event loop thread
                  console          : Switch to async Python REPL
                  quit             : Leave the monitor
 

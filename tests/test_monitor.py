@@ -99,6 +99,9 @@ def test_basic_monitor(monitor, tn_client, loop):
     resp = execute(tn, 'signal name\n')
     assert 'Unknown signal name' in resp
 
+    resp = execute(tn, 'stacktrace\n')
+    assert 'loop.run_forever()' in resp
+
     resp = execute(tn, 'wehere 123\n')
     assert 'No task 123' in resp
 
