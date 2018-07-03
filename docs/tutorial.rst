@@ -66,6 +66,7 @@ Once connection established, one can type commands, for instance ``help``::
                  where taskid     : Show stack frames for a task
                  cancel taskid    : Cancel an indicated task
                  signal signame   : Send a Unix signal
+                 stacktrace       : Print a stack trace from the event loop thread
                  console          : Switch to async Python REPL
                  quit             : Leave the monitor
 
@@ -75,6 +76,7 @@ Library will respond with list of supported commands:
 * *where* -- prints stack frame for the task, taskid must be supplied
 * *cancel* -- command cancels task, taskid must be supplied
 * *signal* -- command sends unix signal to the app process
+* *stacktrace* -- prints a stack trace from the event loop thread
 * *console* -- switch to python REPL
 * *quit* -- stops telnet session
 
