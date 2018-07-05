@@ -20,11 +20,14 @@ testloop:
         py.test -s -v $(FLAGS) ./tests/ ; \
     done
 
-cov cover coverage: flake checkrst
+cov cover coverage: flake mypy checkrst
 	py.test -s -v --cov-report term --cov-report html --cov aiomonitor ./tests
 	@echo "open file://`pwd`/htmlcov/index.html"
 
-ci: flake
+mypy:
+	mypy aiomonitor --ignore-missing-imports --disallow-untyped-calls --disallow-incomplete-defs --strict
+
+ci: flake mypy
 	py.test -s -v  --cov-report term --cov aiomonitor ./tests
 	npm run eslint
 

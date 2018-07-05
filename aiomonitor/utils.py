@@ -68,7 +68,7 @@ def init_console_server(host: str,
                         port: int,
                         locals: OptLocals,
                         loop: Loop) -> Future:
-    def _factory(streams=None):
+    def _factory(streams: Any=None) -> aioconsole.AsynchronousConsole:
         return aioconsole.AsynchronousConsole(
             locals=locals, streams=streams, loop=loop)
 
