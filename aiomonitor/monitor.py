@@ -31,7 +31,7 @@ def start_monitor(loop: Loop, *,
                   port: int=MONITOR_PORT,
                   console_port: int=CONSOLE_PORT,
                   console_enabled: bool=True,
-                  locals=OptLocals) -> 'Monitor':
+                  locals: OptLocals = None) -> 'Monitor':
 
     m = Monitor(loop, host=host, port=port, console_port=console_port,
                 console_enabled=console_enabled, locals=locals)
