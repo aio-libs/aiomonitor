@@ -7,7 +7,8 @@ import sys
 import threading
 import traceback
 from textwrap import wrap
-from typing import IO, Dict, Any, Optional  # noqa
+from types import TracebackType
+from typing import IO, Dict, Any, Optional, Type  # noqa
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
@@ -31,7 +32,7 @@ def start_monitor(loop: Loop, *,
                   port: int=MONITOR_PORT,
                   console_port: int=CONSOLE_PORT,
                   console_enabled: bool=True,
-                  locals: OptLocals = None) -> 'Monitor':
+                  locals: OptLocals=None) -> 'Monitor':
 
     m = Monitor(loop, host=host, port=port, console_port=console_port,
                 console_enabled=console_enabled, locals=locals)
@@ -92,7 +93,9 @@ class Monitor:
             self.start()
         return self
 
-    def __exit__(self, type, value, traceback) -> None:
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
         self.close()
 
     def close(self) -> None:
@@ -175,7 +178,7 @@ class Monitor:
                 sout.write('Bad command. %s\n' % e)
                 sout.flush()
 
-    def _command_help(self, sout: IO[str]):
+    def _command_help(self, sout: IO[str]) -> None:
         sout.write(
          """Commands:
              ps               : Show task table
@@ -219,7 +222,7 @@ class Monitor:
         frame = sys._current_frames()[self._event_loop_thread_id]
         traceback.print_stack(frame, file=sout)
 
-    def _command_cancel(self, sout: IO[str], taskid) -> None:
+    def _command_cancel(self, sout: IO[str], taskid: int) -> None:
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(

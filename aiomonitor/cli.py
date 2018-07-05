@@ -4,9 +4,9 @@ import telnetlib
 from .monitor import MONITOR_HOST, MONITOR_PORT
 
 
-def monitor_client(host, port):
+def monitor_client(host: str, port: int) -> None:
     tn = telnetlib.Telnet()
-    tn.open(host, port, timeout=0.5)
+    tn.open(host, port, timeout=1)
     try:
         tn.interact()
     except KeyboardInterrupt:
@@ -15,7 +15,7 @@ def monitor_client(host, port):
         tn.close()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser('usage: python -m aiomonitor [options]')
     parser.add_argument('-H', '--host', dest='monitor_host',
                         default=MONITOR_HOST, type=str,
