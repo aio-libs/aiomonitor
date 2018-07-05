@@ -40,6 +40,8 @@ def start_monitor(loop: Loop, *,
 
 
 class Monitor:
+    _event_loop_thread_id = None  # type: int
+
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
                  host: str=MONITOR_HOST,

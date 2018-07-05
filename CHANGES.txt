@@ -1,9 +1,10 @@
 CHANGES
 =======
 
-0.3.1 (YYYY-MM-DD)
+0.3.1 (2018-07-03)
 ------------------
 
+* Added the stacktrace command #120 (thanks @agronholm)
 
 
 0.3.0 (2017-09-08)
