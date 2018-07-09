@@ -75,7 +75,7 @@ class Monitor:
         assert not self._started
 
         self._started = True
-        h, p = self._host, self._port
+        h, p = self._host, self._console_port
         self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
         if self._console_enabled:
