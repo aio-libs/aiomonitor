@@ -2,8 +2,8 @@ API
 ===
 
 **aiomonitor** has tiny and simple to use API, just factory function and
-class that support context management protocol. Start monitor as simple as
-open file.
+class that support context management protocol. Starting a monitor is as
+simple as opening a file.
 
 .. code:: python
 
@@ -27,7 +27,10 @@ call ``close()`` methods, to join thread and finalize resources:
     finally:
         m.close()
 
-Refernece
+It is possible to subclass ``Monitor`` to add custom commands to it. These custom
+commands are methods with names starting with `do_`. See examples.
+
+Reference
 ---------
 
 .. module:: aiomonitor
@@ -46,12 +49,14 @@ Refernece
 
     Specifies the default port for asynchronous python REPL
 
-.. function:: start_monitor(loop, host=None, port=MONITOR_PORT, console_port=CONSOLE_PORT,
-                            console_enabled=True, locals=None)
+.. function:: start_monitor(loop, monitor=Monitor, host=None, port=MONITOR_PORT,
+                            console_port=CONSOLE_PORT, console_enabled=True,
+                            locals=None)
 
     Factory function, creates instance of :class:`Monitor` and starts
     monitoring thread.
 
+    :param Type[Monitor] monitor: Monitor class to use
     :param str host: hostname to serve monitor telnet server
     :param int port: monitor port, by default 50101
     :param int console_port: python REPL port, by default 50102
@@ -62,7 +67,8 @@ Refernece
 
 .. class:: Monitor
 
-    Class has same arguments as :func:`start_monitor`
+    Class has same arguments as :func:`start_monitor`, except for the `monitor`
+    argument.
 
    .. method:: start()
 
@@ -77,3 +83,14 @@ Refernece
         Flag indicates if monitor was closed, currntly instance of
         :class:`Monitor` can not be reused. For new monitor, new instance
         should be created.
+
+   .. method:: do_<COMMAND>(sin, sout, ...)
+
+        Subclasses of the Monitor class can define their own commands available in
+        the REPL. See the tutorial :ref:`cust-commands`.
+
+.. function:: aiomonitor.utils.alt_names(names)
+
+        A decorator for the custom commands to define aliases, like `h` and `?`
+        are aliases for the `help` command. `names` is a single string with a
+        space separated list of aliases.

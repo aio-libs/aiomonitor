@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import os
 import signal
@@ -8,13 +9,14 @@ import threading
 import traceback
 from textwrap import wrap
 from types import TracebackType
-from typing import IO, Dict, Any, Optional, Type  # noqa
+from typing import (IO, Dict, Any, Callable, Optional, Tuple, Generator,  # noqa
+                    List, Type, TypeVar, NamedTuple, get_type_hints, cast)  # noqa
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
 
 from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
-                    init_console_server)
+                    init_console_server, alt_names)
 from .mypy_types import Loop, OptLocals
 
 
@@ -27,21 +29,32 @@ MONITOR_PORT = 50101
 CONSOLE_PORT = 50102
 
 
-def start_monitor(loop: Loop, *,
-                  host: str=MONITOR_HOST,
-                  port: int=MONITOR_PORT,
-                  console_port: int=CONSOLE_PORT,
-                  console_enabled: bool=True,
-                  locals: OptLocals=None) -> 'Monitor':
+class CommandException(Exception):
+    pass
 
-    m = Monitor(loop, host=host, port=port, console_port=console_port,
-                console_enabled=console_enabled, locals=locals)
-    m.start()
-    return m
+
+class UnknownCommandException(CommandException):
+    pass
+
+
+class MultipleCommandException(CommandException):
+    def __init__(self, cmds: List['CmdName']) -> None:
+        self.cmds = cmds
+        super().__init__()
+
+
+class CmdName(NamedTuple):
+    cmd_name: str
+    method_name: str
 
 
 class Monitor:
     _event_loop_thread_id = None  # type: int
+    _cmd_prefix = 'do_'
+
+    prompt = 'monitor >>> '
+    help_template = '{cmd_name} {arg_list}\n    {doc}\n'
+    help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
 
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
@@ -65,6 +78,10 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        # test command names
+        pass
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -126,72 +143,103 @@ class Monitor:
                     with client:
                         sout = client.makefile('w', encoding='utf-8')
                         sin = client.makefile('r', encoding='utf-8')
-                        self._interactive_loop(sout, sin)
+                        self._interactive_loop(sin, sout)
                 except (socket.timeout, OSError):
                     continue
 
-    def _monitor_commans(self, sin: IO[str], sout: IO[str], resp: str) -> None:
-        if not resp or resp.startswith(('q', 'exit')):
-            self._command_exit(sout)
-            return
+    def _filter_cmds(self, *,
+                     startswith: str='',
+                     with_alts: bool=True) -> Generator[CmdName, None, None]:
+        cmds = (cmd for cmd in dir(self) if cmd.startswith(self._cmd_prefix))
+        for name in cmds:
+            if name.startswith(self._cmd_prefix + startswith):
+                yield CmdName(name[len(self._cmd_prefix):], name)
+            meth = getattr(self, name)
+            if with_alts and hasattr(meth, 'alt_names'):
+                for altname in meth.alt_names:
+                    if altname.startswith(startswith):
+                        yield CmdName(altname, name)
 
-        elif resp.startswith('p'):
-            self._command_ps(sout)
+    def _command_dispatch(self,
+                          sin: IO[str],
+                          sout: IO[str],
+                          user_input: str) -> None:
+        comm, *args = user_input.split(' ')
+        cmd = self._getcmd(comm)
+        try:
+            cmd(sin, sout, *args)
+        except Exception as e:
+            msg = 'Exception occured during command "{}": {}'
+            msg = msg.format(user_input, repr(e))
+            sout.write(msg + '\n')
+            log.exception(msg)
 
-        elif resp.startswith('cancel'):
-            _, taskid_s = resp.split()
-            self._command_cancel(sout, int(taskid_s))
+    def _getcmd(self, comm: str) -> Callable:
+        allcmds = sorted(self._filter_cmds(startswith=comm))
+        if not allcmds:
+            raise UnknownCommandException()
+        if len(allcmds) > 1 and allcmds[0].cmd_name != comm:
+            raise MultipleCommandException(allcmds)
+        return getattr(self, allcmds[0].method_name)  # type: ignore
 
-        elif resp.startswith('signal'):
-            _, signame = resp.split()
-            self._command_signal(sout, signame)
-
-        elif resp.startswith('stacktrace'):
-            self._command_stacktrace(sout)
-
-        elif resp.startswith('w'):
-            _, taskid_s = resp.split()
-            self._command_where(sout, int(taskid_s))
-
-        elif resp.startswith('h'):
-            self._command_help(sout)
-
-        elif resp.startswith('console'):
-            self._command_console(sin, sout)
-
-        else:
-            sout.write('Unknown command. Type help.\n')
-
-    def _interactive_loop(self, sout: IO[str], sin: IO[str]) -> None:
+    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
         """Main interactive loop of the monitor
         """
         (sout.write('\nAsyncio Monitor: %d tasks running\n' %
                     len(asyncio.Task.all_tasks(loop=self._loop))))
         sout.write('Type help for commands\n')
         while not self._closing.is_set():
-            sout.write('monitor >>> ')
+            sout.write(self.prompt)
             sout.flush()
             try:
-                resp = sin.readline()
-                self._monitor_commans(sin, sout, resp)
-            except Exception as e:
-                sout.write('Bad command. %s\n' % e)
-                sout.flush()
+                user_input = sin.readline().strip()
+            except Exception:
+                msg = 'Could not read from user input'
+                sout.write(msg + '\n')
+                log.exception(msg)
+            else:
+                try:
+                    self._command_dispatch(sin, sout, user_input)
+                except MultipleCommandException as e:
+                    cmds = ', '.join(i.cmd_name for i in e.cmds)
+                    sout.write('Multiple possible commands: {}\n'.format(cmds))
+                except UnknownCommandException:
+                    sout.write('Unknown command: {}\n'.format(user_input))
 
-    def _command_help(self, sout: IO[str]) -> None:
-        sout.write(
-         """Commands:
-             ps               : Show task table
-             where taskid     : Show stack frames for a task
-             cancel taskid    : Cancel an indicated task
-             signal signame   : Send a Unix signal
-             stacktrace       : Print a stack trace from the event loop thread
-             console          : Switch to async Python REPL
-             quit             : Leave the monitor
-            """)
-        sout.write('\n')
+    @alt_names('? h')
+    def do_help(self, sin: IO[str], sout: IO[str], *args: str) -> None:
+        def _h(cmd: str, template: str) -> None:
+            func = getattr(self, cmd)
+            doc = func.__doc__ if func.__doc__ else ''
+            doc_firstline = doc.split('\n', maxsplit=1)[0]
+            arg_list = ' '.join(
+                        p for p in inspect.signature(func).parameters
+                        if p not in ('sin', 'sout')
+                      )
+            sout.write(
+                template.format(
+                    cmd_name=cmd[3:],
+                    arg_list=arg_list,
+                    cmd_arg_sep=' ' if arg_list else '',
+                    doc=doc,
+                    doc_firstline=doc_firstline
+                ) + '\n'
+            )
 
-    def _command_ps(self, sout: IO[str]) -> None:
+        if not args:
+            cmds = sorted(
+                    c.method_name for c in self._filter_cmds(with_alts=False)
+            )
+            sout.write('Available Commands are:\n\n')
+            for cmd in cmds:
+                _h(cmd, self.help_short_template)
+        else:
+            for cmd in args:
+                _h(self._cmd_prefix + cmd, self.help_template)
+
+    @alt_names('p')
+    def do_ps(self, sin: IO[str], sout: IO[str]) -> None:
+        """Show task table"""
         headers = ('Task ID', 'State', 'Task')
         table_data = [headers]
         for task in sorted(asyncio.Task.all_tasks(loop=self._loop), key=id):
@@ -204,7 +252,10 @@ class Monitor:
         sout.write('\n')
         sout.flush()
 
-    def _command_where(self, sout: IO[str], taskid: int) -> None:
+    @alt_names('w')
+    def do_where(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
+        """Show stack frames for a task"""
+        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
             sout.write(_format_stack(task))
@@ -212,17 +263,21 @@ class Monitor:
         else:
             sout.write('No task %d\n' % taskid)
 
-    def _command_signal(self, sout: IO[str], signame: str) -> None:
+    def do_signal(self, sin: IO[str], sout: IO[str], signame: str) -> None:
+        """Send a Unix signal"""
         if hasattr(signal, signame):
             os.kill(os.getpid(), getattr(signal, signame))
         else:
             sout.write('Unknown signal %s\n' % signame)
 
-    def _command_stacktrace(self, sout: IO[str]) -> None:
+    def do_stacktrace(self, sin: IO[str], sout: IO[str]) -> None:
+        """Print a stack trace from the event loop thread"""
         frame = sys._current_frames()[self._event_loop_thread_id]
         traceback.print_stack(frame, file=sout)
 
-    def _command_cancel(self, sout: IO[str], taskid: int) -> None:
+    def do_cancel(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
+        """Cancel an indicated task"""
+        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(
@@ -232,11 +287,14 @@ class Monitor:
         else:
             sout.write('No task %d\n' % taskid)
 
-    def _command_exit(self, sout: IO[str]) -> None:
+    @alt_names('quit q')
+    def do_exit(self, sin: IO[str], sout: IO[str]) -> None:
+        """Leave the monitor"""
         sout.write('Leaving monitor. Hit Ctrl-C to exit\n')
         sout.flush()
 
-    def _command_console(self, sin: IO[str], sout: IO[str]) -> None:
+    def do_console(self, sin: IO[str], sout: IO[str]) -> None:
+        """Switch to async Python REPL"""
         if not self._console_enabled:
             sout.write('Python console disabled for this sessiong\n')
             sout.flush()
@@ -244,3 +302,18 @@ class Monitor:
         if self._console_future is not None:
             self._console_future.result()
         console_proxy(sin, sout, self._host, self._console_port)
+
+
+def start_monitor(loop: Loop, *,
+                  monitor: Type[Monitor]=Monitor,
+                  host: str=MONITOR_HOST,
+                  port: int=MONITOR_PORT,
+                  console_port: int=CONSOLE_PORT,
+                  console_enabled: bool=True,
+                  locals: OptLocals=None) -> Monitor:
+
+    m = monitor(loop, host=host, port=port, console_port=console_port,
+                console_enabled=console_enabled, locals=locals)
+    m.start()
+
+    return m

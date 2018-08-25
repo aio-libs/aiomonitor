@@ -2,7 +2,7 @@ Tutorial
 ========
 
 Lets create simple aiohttp_ application, and see how ``aiomonitor`` can
-integrates with it.
+integrate with it.
 
 Basic aiohttp server
 --------------------
@@ -61,14 +61,14 @@ respond with prompt::
 Once connection established, one can type commands, for instance ``help``::
 
     monitor >>> help
-    Commands:
-                 ps               : Show task table
-                 where taskid     : Show stack frames for a task
-                 cancel taskid    : Cancel an indicated task
-                 signal signame   : Send a Unix signal
-                 stacktrace       : Print a stack trace from the event loop thread
-                 console          : Switch to async Python REPL
-                 quit             : Leave the monitor
+    Available Commands are:
+                 cancel taskid: Cancel an indicated task
+                 console: Switch to async Python REPL
+                 ps: Show task table
+                 quit: Leave the monitor
+                 signal signame: Send a Unix signal
+                 stacktrace: Print a stack trace from the event loop thread
+                 where taskid: Show stack frames for a task
 
 Library will respond with list of supported commands:
 
@@ -79,6 +79,9 @@ Library will respond with list of supported commands:
 * *stacktrace* -- prints a stack trace from the event loop thread
 * *console* -- switch to python REPL
 * *quit* -- stops telnet session
+
+Additional commands can be added by subclassing ``Monitor``, see
+:ref:`below <cust-commands>`.
 
 
 Python REPL
@@ -137,5 +140,41 @@ As result variable ``foo`` available in console::
     >>> bar
     >>> exit()
     monitor >>>
+
+
+.. _cust-commands:
+
+Adding custom commands
+----------------------
+
+By employing a custom ``Monitor`` subclass, we can add our own commands to the
+telnet REPL. These are simply methods with names starting with `do_` which take
+at least two arguments: `sin`, and `sout`. These are the in- and out-going
+sockets for the REPL. `sout.write(string)` can be used to print to the REPL.
+
+Any additional parameters beyond those two will receive their value as a
+string, if they are meant to be used as e.g. numbers, manual casting is needed.
+
+.. code:: python
+
+    class MyMon(Monitor):
+        @alt_names('moc own')
+        def do_my_own_command(self, sin, sout, some_argument):
+            """This is a short description
+
+            The first line of the doc will be shown in the help overview, this rest
+            will only show up in the "help my_own_command" output.
+            This command will have aliases "moc" and "own", just like "help" has "h"
+            and "?".
+            """
+            results = self._do_stuff(self._locals['my_app_instance'])
+            sout.write('The results are: {}\n'.format(results))
+
+This custom command will be able to do anything you could do in the python REPL,
+so you can add custom shortcuts here, that would be tedious to do manually in
+the console.
+
+By using the "locals" argument to ``start_monitor`` you can give any of your
+commands access to anything they might need to do their jobs.
 
 .. _aiohttp: https://github.com/KeepSafe/aiohttp
