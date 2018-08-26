@@ -43,9 +43,7 @@ class MultipleCommandException(CommandException):
         super().__init__()
 
 
-class CmdName(NamedTuple):
-    cmd_name: str
-    method_name: str
+CmdName = NamedTuple('CmdName', [('cmd_name', str), ('method_name', str)])
 
 
 class Monitor:
@@ -78,10 +76,6 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        # test command names
-        pass
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
