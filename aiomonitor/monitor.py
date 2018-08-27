@@ -10,7 +10,8 @@ import traceback
 from textwrap import wrap
 from types import TracebackType
 from typing import (IO, Dict, Any, Callable, Optional, Tuple, Generator,  # noqa
-                    List, Type, TypeVar, NamedTuple, get_type_hints, cast)  # noqa
+                    List, Type, TypeVar, NamedTuple, get_type_hints,  # noqa
+                    cast, Sequence)  # noqa
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
@@ -49,8 +50,10 @@ CmdName = NamedTuple('CmdName', [('cmd_name', str), ('method_name', str)])
 class Monitor:
     _event_loop_thread_id = None  # type: int
     _cmd_prefix = 'do_'
+    _empty_result = object()
 
     prompt = 'monitor >>> '
+    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n'  # noqa
     help_template = '{cmd_name} {arg_list}\n    {doc}\n'
     help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
 
@@ -76,6 +79,8 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
+
+        self.lastcmd = None  # type: Optional[str]
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -158,30 +163,72 @@ class Monitor:
                           sin: IO[str],
                           sout: IO[str],
                           user_input: str) -> None:
+        if not user_input:
+            return self.emptyline(sin, sout)
+
+        self.lastcmd = user_input
         comm, *args = user_input.split(' ')
-        cmd = self._getcmd(comm)
         try:
-            cmd(sin, sout, *args)
+            cmd, args = self.precmd(comm, args)
+            result = cmd(sin, sout, *args)
+        except UnknownCommandException as e:
+            result = self._empty_result
+            caught_ex = e  # type: Optional[Exception]
+            self.default(sin, sout, comm, *args)
         except Exception as e:
+            result = self._empty_result
             msg = 'Exception occured during command "{}": {}'
             msg = msg.format(user_input, repr(e))
             sout.write(msg + '\n')
             log.exception(msg)
+            caught_ex = e
+        else:
+            caught_ex = None
+        finally:
+            self.postcmd(comm, args, result, caught_ex)
+
+    def _map_args(self, cmd: Callable, args: Sequence[str]
+                  ) -> Generator[Any, None, None]:
+        ps = inspect.signature(cmd).parameters
+        ia = iter(args)
+        params = [p for p in ps.values() if p.name not in ('sin', 'sout')]
+        for param in params:
+            if param.annotation is param.empty:
+                type_ = lambda x: x  # noqa
+            else:
+                type_ = param.annotation
+            if str(param).startswith('*'):
+                yield from (type_(arg) for arg in ia)
+            else:
+                yield type_(next(ia))
+        if tuple(ia):
+            raise TypeError('Too many arguments for command {}()'.format(cmd.__name__))
+
+    def precmd(self, comm: str, args: Sequence[str]
+               ) -> Tuple[Callable, List[str]]:
+        cmd = self._getcmd(comm)
+        return cmd, list(self._map_args(cmd, args))
+
+    def postcmd(self,
+                comm: str,
+                args: Sequence[str],
+                result: Any,
+                exception: Optional[Exception]=None) -> None:
+        pass
 
     def _getcmd(self, comm: str) -> Callable:
         allcmds = sorted(self._filter_cmds(startswith=comm))
         if not allcmds:
-            raise UnknownCommandException()
+            raise UnknownCommandException(comm)
         if len(allcmds) > 1 and allcmds[0].cmd_name != comm:
             raise MultipleCommandException(allcmds)
         return getattr(self, allcmds[0].method_name)  # type: ignore
 
     def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
-        """Main interactive loop of the monitor
-        """
-        (sout.write('\nAsyncio Monitor: %d tasks running\n' %
-                    len(asyncio.Task.all_tasks(loop=self._loop))))
-        sout.write('Type help for commands\n')
+        """Main interactive loop of the monitor"""
+        tasknum = len(asyncio.Task.all_tasks(loop=self._loop))
+        s = '' if tasknum == 1 else 's'
+        sout.write(self.intro.format(tasknum=tasknum, s=s))
         while not self._closing.is_set():
             sout.write(self.prompt)
             sout.flush()
@@ -200,8 +247,19 @@ class Monitor:
                 except UnknownCommandException:
                     sout.write('Unknown command: {}\n'.format(user_input))
 
+    def emptyline(self, sin: IO[str], sout: IO[str]) -> None:
+        if self.lastcmd is not None:
+            self._command_dispatch(sin, sout, self.lastcmd)
+
+    def default(self, sin: IO[str], sout: IO[str], comm: str, *args: str) -> None:
+        sout.write('No such command: {}\n'.format(comm))
+
     @alt_names('? h')
-    def do_help(self, sin: IO[str], sout: IO[str], *args: str) -> None:
+    def do_help(self, sin: IO[str], sout: IO[str], *cmd_names: str) -> None:
+        """Show help for command name
+
+        Any number of command names may be given to help, and the long help text
+        for all of them will be shown"""
         def _h(cmd: str, template: str) -> None:
             func = getattr(self, cmd)
             doc = func.__doc__ if func.__doc__ else ''
@@ -212,7 +270,7 @@ class Monitor:
                       )
             sout.write(
                 template.format(
-                    cmd_name=cmd[3:],
+                    cmd_name=cmd[len(self._cmd_prefix):],
                     arg_list=arg_list,
                     cmd_arg_sep=' ' if arg_list else '',
                     doc=doc,
@@ -220,7 +278,7 @@ class Monitor:
                 ) + '\n'
             )
 
-        if not args:
+        if not cmd_names:
             cmds = sorted(
                     c.method_name for c in self._filter_cmds(with_alts=False)
             )
@@ -228,7 +286,7 @@ class Monitor:
             for cmd in cmds:
                 _h(cmd, self.help_short_template)
         else:
-            for cmd in args:
+            for cmd in cmd_names:
                 _h(self._cmd_prefix + cmd, self.help_template)
 
     @alt_names('p')
@@ -249,7 +307,6 @@ class Monitor:
     @alt_names('w')
     def do_where(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
         """Show stack frames for a task"""
-        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
             sout.write(_format_stack(task))
@@ -264,6 +321,7 @@ class Monitor:
         else:
             sout.write('Unknown signal %s\n' % signame)
 
+    @alt_names('st')
     def do_stacktrace(self, sin: IO[str], sout: IO[str]) -> None:
         """Print a stack trace from the event loop thread"""
         frame = sys._current_frames()[self._event_loop_thread_id]
@@ -271,7 +329,6 @@ class Monitor:
 
     def do_cancel(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
         """Cancel an indicated task"""
-        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(
