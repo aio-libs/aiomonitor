@@ -147,18 +147,18 @@ Adding custom commands
 ----------------------
 
 By employing a custom ``Monitor`` subclass, we can add our own commands to the
-telnet REPL. These are simply methods with names starting with `do_` which take
-at least two arguments: `sin`, and `sout`. These are the in- and out-going
-sockets for the REPL. `sout.write(string)` can be used to print to the REPL.
+telnet REPL. These are simply methods with names starting with `do_`. These methods
+can use the in- and outgoing REPL sockets `self._sin` and `self._sout` for IO,
+like `self._sout.write(string)` to print to the REPL.
 
-Any additional parameters beyond those two will receive their value as a
-string, if they are meant to be used as e.g. numbers, manual casting is needed.
+Any parameters to the method will receive their value as a string, if they are meant
+to be used as e.g. numbers, manual casting is needed.
 
 .. code:: python
 
     class MyMon(Monitor):
         @alt_names('moc own')
-        def do_my_own_command(self, sin, sout, some_argument):
+        def do_my_own_command(self, some_argument):
             """This is a short description
 
             The first line of the doc will be shown in the help overview, this rest
@@ -167,7 +167,7 @@ string, if they are meant to be used as e.g. numbers, manual casting is needed.
             and "?".
             """
             results = self._do_stuff(self._locals['my_app_instance'])
-            sout.write('The results are: {}\n'.format(results))
+            self._sout.write('The results are: {}\n'.format(results))
 
 This custom command will be able to do anything you could do in the python REPL,
 so you can add custom shortcuts here, that would be tedious to do manually in

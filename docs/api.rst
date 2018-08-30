@@ -141,7 +141,7 @@ Reference
 
         Gets run when precmd cannot find a command method to execute.
 
-   .. method:: do_<COMMAND>(sin, sout, ...)
+   .. method:: do_<COMMAND>(...)
 
         Subclasses of the Monitor class can define their own commands available in
         the REPL. See the tutorial :ref:`cust-commands`.
