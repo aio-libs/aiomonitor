@@ -8,12 +8,11 @@ from aiomonitor import Monitor, start_monitor
 from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
 
 
-@pytest.yield_fixture
-def monitor(loop):
+def monitor_common(loop, monitor_cls):
     def make_baz():
         return 'baz'
     locals_ = {'foo': 'bar', 'make_baz': make_baz}
-    mon = Monitor(loop, locals=locals_)
+    mon = monitor_cls(loop, locals=locals_)
     ev = threading.Event()
 
     def f(mon, loop, ev):
@@ -28,6 +27,21 @@ def monitor(loop):
     yield mon
     loop.call_soon_threadsafe(loop.stop)
     thread.join()
+
+
+@pytest.yield_fixture
+def monitor(loop):
+    yield from monitor_common(loop, Monitor)
+
+
+@pytest.yield_fixture
+def monitor_subclass(loop):
+    class MonitorSubclass(Monitor):
+        def do_something(self, sin, sout, arg):
+            sout.write('doing something with ' + arg)
+            sout.flush()
+
+    yield from monitor_common(loop, MonitorSubclass)
 
 
 @pytest.yield_fixture
@@ -94,7 +108,7 @@ def test_basic_monitor(monitor, tn_client, loop):
     assert 'Task' in resp
 
     resp = execute(tn, 'ps 123\n')
-    assert 'Task' in resp
+    assert 'TypeError' in resp
 
     resp = execute(tn, 'signal name\n')
     assert 'Unknown signal name' in resp
@@ -102,10 +116,19 @@ def test_basic_monitor(monitor, tn_client, loop):
     resp = execute(tn, 'stacktrace\n')
     assert 'loop.run_forever()' in resp
 
-    resp = execute(tn, 'wehere 123\n')
+    resp = execute(tn, 'w 123\n')
     assert 'No task 123' in resp
 
+    resp = execute(tn, 'where 123\n')
+    assert 'No task 123' in resp
+
+    resp = execute(tn, 'c 123\n')
+    assert 'Multiple' in resp
+
     resp = execute(tn, 'cancel 123\n')
+    assert 'No task 123' in resp
+
+    resp = execute(tn, 'ca 123\n')
     assert 'No task 123' in resp
 
 
@@ -144,3 +167,9 @@ def test_monitor_with_console(monitor, tn_client):
 
     resp = execute(tn, 'help\n')
     assert 'Commands' in resp
+
+
+def test_custom_monitor_class(monitor_subclass, tn_client):
+    tn = tn_client
+    resp = execute(tn, 'something someargument\n')
+    assert 'doing something with someargument' in resp

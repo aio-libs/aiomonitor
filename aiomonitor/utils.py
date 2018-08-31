@@ -5,7 +5,7 @@ import selectors
 import telnetlib
 import traceback
 from concurrent.futures import Future  # noqa
-from typing import IO, Any, Optional, List, Set  # noqa
+from typing import Callable, IO, Any, Optional, List, Set  # noqa
 
 import aioconsole
 
@@ -108,3 +108,17 @@ def console_proxy(sin: IO[str], sout: IO[str], host: str, port: int) -> None:
                         if not resp:
                             return
                         tn.write(resp.encode('utf-8'))
+
+
+def alt_names(names: str) -> Callable:
+    """Add alternative names to you custom commands.
+
+    `names` is a single string with a space separated list of aliases for the
+    decorated command.
+    """
+    names_split = names.split()
+
+    def decorator(func: Callable) -> Callable:
+        func.alt_names = names_split  # type: ignore
+        return func
+    return decorator

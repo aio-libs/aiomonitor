@@ -63,3 +63,11 @@ target/
 .ropeproject
 tags
 node_modules/
+
+.mypy_cache
+Pipfile
+Pipfile.lock
+.ctags
+.tags
+
+.pytest_cache
