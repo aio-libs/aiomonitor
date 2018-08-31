@@ -53,7 +53,7 @@ class Monitor:
     _empty_result = object()
 
     prompt = 'monitor >>> '
-    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n'  # noqa
+    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n\n'  # noqa
     help_template = '{cmd_name} {arg_list}\n    {doc}\n'
     help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
 
@@ -198,11 +198,12 @@ class Monitor:
             else:
                 type_ = param.annotation
             if str(param).startswith('*'):
-                yield from (type_(arg) for arg in ia)
+                yield from (type_(arg) for arg in ia)  # type: ignore
             else:
-                yield type_(next(ia))
+                yield type_(next(ia))  # type: ignore
         if tuple(ia):
-            raise TypeError('Too many arguments for command {}()'.format(cmd.__name__))
+            msg = 'Too many arguments for command {}()'
+            raise TypeError(msg.format(cmd.__name__))
 
     def precmd(self, comm: str, args: Sequence[str]
                ) -> Tuple[Callable, List[str]]:
@@ -251,15 +252,17 @@ class Monitor:
         if self.lastcmd is not None:
             self._command_dispatch(sin, sout, self.lastcmd)
 
-    def default(self, sin: IO[str], sout: IO[str], comm: str, *args: str) -> None:
+    def default(self, sin: IO[str], sout: IO[str], comm: str, *args: str
+                ) -> None:
         sout.write('No such command: {}\n'.format(comm))
 
     @alt_names('? h')
     def do_help(self, sin: IO[str], sout: IO[str], *cmd_names: str) -> None:
         """Show help for command name
 
-        Any number of command names may be given to help, and the long help text
-        for all of them will be shown"""
+        Any number of command names may be given to help, and the long help
+        text for all of them will be shown.
+        """
         def _h(cmd: str, template: str) -> None:
             func = getattr(self, cmd)
             doc = func.__doc__ if func.__doc__ else ''

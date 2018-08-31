@@ -26,3 +26,10 @@ Any above examples compatible with uvloop_, in fact aiomonitor test suite
 executed against asyncio and uvloop.
 
 .. _uvloop: https://github.com/MagicStack/uvloop
+
+aiohttp Example with additional command
+---------------------------------------
+
+Same as above, but showing a custom command:
+
+.. literalinclude:: ../examples/web_srv_custom_monitor.py

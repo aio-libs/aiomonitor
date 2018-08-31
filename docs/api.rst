@@ -30,6 +30,8 @@ call ``close()`` methods, to join thread and finalize resources:
 It is possible to subclass ``Monitor`` to add custom commands to it. These custom
 commands are methods with names starting with `do_`. See examples.
 
+.. _api-reference:
+
 Reference
 ---------
 
@@ -84,12 +86,67 @@ Reference
         :class:`Monitor` can not be reused. For new monitor, new instance
         should be created.
 
+   .. attribute:: Monitor.prompt
+
+        The string that prompts you to enter a command, defaults to 'monitor >>> '
+
+   .. attribute:: Monitor.intro
+
+        The intro text you see when you connect to the running monitor.
+
+   .. attribute:: Monitor.help_template
+
+        Template string that gets filled in and displayed when `help <COMMAND>` is
+        executed. Available fields to be filled in are:
+        - cmd_name: the commands name
+        - arg_list: the arguments it takes
+        - doc: the docstring of the command method
+        - doc_firstline: first line of the docstring
+
+   .. attribute:: Monitor.help_short_template
+
+        Like `help_template`, but gets called when `help` is executed, once per
+        available command
+
+   .. attribute:: Monitor.lastcmd
+
+        Stores the last entered command line, whether it properly executed or not.
+
+   .. method:: precmd(comm: str, args: Sequence[str]) -> Tuple[do_<COMMAND> function: Callable, args: Sequence[Any]]
+
+        Gets executed by the loop before the command is run, and is acutally
+        resonsible for resolving the entered command string to the method that gets
+        called. If you overwrite this method, you can use self._getcmd(comm) to
+        resolve it. Afterwards the default implementation uses
+        list(self._map_args(cmd_method, args)) to map the given arguments to the
+        methods type annotation.
+
+   .. method:: postcmd(comm: str, args: Sequence[Any], result: Any, exception: Optional[Exception]) -> None
+
+        Runs after the command unconditionally. It takes the entered command string,
+        the arguments (with type annotation applied, see above), the return value of
+        the command, and the exception the command raised.
+        If the command raised an exception, the result will be set to
+        `self._empty_result`; if no exception was raised, it will be set to None.
+        The default implementation does nothing.
+
+   .. method:: emptyline()
+
+        Gets executed when an empty line is entered. A line is considered empty
+        when `line.strip() == ''` is true.
+        By default takes the last run command (stored in `self.lastcmd`) and runs it
+        again, using `self._command_dispatch(self.lastcmd)`
+
+   .. method:: default(comm: str, args: Sequence[str]) -> None
+
+        Gets run when precmd cannot find a command method to execute.
+
    .. method:: do_<COMMAND>(sin, sout, ...)
 
         Subclasses of the Monitor class can define their own commands available in
         the REPL. See the tutorial :ref:`cust-commands`.
 
-.. function:: aiomonitor.utils.alt_names(names)
+.. decorator:: aiomonitor.utils.alt_names(names)
 
         A decorator for the custom commands to define aliases, like `h` and `?`
         are aliases for the `help` command. `names` is a single string with a

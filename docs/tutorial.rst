@@ -80,8 +80,7 @@ Library will respond with list of supported commands:
 * *console* -- switch to python REPL
 * *quit* -- stops telnet session
 
-Additional commands can be added by subclassing ``Monitor``, see
-:ref:`below <cust-commands>`.
+Additional commands can be added by subclassing ``Monitor``, see below :ref:`<cust-commands>`.
 
 
 Python REPL
@@ -176,5 +175,11 @@ the console.
 
 By using the "locals" argument to ``start_monitor`` you can give any of your
 commands access to anything they might need to do their jobs.
+
+Modify the basic behaviour of the command loop
+----------------------------------------------
+
+Like the standard library's cmd_ module, you can customise how the behaviour of the
+Monitor in various ways, see :ref:`api_reference`.
 
 .. _aiohttp: https://github.com/KeepSafe/aiohttp
