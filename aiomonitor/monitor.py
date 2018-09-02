@@ -61,6 +61,9 @@ class Monitor:
     help_template = '{cmd_name} {arg_list}\n    {doc}\n'
     help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
 
+    _sin = None  # type: IO[str]
+    _sout = None  # type: IO[str]
+
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
                  host: str=MONITOR_HOST,
@@ -74,8 +77,6 @@ class Monitor:
         self._console_port = console_port
         self._console_enabled = console_enabled
         self._locals = locals
-        self._sin: IO[str]=None
-        self._sout: IO[str]=None
 
         log.info('Starting aiomonitor at %s:%d', host, port)
 
@@ -152,18 +153,35 @@ class Monitor:
                 except (socket.timeout, OSError):
                     continue
 
-    def _filter_cmds(self, *,
-                     startswith: str='',
-                     with_alts: bool=True) -> Generator[CmdName, None, None]:
-        cmds = (cmd for cmd in dir(self) if cmd.startswith(self._cmd_prefix))
-        for name in cmds:
-            if name.startswith(self._cmd_prefix + startswith):
-                yield CmdName(name[len(self._cmd_prefix):], name)
-            meth = getattr(self, name)
-            if with_alts and hasattr(meth, 'alt_names'):
-                for altname in meth.alt_names:
-                    if altname.startswith(startswith):
-                        yield CmdName(altname, name)
+    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
+        """Main interactive loop of the monitor"""
+        self._sin = sin
+        self._sout = sout
+        tasknum = len(asyncio.Task.all_tasks(loop=self._loop))
+        s = '' if tasknum == 1 else 's'
+        self._sout.write(self.intro.format(tasknum=tasknum, s=s))
+        try:
+            while not self._closing.is_set():
+                self._sout.write(self.prompt)
+                self._sout.flush()
+                try:
+                    user_input = sin.readline().strip()
+                except Exception as e:
+                    msg = 'Could not read from user input due to:\n{}\n'
+                    log.exception(msg)
+                    self._sout.write(msg.format(repr(e)))
+                    self._sout.flush()
+                else:
+                    try:
+                        self._command_dispatch(user_input)
+                    except Exception as e:
+                        msg = 'Unexpected Exception during command execution:\n{}\n'  # noqa
+                        log.exception(msg)
+                        self._sout.write(msg.format(repr(e)))
+                        self._sout.flush()
+        finally:
+            self._sin = None  # type: ignore
+            self._sout = None  # type: ignore
 
     def _command_dispatch(self, user_input: str) -> None:
         if not user_input:
@@ -201,12 +219,26 @@ class Monitor:
         finally:
             self.postcmd(comm, args, result, caught_ex)
 
+    def _filter_cmds(self, *,
+                     startswith: str='',
+                     with_alts: bool=True) -> Generator[CmdName, None, None]:
+        cmds = (cmd for cmd in dir(self) if cmd.startswith(self._cmd_prefix))
+        for name in cmds:
+            if name.startswith(self._cmd_prefix + startswith):
+                yield CmdName(name[len(self._cmd_prefix):], name)
+            meth = getattr(self, name)
+            if with_alts and hasattr(meth, 'alt_names'):
+                for altname in meth.alt_names:
+                    if altname.startswith(startswith):
+                        yield CmdName(altname, name)
+
     def map_args(self, cmd: Callable, args: Sequence[str]
-                  ) -> Generator[Any, None, None]:
+                 ) -> Generator[Any, None, None]:
         params = inspect.signature(cmd).parameters.values()
         ia = iter(args)
         for param in params:
-            if param.annotation is param.empty or not callable(param.annotation):
+            if (param.annotation is param.empty or
+                    not callable(param.annotation)):
                 type_ = lambda x: x  # noqa
             else:
                 type_ = param.annotation
@@ -245,36 +277,6 @@ class Monitor:
             raise MultipleCommandException(allcmds)
         return getattr(self, allcmds[0].method_name)  # type: ignore
 
-    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
-        """Main interactive loop of the monitor"""
-        self._sin = sin
-        self._sout = sout
-        tasknum = len(asyncio.Task.all_tasks(loop=self._loop))
-        s = '' if tasknum == 1 else 's'
-        self._sout.write(self.intro.format(tasknum=tasknum, s=s))
-        try:
-            while not self._closing.is_set():
-                self._sout.write(self.prompt)
-                self._sout.flush()
-                try:
-                    user_input = sin.readline().strip()
-                except Exception:
-                    msg = 'Could not read from user input due to:\n{}\n'
-                    log.exception(msg)
-                    self._sout.write(msg.format(repr(e)))
-                    self._sout.flush()
-                else:
-                    try:
-                        self._command_dispatch(user_input)
-                    except Exception as e:
-                        msg = 'Unexpected Exception during command execution:\n{}\n'  # noqa
-                        log.exception(msg)
-                        self._sout.write(msg.format(repr(e)))
-                        self._sout.flush()
-        finally:
-            self._sin = None
-            self._sout = None
-
     def emptyline(self) -> None:
         if self.lastcmd is not None:
             self._command_dispatch(self.lastcmd)
@@ -297,7 +299,8 @@ class Monitor:
             else:
                 doc = func.__doc__ if func.__doc__ else ''
                 doc_firstline = doc.split('\n', maxsplit=1)[0]
-                arg_list = ' '.join(p for p in inspect.signature(func).parameters)
+                arg_list = ' '.join(
+                        p for p in inspect.signature(func).parameters)
                 self._sout.write(
                     template.format(
                         cmd_name=cmd[len(self._cmd_prefix):],

@@ -92,7 +92,10 @@ Reference
 
    .. attribute:: Monitor.intro
 
-        The intro text you see when you connect to the running monitor.
+        Template for the intro text you see when you connect to the running monitor.
+        Available fields to be filled in are:
+        - tasknum: Number of tasks in the event loop
+        - s: 's' if tasknum is >1 or 0
 
    .. attribute:: Monitor.help_template
 
