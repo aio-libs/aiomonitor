@@ -44,6 +44,10 @@ class MultipleCommandException(CommandException):
         super().__init__()
 
 
+class ArgumentMappingException(CommandException):
+    pass
+
+
 CmdName = NamedTuple('CmdName', [('cmd_name', str), ('method_name', str)])
 
 
@@ -174,49 +178,66 @@ class Monitor:
             result = self._empty_result
             caught_ex = e  # type: Optional[Exception]
             self.default(comm, *args)
+        except MultipleCommandException as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'Ambiguous command "{}"'.format(comm)
+            self._sout.write(msg + '\n')
+        except ArgumentMappingException as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'An argument to {} could not be converted according to the methods type annotation because of this error:\n{}\n'  # noqa
+            self._sout.write(msg.format(e, repr(e.__cause__)))
+        except TypeError as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'Probably incorrect number of arguments to command method:\n{}\n'  # noqa
+            self._sout.write(msg.format(repr(e)))
         except Exception as e:
             result = self._empty_result
-            msg = 'Exception occured during command "{}": {}'
-            msg = msg.format(user_input, repr(e))
-            sout.write(msg + '\n')
-            log.exception(msg)
             caught_ex = e
         else:
             caught_ex = None
         finally:
             self.postcmd(comm, args, result, caught_ex)
 
-    def _map_args(self, cmd: Callable, args: Sequence[str]
+    def map_args(self, cmd: Callable, args: Sequence[str]
                   ) -> Generator[Any, None, None]:
-        ps = inspect.signature(cmd).parameters
+        params = inspect.signature(cmd).parameters.values()
         ia = iter(args)
-        params = [p for p in ps.values() if p.name not in ('sin', 'sout')]
         for param in params:
-            if param.annotation is param.empty:
+            if param.annotation is param.empty or not callable(param.annotation):
                 type_ = lambda x: x  # noqa
             else:
                 type_ = param.annotation
-            if str(param).startswith('*'):
-                yield from (type_(arg) for arg in ia)  # type: ignore
-            else:
-                yield type_(next(ia))  # type: ignore
+            try:
+                if str(param).startswith('*'):
+                    yield from (type_(arg) for arg in ia)  # type: ignore
+                else:
+                    yield type_(next(ia))  # type: ignore
+            except StopIteration:
+                pass
+            except Exception as e:
+                raise ArgumentMappingException(cmd.__name__) from e
         if tuple(ia):
             msg = 'Too many arguments for command {}()'
             raise TypeError(msg.format(cmd.__name__))
 
     def precmd(self, comm: str, args: Sequence[str]
                ) -> Tuple[Callable, List[str]]:
-        cmd = self._getcmd(comm)
-        return cmd, list(self._map_args(cmd, args))
+        cmd = self.getcmd(comm)
+        return cmd, list(self.map_args(cmd, args))
 
     def postcmd(self,
                 comm: str,
                 args: Sequence[str],
                 result: Any,
                 exception: Optional[Exception]=None) -> None:
-        pass
+        if (exception is not None
+                and not isinstance(exception, (CommandException, TypeError))):
+            raise exception
 
-    def _getcmd(self, comm: str) -> Callable:
+    def getcmd(self, comm: str) -> Callable:
         allcmds = sorted(self._filter_cmds(startswith=comm))
         if not allcmds:
             raise UnknownCommandException(comm)
@@ -238,17 +259,18 @@ class Monitor:
                 try:
                     user_input = sin.readline().strip()
                 except Exception:
-                    msg = 'Could not read from user input'
-                    self._sout.write(msg + '\n')
+                    msg = 'Could not read from user input due to:\n{}\n'
                     log.exception(msg)
+                    self._sout.write(msg.format(repr(e)))
+                    self._sout.flush()
                 else:
                     try:
                         self._command_dispatch(user_input)
-                    except MultipleCommandException as e:
-                        cmds = ', '.join(i.cmd_name for i in e.cmds)
-                        self._sout.write('Multiple possible commands: {}\n'.format(cmds))
-                    except UnknownCommandException:
-                        self._sout.write('Unknown command: {}\n'.format(user_input))
+                    except Exception as e:
+                        msg = 'Unexpected Exception during command execution:\n{}\n'  # noqa
+                        log.exception(msg)
+                        self._sout.write(msg.format(repr(e)))
+                        self._sout.flush()
         finally:
             self._sin = None
             self._sout = None
@@ -268,19 +290,23 @@ class Monitor:
         text for all of them will be shown.
         """
         def _h(cmd: str, template: str) -> None:
-            func = getattr(self, cmd)
-            doc = func.__doc__ if func.__doc__ else ''
-            doc_firstline = doc.split('\n', maxsplit=1)[0]
-            arg_list = ' '.join(p for p in inspect.signature(func).parameters)
-            self._sout.write(
-                template.format(
-                    cmd_name=cmd[len(self._cmd_prefix):],
-                    arg_list=arg_list,
-                    cmd_arg_sep=' ' if arg_list else '',
-                    doc=doc,
-                    doc_firstline=doc_firstline
-                ) + '\n'
-            )
+            try:
+                func = getattr(self, cmd)
+            except AttributeError:
+                self._sout.write('No such command: {}\n'.format(cmd))
+            else:
+                doc = func.__doc__ if func.__doc__ else ''
+                doc_firstline = doc.split('\n', maxsplit=1)[0]
+                arg_list = ' '.join(p for p in inspect.signature(func).parameters)
+                self._sout.write(
+                    template.format(
+                        cmd_name=cmd[len(self._cmd_prefix):],
+                        arg_list=arg_list,
+                        cmd_arg_sep=' ' if arg_list else '',
+                        doc=doc,
+                        doc_firstline=doc_firstline
+                    ) + '\n'
+                )
 
         if not cmd_names:
             cmds = sorted(
