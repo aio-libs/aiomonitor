@@ -1,7 +1,7 @@
 -e .
 aioconsole==0.1.10
 aiohttp==3.4.2
-attrs==18.1.0
+attrs==18.2.0
 docutils==0.14
 flake8-bugbear==18.2.0
 flake8-mypy==17.8.0
