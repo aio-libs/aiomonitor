@@ -12,6 +12,7 @@ from types import TracebackType
 from typing import (IO, Dict, Any, Callable, Optional, Tuple, Generator,  # noqa
                     List, Type, TypeVar, NamedTuple, get_type_hints,  # noqa
                     cast, Sequence)  # noqa
+from contextlib import suppress
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
@@ -239,16 +240,24 @@ class Monitor:
         for param in params:
             if (param.annotation is param.empty or
                     not callable(param.annotation)):
-                type_ = lambda x: x  # noqa
+                type_: Callable[[Any], Any] = lambda x: x  # noqa
             else:
                 type_ = param.annotation
             try:
                 if str(param).startswith('*'):
-                    yield from (type_(arg) for arg in ia)  # type: ignore
+                    for arg in ia:
+                        yield type_(arg)
                 else:
-                    yield type_(next(ia))  # type: ignore
-            except StopIteration:
-                pass
+                    # We iterate over the functions' annotation for its
+                    # parameters and also manually over the given arguments
+                    # (they can have arbitrarily different lengths).
+                    # Here we could be in the situation where a further
+                    # parameter exists, but no argument is given to it.
+                    # Since we might have a method with optional, non-star
+                    # arguments, we must ignore a StopIteration from this call
+                    # to next.
+                    with suppress(StopIteration):
+                        yield type_(next(ia))
             except Exception as e:
                 raise ArgumentMappingException(cmd.__name__) from e
         if tuple(ia):
