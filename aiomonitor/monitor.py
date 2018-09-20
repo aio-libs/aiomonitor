@@ -10,7 +10,9 @@ import traceback
 from textwrap import wrap
 from types import TracebackType
 from typing import (IO, Dict, Any, Callable, Optional, Tuple, Generator,  # noqa
-                    List, Type, TypeVar, NamedTuple, get_type_hints, cast)  # noqa
+                    List, Type, TypeVar, NamedTuple, get_type_hints,  # noqa
+                    cast, Sequence)  # noqa
+from contextlib import suppress
 from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
@@ -43,16 +45,25 @@ class MultipleCommandException(CommandException):
         super().__init__()
 
 
+class ArgumentMappingException(CommandException):
+    pass
+
+
 CmdName = NamedTuple('CmdName', [('cmd_name', str), ('method_name', str)])
 
 
 class Monitor:
     _event_loop_thread_id = None  # type: int
     _cmd_prefix = 'do_'
+    _empty_result = object()
 
     prompt = 'monitor >>> '
+    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n\n'  # noqa
     help_template = '{cmd_name} {arg_list}\n    {doc}\n'
     help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
+
+    _sin = None  # type: IO[str]
+    _sout = None  # type: IO[str]
 
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
@@ -76,6 +87,8 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
+
+        self.lastcmd = None  # type: Optional[str]
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -141,6 +154,72 @@ class Monitor:
                 except (socket.timeout, OSError):
                     continue
 
+    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
+        """Main interactive loop of the monitor"""
+        self._sin = sin
+        self._sout = sout
+        tasknum = len(asyncio.Task.all_tasks(loop=self._loop))
+        s = '' if tasknum == 1 else 's'
+        self._sout.write(self.intro.format(tasknum=tasknum, s=s))
+        try:
+            while not self._closing.is_set():
+                self._sout.write(self.prompt)
+                self._sout.flush()
+                try:
+                    user_input = sin.readline().strip()
+                except Exception as e:
+                    msg = 'Could not read from user input due to:\n{}\n'
+                    log.exception(msg)
+                    self._sout.write(msg.format(repr(e)))
+                    self._sout.flush()
+                else:
+                    try:
+                        self._command_dispatch(user_input)
+                    except Exception as e:
+                        msg = 'Unexpected Exception during command execution:\n{}\n'  # noqa
+                        log.exception(msg)
+                        self._sout.write(msg.format(repr(e)))
+                        self._sout.flush()
+        finally:
+            self._sin = None  # type: ignore
+            self._sout = None  # type: ignore
+
+    def _command_dispatch(self, user_input: str) -> None:
+        if not user_input:
+            return self.emptyline()
+
+        self.lastcmd = user_input
+        comm, *args = user_input.split(' ')
+        try:
+            cmd, args = self.precmd(comm, args)
+            result = cmd(*args)
+        except UnknownCommandException as e:
+            result = self._empty_result
+            caught_ex = e  # type: Optional[Exception]
+            self.default(comm, *args)
+        except MultipleCommandException as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'Ambiguous command "{}"'.format(comm)
+            self._sout.write(msg + '\n')
+        except ArgumentMappingException as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'An argument to {} could not be converted according to the methods type annotation because of this error:\n{}\n'  # noqa
+            self._sout.write(msg.format(e, repr(e.__cause__)))
+        except TypeError as e:
+            result = self._empty_result
+            caught_ex = e
+            msg = 'Probably incorrect number of arguments to command method:\n{}\n'  # noqa
+            self._sout.write(msg.format(repr(e)))
+        except Exception as e:
+            result = self._empty_result
+            caught_ex = e
+        else:
+            caught_ex = None
+        finally:
+            self.postcmd(comm, args, result, caught_ex)
+
     def _filter_cmds(self, *,
                      startswith: str='',
                      with_alts: bool=True) -> Generator[CmdName, None, None]:
@@ -154,85 +233,106 @@ class Monitor:
                     if altname.startswith(startswith):
                         yield CmdName(altname, name)
 
-    def _command_dispatch(self,
-                          sin: IO[str],
-                          sout: IO[str],
-                          user_input: str) -> None:
-        comm, *args = user_input.split(' ')
-        cmd = self._getcmd(comm)
-        try:
-            cmd(sin, sout, *args)
-        except Exception as e:
-            msg = 'Exception occured during command "{}": {}'
-            msg = msg.format(user_input, repr(e))
-            sout.write(msg + '\n')
-            log.exception(msg)
+    def map_args(self, cmd: Callable, args: Sequence[str]
+                 ) -> Generator[Any, None, None]:
+        params = inspect.signature(cmd).parameters.values()
+        ia = iter(args)
+        for param in params:
+            if (param.annotation is param.empty or
+                    not callable(param.annotation)):
+                type_: Callable[[Any], Any] = lambda x: x  # noqa
+            else:
+                type_ = param.annotation
+            try:
+                if str(param).startswith('*'):
+                    for arg in ia:
+                        yield type_(arg)
+                else:
+                    # We iterate over the functions' annotation for its
+                    # parameters and also manually over the given arguments
+                    # (they can have arbitrarily different lengths).
+                    # Here we could be in the situation where a further
+                    # parameter exists, but no argument is given to it.
+                    # Since we might have a method with optional, non-star
+                    # arguments, we must ignore a StopIteration from this call
+                    # to next.
+                    with suppress(StopIteration):
+                        yield type_(next(ia))
+            except Exception as e:
+                raise ArgumentMappingException(cmd.__name__) from e
+        if tuple(ia):
+            msg = 'Too many arguments for command {}()'
+            raise TypeError(msg.format(cmd.__name__))
 
-    def _getcmd(self, comm: str) -> Callable:
+    def precmd(self, comm: str, args: Sequence[str]
+               ) -> Tuple[Callable, List[str]]:
+        cmd = self.getcmd(comm)
+        return cmd, list(self.map_args(cmd, args))
+
+    def postcmd(self,
+                comm: str,
+                args: Sequence[str],
+                result: Any,
+                exception: Optional[Exception]=None) -> None:
+        if (exception is not None
+                and not isinstance(exception, (CommandException, TypeError))):
+            raise exception
+
+    def getcmd(self, comm: str) -> Callable:
         allcmds = sorted(self._filter_cmds(startswith=comm))
         if not allcmds:
-            raise UnknownCommandException()
+            raise UnknownCommandException(comm)
         if len(allcmds) > 1 and allcmds[0].cmd_name != comm:
             raise MultipleCommandException(allcmds)
         return getattr(self, allcmds[0].method_name)  # type: ignore
 
-    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
-        """Main interactive loop of the monitor
-        """
-        (sout.write('\nAsyncio Monitor: %d tasks running\n' %
-                    len(asyncio.Task.all_tasks(loop=self._loop))))
-        sout.write('Type help for commands\n')
-        while not self._closing.is_set():
-            sout.write(self.prompt)
-            sout.flush()
-            try:
-                user_input = sin.readline().strip()
-            except Exception:
-                msg = 'Could not read from user input'
-                sout.write(msg + '\n')
-                log.exception(msg)
-            else:
-                try:
-                    self._command_dispatch(sin, sout, user_input)
-                except MultipleCommandException as e:
-                    cmds = ', '.join(i.cmd_name for i in e.cmds)
-                    sout.write('Multiple possible commands: {}\n'.format(cmds))
-                except UnknownCommandException:
-                    sout.write('Unknown command: {}\n'.format(user_input))
+    def emptyline(self) -> None:
+        if self.lastcmd is not None:
+            self._command_dispatch(self.lastcmd)
+
+    def default(self, comm: str, *args: str) -> None:
+        self._sout.write('No such command: {}\n'.format(comm))
 
     @alt_names('? h')
-    def do_help(self, sin: IO[str], sout: IO[str], *args: str) -> None:
-        def _h(cmd: str, template: str) -> None:
-            func = getattr(self, cmd)
-            doc = func.__doc__ if func.__doc__ else ''
-            doc_firstline = doc.split('\n', maxsplit=1)[0]
-            arg_list = ' '.join(
-                        p for p in inspect.signature(func).parameters
-                        if p not in ('sin', 'sout')
-                      )
-            sout.write(
-                template.format(
-                    cmd_name=cmd[3:],
-                    arg_list=arg_list,
-                    cmd_arg_sep=' ' if arg_list else '',
-                    doc=doc,
-                    doc_firstline=doc_firstline
-                ) + '\n'
-            )
+    def do_help(self, *cmd_names: str) -> None:
+        """Show help for command name
 
-        if not args:
+        Any number of command names may be given to help, and the long help
+        text for all of them will be shown.
+        """
+        def _h(cmd: str, template: str) -> None:
+            try:
+                func = getattr(self, cmd)
+            except AttributeError:
+                self._sout.write('No such command: {}\n'.format(cmd))
+            else:
+                doc = func.__doc__ if func.__doc__ else ''
+                doc_firstline = doc.split('\n', maxsplit=1)[0]
+                arg_list = ' '.join(
+                        p for p in inspect.signature(func).parameters)
+                self._sout.write(
+                    template.format(
+                        cmd_name=cmd[len(self._cmd_prefix):],
+                        arg_list=arg_list,
+                        cmd_arg_sep=' ' if arg_list else '',
+                        doc=doc,
+                        doc_firstline=doc_firstline
+                    ) + '\n'
+                )
+
+        if not cmd_names:
             cmds = sorted(
                     c.method_name for c in self._filter_cmds(with_alts=False)
             )
-            sout.write('Available Commands are:\n\n')
+            self._sout.write('Available Commands are:\n\n')
             for cmd in cmds:
                 _h(cmd, self.help_short_template)
         else:
-            for cmd in args:
+            for cmd in cmd_names:
                 _h(self._cmd_prefix + cmd, self.help_template)
 
     @alt_names('p')
-    def do_ps(self, sin: IO[str], sout: IO[str]) -> None:
+    def do_ps(self) -> None:
         """Show task table"""
         headers = ('Task ID', 'State', 'Task')
         table_data = [headers]
@@ -242,60 +342,59 @@ class Monitor:
                 t = '\n'.join(wrap(str(task), 80))
                 table_data.append((taskid, task._state, t))
         table = AsciiTable(table_data)
-        sout.write(table.table)
-        sout.write('\n')
-        sout.flush()
+        self._sout.write(table.table)
+        self._sout.write('\n')
+        self._sout.flush()
 
     @alt_names('w')
-    def do_where(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
+    def do_where(self, taskid: int) -> None:
         """Show stack frames for a task"""
-        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
-            sout.write(_format_stack(task))
-            sout.write('\n')
+            self._sout.write(_format_stack(task))
+            self._sout.write('\n')
         else:
-            sout.write('No task %d\n' % taskid)
+            self._sout.write('No task %d\n' % taskid)
 
-    def do_signal(self, sin: IO[str], sout: IO[str], signame: str) -> None:
+    def do_signal(self, signame: str) -> None:
         """Send a Unix signal"""
         if hasattr(signal, signame):
             os.kill(os.getpid(), getattr(signal, signame))
         else:
-            sout.write('Unknown signal %s\n' % signame)
+            self._sout.write('Unknown signal %s\n' % signame)
 
-    def do_stacktrace(self, sin: IO[str], sout: IO[str]) -> None:
+    @alt_names('st')
+    def do_stacktrace(self) -> None:
         """Print a stack trace from the event loop thread"""
         frame = sys._current_frames()[self._event_loop_thread_id]
-        traceback.print_stack(frame, file=sout)
+        traceback.print_stack(frame, file=self._sout)
 
-    def do_cancel(self, sin: IO[str], sout: IO[str], taskid: int) -> None:
+    def do_cancel(self, taskid: int) -> None:
         """Cancel an indicated task"""
-        taskid = int(taskid)
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(
                 cancel_task(task), loop=self._loop)
             fut.result(timeout=3)
-            sout.write('Cancel task %d\n' % taskid)
+            self._sout.write('Cancel task %d\n' % taskid)
         else:
-            sout.write('No task %d\n' % taskid)
+            self._sout.write('No task %d\n' % taskid)
 
     @alt_names('quit q')
-    def do_exit(self, sin: IO[str], sout: IO[str]) -> None:
+    def do_exit(self) -> None:
         """Leave the monitor"""
-        sout.write('Leaving monitor. Hit Ctrl-C to exit\n')
-        sout.flush()
+        self._sout.write('Leaving monitor. Hit Ctrl-C to exit\n')
+        self._sout.flush()
 
-    def do_console(self, sin: IO[str], sout: IO[str]) -> None:
+    def do_console(self) -> None:
         """Switch to async Python REPL"""
         if not self._console_enabled:
-            sout.write('Python console disabled for this sessiong\n')
-            sout.flush()
+            self._sout.write('Python console disabled for this sessiong\n')
+            self._sout.flush()
 
         if self._console_future is not None:
             self._console_future.result()
-        console_proxy(sin, sout, self._host, self._console_port)
+        console_proxy(self._sin, self._sout, self._host, self._console_port)
 
 
 def start_monitor(loop: Loop, *,

@@ -16,19 +16,12 @@ def _get_stack(task: asyncio.Task) -> List[Any]:
     frames = []  # type: List[Any]
     coro = task._coro  # type: ignore
     while coro:
-        if hasattr(coro, 'cr_frame') or hasattr(coro, 'gi_frame'):
-            f = coro.cr_frame if hasattr(coro, 'cr_frame') else coro.gi_frame
-        else:
-            f = None
+        f = getattr(coro, 'cr_frame', getattr(coro, 'gi_frame', None))
 
         if f is not None:
             frames.append(f)
 
-        if hasattr(coro, 'cr_await') or hasattr(coro, 'gi_yieldfrom'):
-            coro = (coro.cr_await if hasattr(coro, 'cr_await')
-                    else coro.gi_yieldfrom)
-        else:
-            coro = None
+        coro = getattr(coro, 'cr_await', getattr(coro, 'gi_yieldfrom', None))
     return frames
 
 

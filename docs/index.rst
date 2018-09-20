@@ -24,11 +24,14 @@ Features
 --------
  * Telnet server that provides insides of operation of you app
 
- * Supported several commands that helps to list, cancel and trace runnin
+ * Supportes several commands that helps to list, cancel and trace running
    asyncio_ tasks
 
- * Provided python REPL capabilities, that executed in running event loop,
-   helps to inspect state of your ``asyncio`` application
+ * Provides python REPL capabilities, that is executed in the running event loop;
+   helps to inspect state of your ``asyncio`` application.
+
+ * Extensible with you own commands, in the style of the standard library's cmd_
+   module
 
 Contents
 --------
@@ -54,6 +57,7 @@ Indices and tables
 .. _Python: https://www.python.org
 .. _aioconsole: https://github.com/vxgmichel/aioconsole
 .. _aiohttp: https://github.com/KeepSafe/aiohttp
-.. _asyncio: http://docs.python.org/3.5/library/asyncio.html
+.. _asyncio: http://docs.python.org/3/library/asyncio.html
 .. _curio: https://github.com/dabeaz/curio
 .. _uvloop: https://github.com/MagicStack/uvloop
+.. _cmd: http://docs.python.org/3/library/cmd.html

@@ -37,9 +37,9 @@ def monitor(loop):
 @pytest.yield_fixture
 def monitor_subclass(loop):
     class MonitorSubclass(Monitor):
-        def do_something(self, sin, sout, arg):
-            sout.write('doing something with ' + arg)
-            sout.flush()
+        def do_something(self, arg):
+            self._sout.write('doing something with ' + arg)
+            self._sout.flush()
 
     yield from monitor_common(loop, MonitorSubclass)
 
@@ -102,7 +102,7 @@ def test_basic_monitor(monitor, tn_client, loop):
     assert 'Commands' in resp
 
     resp = execute(tn, 'xxx\n')
-    assert 'Unknown command' in resp
+    assert 'No such command' in resp
 
     resp = execute(tn, 'ps\n')
     assert 'Task' in resp
@@ -123,7 +123,7 @@ def test_basic_monitor(monitor, tn_client, loop):
     assert 'No task 123' in resp
 
     resp = execute(tn, 'c 123\n')
-    assert 'Multiple' in resp
+    assert 'Ambiguous command' in resp
 
     resp = execute(tn, 'cancel 123\n')
     assert 'No task 123' in resp
