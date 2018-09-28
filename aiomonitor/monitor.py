@@ -54,16 +54,6 @@ CmdName = NamedTuple('CmdName', [('cmd_name', str), ('method_name', str)])
 
 class Monitor:
     _event_loop_thread_id = None  # type: int
-    _cmd_prefix = 'do_'
-    _empty_result = object()
-
-    prompt = 'monitor >>> '
-    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n\n'  # noqa
-    help_template = '{cmd_name} {arg_list}\n    {doc}\n'
-    help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
-
-    _sin = None  # type: IO[str]
-    _sout = None  # type: IO[str]
 
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
@@ -87,8 +77,6 @@ class Monitor:
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
-
-        self.lastcmd = None  # type: Optional[str]
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -133,10 +121,8 @@ class Monitor:
     def _server(self) -> None:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
+        with suppress(AttributeError):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        except AttributeError:
-            pass
 
         # set the timeout to prevent the server loop from
         # blocking indefinitaly on sock.accept()
@@ -147,12 +133,40 @@ class Monitor:
             while not self._closing.is_set():
                 try:
                     client, addr = sock.accept()
-                    with client:
-                        sout = client.makefile('w', encoding='utf-8')
-                        sin = client.makefile('r', encoding='utf-8')
-                        self._interactive_loop(sin, sout)
-                except (socket.timeout, OSError):
+                    threading.Thread(target=CLI(client, addr, self)).start()
+                except OSError:
                     continue
+
+
+class CLI:
+    prompt = 'monitor >>> '
+    intro = '\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n\n'  # noqa
+    help_template = '{cmd_name} {arg_list}\n    {doc}\n'
+    help_short_template = '    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}'  # noqa
+
+    _cmd_prefix = 'do_'
+    _empty_result = object()
+    _sin = None  # type: IO[str]
+    _sout = None  # type: IO[str]
+
+    def __init__(self,
+                 client: socket.socket,
+                 addr: Tuple[str, int],
+                 monitor: Monitor
+                 ) -> None:
+        self._client = client
+        self._addr = addr
+        self._monitor = monitor
+        self._loop = monitor._loop
+        self._closing = monitor._closing
+
+        self.lastcmd = None  # type: Optional[str]
+
+    def __call__(self) -> None:
+        with self._client:
+            sout = self._client.makefile('w', encoding='utf-8')
+            sin = self._client.makefile('r', encoding='utf-8')
+            self._interactive_loop(sin, sout)
 
     def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
         """Main interactive loop of the monitor"""
@@ -180,6 +194,8 @@ class Monitor:
                         log.exception(msg)
                         self._sout.write(msg.format(repr(e)))
                         self._sout.flush()
+        except BrokenPipeError:
+            pass
         finally:
             self._sin = None  # type: ignore
             self._sout = None  # type: ignore
@@ -366,7 +382,7 @@ class Monitor:
     @alt_names('st')
     def do_stacktrace(self) -> None:
         """Print a stack trace from the event loop thread"""
-        frame = sys._current_frames()[self._event_loop_thread_id]
+        frame = sys._current_frames()[self._monitor._event_loop_thread_id]
         traceback.print_stack(frame, file=self._sout)
 
     def do_cancel(self, taskid: int) -> None:
@@ -388,13 +404,18 @@ class Monitor:
 
     def do_console(self) -> None:
         """Switch to async Python REPL"""
-        if not self._console_enabled:
+        if not self._monitor._console_enabled:
             self._sout.write('Python console disabled for this sessiong\n')
             self._sout.flush()
 
-        if self._console_future is not None:
-            self._console_future.result()
-        console_proxy(self._sin, self._sout, self._host, self._console_port)
+        if self._monitor._console_future is not None:
+            self._monitor._console_future.result()
+        console_proxy(
+            self._sin,
+            self._sout,
+            self._monitor._host,
+            self._monitor._console_port
+        )
 
 
 def start_monitor(loop: Loop, *,
