@@ -12,6 +12,9 @@ import aioconsole
 from .mypy_types import Loop, OptLocals
 
 
+Server = asyncio.AbstractServer  # noqa
+
+
 def _get_stack(task: asyncio.Task) -> List[Any]:
     frames = []  # type: List[Any]
     coro = task._coro  # type: ignore
@@ -60,15 +63,25 @@ async def cancel_task(task: asyncio.Task) -> None:
 def init_console_server(host: str,
                         port: int,
                         locals: OptLocals,
-                        loop: Loop) -> Future:
+                        loop: Loop) -> Server:
     def _factory(streams: Any=None) -> aioconsole.AsynchronousConsole:
         return aioconsole.AsynchronousConsole(
             locals=locals, streams=streams, loop=loop)
 
     coro = aioconsole.start_interactive_server(
         host=host, port=port, factory=_factory, loop=loop)
-    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
-    return console_future
+    server = loop.run_until_complete(coro)  # type: Server
+    return server
+
+
+async def _close_server(server: Server) -> None:
+    server.close()
+    await server.wait_closed()
+
+
+def close_console_server(server: Server, loop: Loop) -> None:
+    coro = _close_server(server)
+    loop.run_until_complete(coro)
 
 
 _TelnetSelector = getattr(

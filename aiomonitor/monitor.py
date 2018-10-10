@@ -18,7 +18,7 @@ from concurrent.futures import Future  # noqa
 from terminaltables import AsciiTable
 
 from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
-                    init_console_server, alt_names)
+                    init_console_server, close_console_server, alt_names)
 from .mypy_types import Loop, OptLocals
 
 
@@ -29,6 +29,9 @@ log = logging.getLogger(__name__)
 MONITOR_HOST = '127.0.0.1'
 MONITOR_PORT = 50101
 CONSOLE_PORT = 50102
+
+
+Server = asyncio.AbstractServer  # noqa
 
 
 class CommandException(Exception):
@@ -86,7 +89,7 @@ class Monitor:
         self._closing = threading.Event()
         self._closed = False
         self._started = False
-        self._console_future = None  # type: Optional[Future[Any]]
+        self._console_server = None  # type: Optional[Server]
 
         self.lastcmd = None  # type: Optional[str]
 
@@ -105,7 +108,7 @@ class Monitor:
         self._ui_thread.start()
         if self._console_enabled:
             log.info('Starting console at %s:%d', h, p)
-            self._console_future = init_console_server(
+            self._console_server = init_console_server(
                 self._host, self._console_port, self._locals, self._loop)
 
     @property
@@ -126,8 +129,8 @@ class Monitor:
         if not self._closed:
             self._closing.set()
             self._ui_thread.join()
-            if self._console_future is not None:
-                self._console_future.result(timeout=15)
+            if self._console_server is not None:
+                close_console_server(self._console_server, self._loop)
             self._closed = True
 
     def _server(self) -> None:
@@ -392,8 +395,6 @@ class Monitor:
             self._sout.write('Python console disabled for this sessiong\n')
             self._sout.flush()
 
-        if self._console_future is not None:
-            self._console_future.result()
         console_proxy(self._sin, self._sout, self._host, self._console_port)
 
 
