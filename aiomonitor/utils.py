@@ -70,7 +70,7 @@ def init_console_server(host: str,
 
     coro = aioconsole.start_interactive_server(
         host=host, port=port, factory=_factory, loop=loop)
-    server = loop.run_until_complete(coro)
+    server = loop.run_until_complete(coro)  # type: Server
     return server
 
 
