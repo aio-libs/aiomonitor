@@ -30,12 +30,8 @@ def monitor_common(loop, monitor_cls):
 
 
 @pytest.yield_fixture
-def monitor(loop):
-    yield from monitor_common(loop, Monitor)
+def monitor(request, loop):
 
-
-@pytest.yield_fixture
-def monitor_subclass(loop):
     class MonitorSubclass(Monitor):
         def do_something(self, arg):
             self._sout.write('doing something with ' + arg)
@@ -169,7 +165,7 @@ def test_monitor_with_console(monitor, tn_client):
     assert 'Commands' in resp
 
 
-def test_custom_monitor_class(monitor_subclass, tn_client):
+def test_custom_monitor_class(monitor, tn_client):
     tn = tn_client
     resp = execute(tn, 'something someargument\n')
     assert 'doing something with someargument' in resp
