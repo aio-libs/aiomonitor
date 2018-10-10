@@ -155,9 +155,9 @@ def test_monitor_with_console(monitor, tn_client):
     execute(tn, 'await asyncio.sleep(0, loop=loop)\n')
 
     resp = execute(tn, 'foo\n')
-    assert ' bar\n>>>' == resp
+    assert " 'bar'\n>>>" == resp
     resp = execute(tn, 'make_baz()\n')
-    assert ' baz\n>>>' == resp
+    assert " 'baz'\n>>>" == resp
 
     execute(tn, 'exit()\n')
 
