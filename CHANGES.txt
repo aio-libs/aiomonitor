@@ -1,10 +1,16 @@
 CHANGES
 =======
 
-0.4.0 (YYYY-MM-DD)
+0.4.0 (2019-01-04)
 ------------------
 
 * Added support for custom commands #133 (thanks @yggdr)
+
+* Fixed OptLocals being passed as the default value for "locals" #122 (thanks @agronholm)
+
+* Added an API inspired by the standard library's cmd module #135 (thanks @yggdr)
+
+* Correctly report the port running aioconsole #124 (thanks @bmerry)
 
 
 0.3.1 (2018-07-03)
