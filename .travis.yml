@@ -1,10 +1,16 @@
-language: python
 sudo: required
+dist: xenial
+language: python
 
 
 python:
   - '3.5'
   - '3.6'
+
+matrix:
+  include:
+    - python: '3.7'
+      env: MYPY="y"
 
 install:
     - pip install --upgrade setuptools
@@ -12,6 +18,22 @@ install:
     - pip install -r requirements-dev.txt
 
 script:
-    make cov
+  - |
+      if [ "$MYPY" = "y" ]; then
+          make mypy
+      fi;
+  - make cov
+
 after_success:
     codecov
+
+deploy:
+  provider: pypi
+  user: aio-libs-bot
+  password:
+    secure: "Wd5klsrMmt61+cNGOz3Gd/eh33knLS3oAaf1Xg31Tdtc/yL/oPVb9MyMFZdMxPJBJWyyrtJVF9G5vwSHTcJStaxHF6e2kIgVJbH4uBl/uFxct2Zu66WMlzfCPmjXhRZBNXnjlxa16y1YH9AmIhoSC32HezVOwqxGWm35Lgxn5fpTMG3rE4dYGQ4eAPVM1/2tM3D0BU3sSRvr0xRfqsbEGZojVKOUN2ywXyPpYqVSD3I7AQm7rz1ldYO/VyFCd4gjPhj3fcKp6QW/DGdB/loKIGq7oeeWJ/5YaUme+jZDNBv6/W2gxyIzdbHWkpQ/ZSR4GC8tDNLRlOZuEwKFGya3JBeYsFbBMaf9J8rqRT8I8Tnu9d4SZ/Yr4MFI4Xv/uug0XI1dUaN/d2lvN8LKt0AVfXDwxdaFNWCfjsdOdlGHsWD7vMbmRQ0p3w7Y0NyiwbodpocSPG648qU7LxWryzA8BxRiQgcBDqCFIIW+MEnGmKP9iKq2e6mCaXj7KuZl3RYdp4/VkuemDbOpd7vZM6g6iQHmnPjFXLBxB7s00oamBT8XlHBMW/KkIHNL2oMV8QCEBdlOvPKSY2PvOpcS9IddAV7R0q7zyzSsbDXA2TsJNs0+jIJzF4dDCyehAjFgW/ISlLwUs6sqjRaD/4vYqafFECFgNtyoHnS/Qs393ZeW02k="
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+    all_branches: true
+    python: 3.7
