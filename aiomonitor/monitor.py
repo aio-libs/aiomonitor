@@ -243,7 +243,7 @@ class Monitor:
         for param in params:
             if (param.annotation is param.empty or
                     not callable(param.annotation)):
-                type_: Callable[[Any], Any] = lambda x: x  # noqa
+                type_ = Callable[[Any], Any] = lambda x: x  # noqa
             else:
                 type_ = param.annotation
             try:
