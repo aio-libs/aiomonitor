@@ -25,7 +25,9 @@ cov cover coverage: flake mypy checkrst
 	@echo "open file://`pwd`/htmlcov/index.html"
 
 mypy:
-	mypy aiomonitor --ignore-missing-imports --disallow-untyped-calls --disallow-incomplete-defs --strict
+	if ! python --version | grep -q 'Python 3\.5\.'; then \
+	    mypy aiomonitor --ignore-missing-imports --disallow-untyped-calls --disallow-incomplete-defs --strict; \
+	fi
 
 ci: flake mypy
 	py.test -s -v  --cov-report term --cov aiomonitor ./tests
