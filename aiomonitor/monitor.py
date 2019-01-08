@@ -120,7 +120,10 @@ class Monitor:
             self.start()
         return self
 
-    def __exit__(self, exc_type: Optional[Type[BaseException]],
+    # exc_type should be Optional[Type[BaseException]], but
+    # this runs into https://github.com/python/typing/issues/266
+    # on Python 3.5.
+    def __exit__(self, exc_type: Any,
                  exc_value: Optional[BaseException],
                  traceback: Optional[TracebackType]) -> None:
         self.close()
@@ -243,7 +246,7 @@ class Monitor:
         for param in params:
             if (param.annotation is param.empty or
                     not callable(param.annotation)):
-                type_: Callable[[Any], Any] = lambda x: x  # noqa
+                type_ = lambda x: x  # type: Callable[[Any], Any]  # noqa
             else:
                 type_ = param.annotation
             try:
