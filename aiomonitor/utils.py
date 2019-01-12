@@ -15,7 +15,7 @@ from .mypy_types import Loop, OptLocals
 Server = asyncio.AbstractServer  # noqa
 
 
-def _get_stack(task: asyncio.Task) -> List[Any]:
+def _get_stack(task: 'asyncio.Task[Any]') -> List[Any]:
     frames = []  # type: List[Any]
     coro = task._coro  # type: ignore
     while coro:
@@ -28,7 +28,7 @@ def _get_stack(task: asyncio.Task) -> List[Any]:
     return frames
 
 
-def _format_stack(task: asyncio.Task) -> str:
+def _format_stack(task: 'asyncio.Task[Any]') -> str:
     extracted_list = []
     checked = set()  # type: Set[str]
     for f in _get_stack(task):
@@ -49,12 +49,12 @@ def _format_stack(task: asyncio.Task) -> str:
     return resp
 
 
-def task_by_id(taskid: int, loop: Loop) -> Optional[asyncio.Task]:
+def task_by_id(taskid: int, loop: Loop) -> 'Optional[asyncio.Task[Any]]':
     tasks = asyncio.Task.all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
-async def cancel_task(task: asyncio.Task) -> None:
+async def cancel_task(task: 'asyncio.Task[Any]') -> None:
     with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
@@ -116,7 +116,7 @@ def console_proxy(sin: IO[str], sout: IO[str], host: str, port: int) -> None:
                         tn.write(resp.encode('utf-8'))
 
 
-def alt_names(names: str) -> Callable:
+def alt_names(names: str) -> Callable[..., Any]:
     """Add alternative names to you custom commands.
 
     `names` is a single string with a space separated list of aliases for the
@@ -124,7 +124,7 @@ def alt_names(names: str) -> Callable:
     """
     names_split = names.split()
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         func.alt_names = names_split  # type: ignore
         return func
     return decorator
