@@ -239,7 +239,7 @@ class Monitor:
                     if altname.startswith(startswith):
                         yield CmdName(altname, name)
 
-    def map_args(self, cmd: Callable, args: Sequence[str]
+    def map_args(self, cmd: Callable[..., Any], args: Sequence[str]
                  ) -> Generator[Any, None, None]:
         params = inspect.signature(cmd).parameters.values()
         ia = iter(args)
@@ -271,7 +271,7 @@ class Monitor:
             raise TypeError(msg.format(cmd.__name__))
 
     def precmd(self, comm: str, args: Sequence[str]
-               ) -> Tuple[Callable, List[str]]:
+               ) -> Tuple[Callable[..., Any], List[str]]:
         cmd = self.getcmd(comm)
         return cmd, list(self.map_args(cmd, args))
 
@@ -284,7 +284,7 @@ class Monitor:
                 and not isinstance(exception, (CommandException, TypeError))):
             raise exception
 
-    def getcmd(self, comm: str) -> Callable:
+    def getcmd(self, comm: str) -> Callable[..., Any]:
         allcmds = sorted(self._filter_cmds(startswith=comm))
         if not allcmds:
             raise UnknownCommandException(comm)
