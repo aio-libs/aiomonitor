@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+0.4.2 (2019-01-13)
+------------------
+
+* Fixed issue with type annotations from 0.4.1 release #164
+
+
 0.4.1 (2019-01-10)
 ------------------
 
