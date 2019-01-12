@@ -1,4 +1,3 @@
-sudo: required
 dist: xenial
 language: python
 
@@ -10,7 +9,9 @@ python:
 matrix:
   include:
     - python: '3.7'
-      env: MYPY="y"
+      script:
+        - make mypy
+        - make cov
 
 install:
     - pip install --upgrade setuptools
@@ -18,10 +19,6 @@ install:
     - pip install -r requirements-dev.txt
 
 script:
-  - |
-      if [ "$MYPY" = "y" ]; then
-          make mypy
-      fi;
   - make cov
 
 after_success:
