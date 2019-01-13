@@ -51,8 +51,9 @@ def _format_stack(task: 'asyncio.Task[Any]') -> str:
 
 def all_tasks(loop: Loop) -> 'Set[asyncio.Task[Any]]':
     # fixes deprecation warning for python 3.7
+    tasks = set()  # type: Set[asyncio.Task[Any]]
     if hasattr(asyncio, 'all_tasks'):
-        tasks = asyncio.all_tasks(loop=loop)
+        tasks = asyncio.all_tasks(loop=loop)  # type: ignore
     else:
         tasks = asyncio.Task.all_tasks(loop=loop)
     return tasks
