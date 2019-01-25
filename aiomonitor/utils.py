@@ -63,25 +63,20 @@ async def cancel_task(task: 'asyncio.Task[Any]') -> None:
 def init_console_server(host: str,
                         port: int,
                         locals: OptLocals,
-                        loop: Loop) -> Server:
+                        loop: Loop) -> 'Future[Server]':
     def _factory(streams: Any=None) -> aioconsole.AsynchronousConsole:
         return aioconsole.AsynchronousConsole(
             locals=locals, streams=streams, loop=loop)
 
     coro = aioconsole.start_interactive_server(
         host=host, port=port, factory=_factory, loop=loop)
-    server = loop.run_until_complete(coro)  # type: Server
-    return server
+    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
+    return console_future
 
 
-async def _close_server(server: Server) -> None:
+async def close_server(server: Server) -> None:
     server.close()
     await server.wait_closed()
-
-
-def close_console_server(server: Server, loop: Loop) -> None:
-    coro = _close_server(server)
-    loop.run_until_complete(coro)
 
 
 _TelnetSelector = getattr(
