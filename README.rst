@@ -23,7 +23,8 @@ replacement uvloop_) in a separate thread as result monitor will work even if
 event loop is blocked for some reason.
 
 Library provides an python console using aioconsole_ module, it is possible
-to execute asynchronous command inside your running application.
+to execute asynchronous command inside your running application. Extensible
+with you own commands, in the style of the standard library's cmd_ module
 
 +--------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/master/docs/tty.gif |
@@ -137,6 +138,22 @@ To leave console type ``exit()``::
     monitor >>>
 
 
+``aiomonitor`` is very easy to extend with your own console commands.
+
+.. code:: python
+
+   class WebMonitor(aiomonitor.Monitor):
+       def do_hello(self, sin, sout, name=None):
+           """Using the /hello GET interface
+
+           There is one optional argument, "name".  This name argument must be
+           provided with proper URL excape codes, like %20 for spaces.
+           """
+           name = '' if name is None else '/' + name
+           r = requests.get('http://localhost:8090/hello' + name)
+           sout.write(r.text + '\n')
+
+
 Requirements
 ------------
 
@@ -152,3 +169,4 @@ Requirements
 .. _asyncio: http://docs.python.org/3.5/library/asyncio.html
 .. _curio: https://github.com/dabeaz/curio
 .. _uvloop: https://github.com/MagicStack/uvloop
+.. _cmd: http://docs.python.org/3/library/cmd.html
