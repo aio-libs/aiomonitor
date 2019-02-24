@@ -6,6 +6,7 @@ import time
 
 from aiomonitor import Monitor, start_monitor
 from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
+from aiomonitor.utils import all_tasks
 
 
 def monitor_common(loop, monitor_cls):
@@ -89,7 +90,7 @@ def execute(tn, command, pattern=b'>>>'):
 
 
 def get_task_ids(loop):
-    return [id(t) for t in asyncio.Task.all_tasks(loop=loop)]
+    return [id(t) for t in all_tasks(loop=loop)]
 
 
 def test_basic_monitor(monitor, tn_client, loop):
