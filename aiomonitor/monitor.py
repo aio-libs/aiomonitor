@@ -18,7 +18,7 @@ from concurrent.futures import Future  # noqa
 from terminaltables import AsciiTable
 
 from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
-                    init_console_server, close_server, alt_names)
+                    init_console_server, close_server, alt_names, all_tasks)
 from .mypy_types import Loop, OptLocals
 
 
@@ -171,7 +171,7 @@ class Monitor:
         """Main interactive loop of the monitor"""
         self._sin = sin
         self._sout = sout
-        tasknum = len(asyncio.Task.all_tasks(loop=self._loop))
+        tasknum = len(all_tasks(loop=self._loop))
         s = '' if tasknum == 1 else 's'
         self._sout.write(self.intro.format(tasknum=tasknum, s=s))
         try:
@@ -349,7 +349,7 @@ class Monitor:
         """Show task table"""
         headers = ('Task ID', 'State', 'Task')
         table_data = [headers]
-        for task in sorted(asyncio.Task.all_tasks(loop=self._loop), key=id):
+        for task in sorted(all_tasks(loop=self._loop), key=id):
             taskid = str(id(task))
             if task:
                 t = '\n'.join(wrap(str(task), 80))

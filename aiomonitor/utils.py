@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import linecache
 import selectors
+import sys
 import telnetlib
 import traceback
 from concurrent.futures import Future  # noqa
@@ -50,7 +51,7 @@ def _format_stack(task: 'asyncio.Task[Any]') -> str:
 
 
 def task_by_id(taskid: int, loop: Loop) -> 'Optional[asyncio.Task[Any]]':
-    tasks = asyncio.Task.all_tasks(loop=loop)
+    tasks = all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
@@ -123,3 +124,11 @@ def alt_names(names: str) -> Callable[..., Any]:
         func.alt_names = names_split  # type: ignore
         return func
     return decorator
+
+
+def all_tasks(loop: Loop) -> 'Set[asyncio.Task[Any]]':
+    if sys.version_info >= (3, 7):
+        tasks = asyncio.all_tasks(loop=loop)  # type: Set[asyncio.Task[Any]]
+    else:
+        tasks = asyncio.Task.all_tasks(loop=loop)
+    return tasks
