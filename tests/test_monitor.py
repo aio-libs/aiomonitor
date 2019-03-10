@@ -58,16 +58,21 @@ def tn_client(monitor):
     tn.close()
 
 
-def test_ctor(loop, unused_port):
+@pytest.fixture(params=[True, False], ids=['console:True', 'console:False'])
+def console_enabled(request):
+    return request.param
 
-    with Monitor(loop, console_enabled=False):
+
+def test_ctor(loop, unused_port, console_enabled):
+
+    with Monitor(loop, console_enabled=console_enabled):
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
 
-    with start_monitor(loop, console_enabled=False) as m:
+    with start_monitor(loop, console_enabled=console_enabled) as m:
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
     assert m.closed
 
-    m = Monitor(loop, console_enabled=False)
+    m = Monitor(loop, console_enabled=console_enabled)
     m.start()
     try:
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
@@ -76,11 +81,17 @@ def test_ctor(loop, unused_port):
         m.close()  # make sure call is idempotent
     assert m.closed
 
-    m = Monitor(loop, console_enabled=False)
+    m = Monitor(loop, console_enabled=console_enabled)
     m.start()
     with m:
         loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
     assert m.closed
+
+    # make sure that monitor inside async func can exit correctly
+    async def f():
+        with Monitor(loop, console_enabled=console_enabled):
+            await asyncio.sleep(0.01, loop=loop)
+    loop.run_until_complete(f())
 
 
 def execute(tn, command, pattern=b'>>>'):

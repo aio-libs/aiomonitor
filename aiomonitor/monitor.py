@@ -103,13 +103,8 @@ class Monitor:
         assert not self._started
 
         self._started = True
-        h, p = self._host, self._console_port
         self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
-        if self._console_enabled:
-            log.info('Starting console at %s:%d', h, p)
-            self._console_future = init_console_server(
-                self._host, self._console_port, self._locals, self._loop)
 
     @property
     def closed(self) -> bool:
@@ -132,15 +127,6 @@ class Monitor:
         if not self._closed:
             self._closing.set()
             self._ui_thread.join()
-            if self._console_future is not None:
-                server = self._console_future.result(timeout=15)
-                coro = close_server(server)
-                if self._loop.is_running():
-                    fut = asyncio.run_coroutine_threadsafe(
-                        coro, loop=self._loop)
-                    fut.result(timeout=15)
-                else:
-                    self._loop.run_until_complete(coro)
             self._closed = True
 
     def _server(self) -> None:
@@ -406,10 +392,18 @@ class Monitor:
             self._sout.flush()
             return
 
-        if self._console_future is not None:
-            self._console_future.result(timeout=3)
-
-        console_proxy(self._sin, self._sout, self._host, self._console_port)
+        h, p = self._host, self._console_port
+        log.info('Starting console at %s:%d', h, p)
+        fut = init_console_server(
+            self._host, self._console_port, self._locals, self._loop)
+        server = fut.result(timeout=3)
+        try:
+            console_proxy(
+                self._sin, self._sout, self._host, self._console_port)
+        finally:
+            coro = close_server(server)
+            close_fut = asyncio.run_coroutine_threadsafe(coro, loop=self._loop)
+            close_fut.result(timeout=15)
 
 
 def start_monitor(loop: Loop, *,
