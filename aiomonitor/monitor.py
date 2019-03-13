@@ -70,11 +70,11 @@ class Monitor:
 
     def __init__(self,
                  loop: asyncio.AbstractEventLoop, *,
-                 host: str=MONITOR_HOST,
-                 port: int=MONITOR_PORT,
-                 console_port: int=CONSOLE_PORT,
-                 console_enabled: bool=True,
-                 locals: OptLocals=None) -> None:
+                 host: str = MONITOR_HOST,
+                 port: int = MONITOR_PORT,
+                 console_port: int = CONSOLE_PORT,
+                 console_enabled: bool = True,
+                 locals: OptLocals = None) -> None:
         self._loop = loop or asyncio.get_event_loop()
         self._host = host
         self._port = port
@@ -220,8 +220,8 @@ class Monitor:
             self.postcmd(comm, args, result, caught_ex)
 
     def _filter_cmds(self, *,
-                     startswith: str='',
-                     with_alts: bool=True) -> Generator[CmdName, None, None]:
+                     startswith: str = '',
+                     with_alts: bool = True) -> Generator[CmdName, None, None]:
         cmds = (cmd for cmd in dir(self) if cmd.startswith(self._cmd_prefix))
         for name in cmds:
             if name.startswith(self._cmd_prefix + startswith):
@@ -239,7 +239,7 @@ class Monitor:
         for param in params:
             if (param.annotation is param.empty or
                     not callable(param.annotation)):
-                type_ = lambda x: x  # type: Callable[[Any], Any]  # noqa
+                def type_(x): return x  # type: Callable[[Any], Any]  # noqa
             else:
                 type_ = param.annotation
             try:
@@ -272,7 +272,7 @@ class Monitor:
                 comm: str,
                 args: Sequence[str],
                 result: Any,
-                exception: Optional[Exception]=None) -> None:
+                exception: Optional[Exception] = None) -> None:
         if (exception is not None
                 and not isinstance(exception, (CommandException, TypeError))):
             raise exception
@@ -308,7 +308,7 @@ class Monitor:
                 doc = func.__doc__ if func.__doc__ else ''
                 doc_firstline = doc.split('\n', maxsplit=1)[0]
                 arg_list = ' '.join(
-                        p for p in inspect.signature(func).parameters)
+                    p for p in inspect.signature(func).parameters)
                 self._sout.write(
                     template.format(
                         cmd_name=cmd[len(self._cmd_prefix):],
@@ -321,7 +321,7 @@ class Monitor:
 
         if not cmd_names:
             cmds = sorted(
-                    c.method_name for c in self._filter_cmds(with_alts=False)
+                c.method_name for c in self._filter_cmds(with_alts=False)
             )
             self._sout.write('Available Commands are:\n\n')
             for cmd in cmds:
@@ -407,12 +407,12 @@ class Monitor:
 
 
 def start_monitor(loop: Loop, *,
-                  monitor: Type[Monitor]=Monitor,
-                  host: str=MONITOR_HOST,
-                  port: int=MONITOR_PORT,
-                  console_port: int=CONSOLE_PORT,
-                  console_enabled: bool=True,
-                  locals: OptLocals=None) -> Monitor:
+                  monitor: Type[Monitor] = Monitor,
+                  host: str = MONITOR_HOST,
+                  port: int = MONITOR_PORT,
+                  console_port: int = CONSOLE_PORT,
+                  console_enabled: bool = True,
+                  locals: OptLocals = None) -> Monitor:
 
     m = monitor(loop, host=host, port=port, console_port=console_port,
                 console_enabled=console_enabled, locals=locals)
