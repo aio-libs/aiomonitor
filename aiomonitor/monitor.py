@@ -239,7 +239,10 @@ class Monitor:
         for param in params:
             if (param.annotation is param.empty or
                     not callable(param.annotation)):
-                def type_(x): return x  # type: Callable[[Any], Any]  # noqa
+
+                def type_(x: Any) -> Any:
+                    return x
+
             else:
                 type_ = param.annotation
             try:
