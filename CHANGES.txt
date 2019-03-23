@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+0.4.4 (2019-03-23)
+------------------
+
+* Simplified python console start end #175
+
+* Added python 3.7 compatibility #176
+
+
 0.4.3 (2019-02-02)
 ------------------
 
