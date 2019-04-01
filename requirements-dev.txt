@@ -10,6 +10,6 @@ ipdb==0.12
 mypy==0.670
 pytest-cov==2.6.1
 pytest-sugar==0.9.2
-pytest==4.3.1
+pytest==4.4.0
 terminaltables==3.1.0
 uvloop==0.12.2
