@@ -2,7 +2,7 @@
 aioconsole==0.1.14
 aiohttp==3.5.4
 attrs==19.1.0
-docutils==0.14
+docutils==0.15.1
 flake8-bugbear==19.3.0
 flake8-quotes==2.0.1
 flake8==3.7.7
