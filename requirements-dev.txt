@@ -4,7 +4,7 @@ aiohttp==3.5.4
 attrs==19.1.0
 docutils==0.15.2
 flake8-bugbear==19.8.0
-flake8-quotes==2.0.1
+flake8-quotes==2.1.0
 flake8==3.7.7
 ipdb==0.12
 mypy==0.711
