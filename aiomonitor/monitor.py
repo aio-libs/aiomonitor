@@ -165,7 +165,10 @@ class Monitor:
                 self._sout.write(self.prompt)
                 self._sout.flush()
                 try:
-                    user_input = sin.readline().strip()
+                    user_input = sin.readline()
+                    if not user_input:
+                        break
+                    user_input = user_input.strip()
                 except Exception as e:
                     msg = 'Could not read from user input due to:\n{}\n'
                     log.exception(msg)
