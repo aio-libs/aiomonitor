@@ -52,10 +52,19 @@ Monitor has context manager interface:
 Now from separate terminal it is possible to connect to the application::
 
     $ nc localhost 50101
+    
+
+To make arrow keys working proplerly you can use `rlwrap` trick:
+
+    $ rlwrap nc localhost 50101
+    
 
 or using included python client::
 
     $ python -m aiomonitor.cli
+    
+    
+    
 
 Tutorial
 --------
@@ -109,7 +118,7 @@ And now one can connect running application from separate terminal, with
 
 Note in order to make arrow keys and editing working properly just prepend command with `rlwrap`::
 
-    $ rlwrapnc localhost 50101
+    $ rlwrap nc localhost 50101
 
 
 Now you can type commands, for instance ``help``::
