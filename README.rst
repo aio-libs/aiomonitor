@@ -106,6 +106,12 @@ And now one can connect running application from separate terminal, with
     Type help for commands
     monitor >>>
 
+
+Note in order to make arrow keys and editing working properly just prepend command with `rlwrap`::
+
+    $ rlwrapnc localhost 50101
+
+
 Now you can type commands, for instance ``help``::
 
     monitor >>> help
