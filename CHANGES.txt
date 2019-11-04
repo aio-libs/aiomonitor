@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+0.4.5 (2019-11-03)
+------------------
+
+* Fixed endless loop on EOF (thanks @apatrushev)
+
+
 0.4.4 (2019-03-23)
 ------------------
 
