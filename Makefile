@@ -31,7 +31,6 @@ mypy:
 
 ci: flake mypy
 	py.test -s -v  --cov-report term --cov aiomonitor ./tests
-	npm run eslint
 
 clean:
 	rm -rf `find . -name __pycache__`
