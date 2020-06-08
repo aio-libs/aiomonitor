@@ -9,7 +9,7 @@ flake8==3.8.2
 ipdb==0.13.2
 mypy==0.780
 pytest-cov==2.9.0
-pytest-sugar==0.9.2
+pytest-sugar==0.9.3
 pytest==5.2.2
 terminaltables==3.1.0
 uvloop==0.14.0
