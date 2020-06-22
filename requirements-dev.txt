@@ -7,7 +7,7 @@ flake8-bugbear==20.1.4
 flake8-quotes==3.2.0
 flake8==3.8.3
 ipdb==0.13.2
-mypy==0.740
+mypy==0.781
 pytest-cov==2.8.1
 pytest-sugar==0.9.2
 pytest==5.2.2
