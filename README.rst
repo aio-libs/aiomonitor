@@ -16,14 +16,14 @@ aiomonitor
     :target: https://gitter.im/aio-libs/Lobby
     :alt: Chat on Gitter
 
-**aiomonitor** is Python 3.5+ module that adds monitor and cli capabilities
-for asyncio_ application. Idea and code borrowed from curio_ project.
-Task monitor that runs concurrently to the asyncio_ loop (or fast drop in
+**aiomonitor** is a Python 3.5+ module that adds monitor and cli capabilities
+for asyncio_ applications. Idea and code were borrowed from curio_ project.
+Task monitor that runs concurrently to the asyncio_ loop (or fast drop-in
 replacement uvloop_) in a separate thread as result monitor will work even if
-event loop is blocked for some reason.
+the event loop is blocked for some reason.
 
-Library provides an python console using aioconsole_ module, it is possible
-to execute asynchronous command inside your running application. Extensible
+This library provides a python console using aioconsole_ module. It is possible
+to execute asynchronous commands inside your running application. Extensible
 with you own commands, in the style of the standard library's cmd_ module
 
 +--------------------------------------------------------------------------------------+
@@ -54,12 +54,12 @@ Now from separate terminal it is possible to connect to the application::
     $ nc localhost 50101
     
 
-To make arrow keys working proplerly you can use `rlwrap` trick:
+To make arrow keys working properly you can use the `rlwrap` trick:
 
     $ rlwrap nc localhost 50101
     
 
-or using included python client::
+or the included python client::
 
     $ python -m aiomonitor.cli
     
@@ -69,8 +69,8 @@ or using included python client::
 Tutorial
 --------
 
-Lets create simple aiohttp_ application, and see how ``aiomonitor`` can
-integrates with it.
+Let's create a simple aiohttp_ application, and see how ``aiomonitor`` can
+be integrated with it.
 
 .. code:: python
 
@@ -92,23 +92,23 @@ integrates with it.
     app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
-    # it is possible to pass dictionary with local variables
+    # it is possible to pass a dictionary with local variables
     # to the python console environment
     host, port = "localhost", 8090
     locals_ = {"port": port, "host": host}
     # init monitor just before run_app
     with aiomonitor.start_monitor(loop=loop, locals=locals_):
-        # run application with built in aiohttp run_app function
+        # run application with built-in aiohttp run_app function
         web.run_app(app, port=port, host=host)
 
-Lets save this code in file ``simple_srv.py``, so we can run it with command::
+Let's save this code in file ``simple_srv.py``, so we can run it with the following command::
 
     $ python simple_srv.py
     ======== Running on http://localhost:8090 ========
     (Press CTRL+C to quit)
 
-And now one can connect running application from separate terminal, with
-``nc`` command, immediately ``aiomonitor`` will respond with prompt::
+And now one can connect to a running application from a separate terminal, with
+the ``nc`` command, and ``aiomonitor`` will immediately respond with prompt::
 
     $ nc localhost 50101
     Asyncio Monitor: 1 tasks running
@@ -116,12 +116,12 @@ And now one can connect running application from separate terminal, with
     monitor >>>
 
 
-Note in order to make arrow keys and editing working properly just prepend command with `rlwrap`::
+Note in order to make arrow keys and editing work properly just prepend command with `rlwrap`::
 
     $ rlwrap nc localhost 50101
 
 
-Now you can type commands, for instance ``help``::
+Now you can type commands, for instance, ``help``::
 
     monitor >>> help
     Commands:
@@ -133,8 +133,8 @@ Now you can type commands, for instance ``help``::
                  console          : Switch to async Python REPL
                  quit             : Leave the monitor
 
-``aiomonitor`` supports also async python console inside running event loop
-so you can explore state of your application::
+``aiomonitor`` also supports async python console inside a running event loop
+so you can explore the state of your application::
 
     monitor >>> console
     Python 3.5.2 (default, Oct 11 2016, 05:05:28)
@@ -147,7 +147,7 @@ so you can explore state of your application::
     ---
     >>> await asyncio.sleep(1, result=3, loop=loop)
 
-To leave console type ``exit()``::
+To leave the console type ``exit()``::
 
     >>> exit()
     monitor >>>
