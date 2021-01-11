@@ -3,7 +3,7 @@ aioconsole==0.3.1
 aiohttp==3.7.3
 attrs==20.3.0
 docutils==0.16
-flake8-bugbear==19.8.0
+flake8-bugbear==20.11.1
 flake8-quotes==2.1.1
 flake8==3.7.9
 ipdb==0.12.2
