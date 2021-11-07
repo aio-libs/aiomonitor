@@ -1,6 +1,6 @@
 -e .
 aioconsole==0.1.15
-aiohttp==3.6.2
+aiohttp==3.8.0
 attrs==19.3.0
 docutils==0.15.2
 flake8-bugbear==19.8.0
