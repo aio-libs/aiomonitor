@@ -5,7 +5,7 @@ attrs==21.2.0
 docutils==0.18
 flake8-bugbear==21.9.2
 flake8-quotes==3.3.1
-flake8==3.7.9
+flake8==4.0.1
 ipdb==0.12.2
 mypy==0.740
 pytest-cov==2.8.1
