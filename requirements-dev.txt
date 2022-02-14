@@ -6,7 +6,7 @@ docutils==0.18.1
 flake8-bugbear==22.1.11
 flake8-quotes==3.3.1
 flake8==4.0.1
-ipdb==0.12.2
+ipdb==0.13.9
 mypy==0.740
 pytest-cov==2.8.1
 pytest-sugar==0.9.2
