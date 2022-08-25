@@ -71,3 +71,4 @@ Pipfile.lock
 .tags
 
 .pytest_cache
+.python-version
