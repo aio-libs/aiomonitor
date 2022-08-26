@@ -1,22 +1,10 @@
-aiomonitor
-==========
-.. image:: https://travis-ci.com/aio-libs/aiomonitor.svg?branch=master
-    :target: https://travis-ci.com/aio-libs/aiomonitor
-.. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/aio-libs/aiomonitor
-.. image:: https://api.codeclimate.com/v1/badges/d14af4cfb0c4ff52b1ef/maintainability
-   :target: https://codeclimate.com/github/aio-libs/aiomonitor/maintainability
-   :alt: Maintainability
-.. image:: https://img.shields.io/pypi/v/aiomonitor.svg
-    :target: https://pypi.python.org/pypi/aiomonitor
-.. image:: https://readthedocs.org/projects/aiomonitor/badge/?version=latest
-    :target: http://aiomonitor.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
-.. image:: https://badges.gitter.im/Join%20Chat.svg
-    :target: https://gitter.im/aio-libs/Lobby
-    :alt: Chat on Gitter
+aiomonitor-ng
+=============
 
-**aiomonitor** is a Python 3.5+ module that adds monitor and cli capabilities
+**aiomonitor-ng** is a (temporary) fork of **aiomonitor** with support for
+Python 3.10+ and additional usability &amp; debuggability improvements.
+
+**aiomonitor** is a module that adds monitor and cli capabilities
 for asyncio_ applications. Idea and code were borrowed from curio_ project.
 Task monitor that runs concurrently to the asyncio_ loop (or fast drop-in
 replacement uvloop_) in a separate thread as result monitor will work even if

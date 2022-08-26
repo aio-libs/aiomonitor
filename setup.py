@@ -6,8 +6,8 @@ from setuptools import setup, find_packages
 
 PY_VER = sys.version_info
 
-if not PY_VER >= (3, 5):
-    raise RuntimeError("aiomonitor doesn't support Python earlier than 3.5")
+if not PY_VER >= (3, 8):
+    raise RuntimeError("aiomonitor doesn't support Python earlier than 3.8")
 
 
 def read(f):
@@ -37,27 +37,26 @@ classifiers = [
     'License :: OSI Approved :: MIT License',
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Operating System :: POSIX',
     'Development Status :: 3 - Alpha',
     'Framework :: AsyncIO',
 ]
 
 
-setup(name='aiomonitor',
+setup(name='aiomonitor-ng',
       version=read_version(),
-      description=('aiomonitor adds monitor and python REPL '
+      description=('aiomonitor-ng adds monitor and python REPL '
                    'capabilities for asyncio application'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
       classifiers=classifiers,
       platforms=['POSIX'],
       author='Nikolay Novik',
       author_email='nickolainovik@gmail.com',
-      url='https://github.com/aio-libs/aiomonitor',
-      download_url='https://pypi.python.org/pypi/aiomonitor',
+      url='https://github.com/achimnol/aiomonitor-ng',
+      download_url='https://pypi.python.org/pypi/aiomonitor-ng',
       license='Apache 2',
       packages=find_packages(),
       install_requires=install_requires,
