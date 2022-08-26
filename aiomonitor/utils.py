@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
+from inspect import trace
 import linecache
 import selectors
 import sys
 import telnetlib
 import traceback
+from asyncio.coroutines import _format_coroutine
 from concurrent.futures import Future  # noqa
-from typing import Callable, IO, Any, Optional, List, Set  # noqa
+from types import FrameType
+from typing import Callable, IO, Any, Optional, List, Set, Sequence  # noqa
 
 import aioconsole
 
@@ -16,23 +21,49 @@ from .mypy_types import Loop, OptLocals
 Server = asyncio.AbstractServer  # noqa
 
 
-def _get_stack(task: 'asyncio.Task[Any]') -> List[Any]:
-    frames = []  # type: List[Any]
+def _format_task(task: asyncio.Task[Any]) -> str:
+    """
+    A simpler version of task's repr()
+    """
+    coro = _format_coroutine(task.get_coro()).partition(" ")[0]
+    return f"<Task name={task.get_name()} coro={coro}>"
+
+
+def _filter_stack(stack: List[traceback.FrameSummary]) -> List[traceback.FrameSummary]:
+    """
+    Filters out commonly repeated frames of the asyncio internals from the given stack.
+    """
+    # strip the task factory frame in the vanilla event loop
+    if stack[-1].filename.endswith('asyncio/base_events.py') and stack[-1].name == 'create_task':
+        stack = stack[:-1]
+    # strip the loop.create_task frame
+    if stack[-1].filename.endswith('asyncio/tasks.py') and stack[-1].name == 'create_task':
+        stack = stack[:-1]
+    cut_idx = 0
+    for cut_idx, f in reversed(list(enumerate(stack))):
+        # uvloop
+        if f.filename.endswith('asyncio/runners.py') and f.name == 'run':
+            break
+        # vanilla
+        if f.filename.endswith('asyncio/events.py') and f.name == '_run':
+            break
+    return stack[cut_idx + 1:]
+
+
+def _extract_stack_from_task(task: asyncio.Task[Any]) -> List[traceback.FrameSummary]:
+    """
+    Extracts the stack as a list of FrameSummary objects from an asyncio task.
+    """
+    frames: List[Any] = []
     coro = task._coro  # type: ignore
     while coro:
         f = getattr(coro, 'cr_frame', getattr(coro, 'gi_frame', None))
-
         if f is not None:
             frames.append(f)
-
         coro = getattr(coro, 'cr_await', getattr(coro, 'gi_yieldfrom', None))
-    return frames
-
-
-def _format_stack(task: 'asyncio.Task[Any]') -> str:
     extracted_list = []
-    checked = set()  # type: Set[str]
-    for f in _get_stack(task):
+    checked: Set[str] = set()
+    for f in frames:
         lineno = f.f_lineno
         co = f.f_code
         filename = co.co_filename
@@ -41,13 +72,14 @@ def _format_stack(task: 'asyncio.Task[Any]') -> str:
             checked.add(filename)
             linecache.checkcache(filename)
         line = linecache.getline(filename, lineno, f.f_globals)
-        extracted_list.append((filename, lineno, name, line))
-    if not extracted_list:
-        resp = 'No stack for %r' % task
-    else:
-        resp = 'Stack for %r (most recent call last):\n' % task
-        resp += ''.join(traceback.format_list(extracted_list))  # type: ignore
-    return resp
+        extracted_list.append(traceback.FrameSummary(filename, lineno, name, line=line))
+    return extracted_list
+
+
+def _extract_stack_from_frame(frame: FrameType) -> Sequence[traceback.FrameSummary]:
+    stack = traceback.StackSummary.extract(traceback.walk_stack(frame))
+    stack.reverse()
+    return stack
 
 
 def task_by_id(taskid: int, loop: Loop) -> 'Optional[asyncio.Task[Any]]':

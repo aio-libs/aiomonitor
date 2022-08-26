@@ -7,6 +7,7 @@ import socket
 import sys
 import threading
 import traceback
+import weakref
 from textwrap import wrap
 from types import TracebackType
 from typing import (IO, Dict, Any, Callable, Optional, Tuple, Generator,  # noqa
@@ -17,8 +18,20 @@ from concurrent.futures import Future  # noqa
 
 from terminaltables import AsciiTable
 
-from .utils import (_format_stack, cancel_task, task_by_id, console_proxy,
-                    init_console_server, close_server, alt_names, all_tasks)
+from .task import TracedTask
+from .utils import (
+    _filter_stack,
+    _extract_stack_from_task,
+    _extract_stack_from_frame,
+    _format_task,
+    cancel_task,
+    task_by_id,
+    console_proxy,
+    init_console_server,
+    close_server,
+    alt_names,
+    all_tasks,
+)
 from .mypy_types import Loop, OptLocals
 
 
@@ -74,6 +87,7 @@ class Monitor:
                  port: int = MONITOR_PORT,
                  console_port: int = CONSOLE_PORT,
                  console_enabled: bool = True,
+                 hook_task_factory: bool = False,
                  locals: OptLocals = None) -> None:
         self._loop = loop or asyncio.get_event_loop()
         self._host = host
@@ -93,6 +107,12 @@ class Monitor:
 
         self.lastcmd = None  # type: Optional[str]
 
+        self._hook_task_factory = hook_task_factory
+        self._created_traceback_chains = weakref.WeakKeyDictionary()
+        self._created_tracebacks = weakref.WeakKeyDictionary()
+        self._cancelled_traceback_chains = weakref.WeakKeyDictionary()
+        self._cancelled_tracebacks = weakref.WeakKeyDictionary()
+
     def __repr__(self) -> str:
         name = self.__class__.__name__
         return '<{name}: {host}:{port}>'.format(
@@ -103,6 +123,9 @@ class Monitor:
         assert not self._started
 
         self._started = True
+        self._original_task_factory = self._loop.get_task_factory()
+        if self._hook_task_factory:
+            self._loop.set_task_factory(self._create_task)
         self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
 
@@ -127,7 +150,20 @@ class Monitor:
         if not self._closed:
             self._closing.set()
             self._ui_thread.join()
+            self._loop.set_task_factory(self._original_task_factory)
             self._closed = True
+
+    def _create_task(self, loop, coro) -> asyncio.Task:
+        assert loop is self._loop
+        try:
+            parent_task = asyncio.current_task()
+        except RuntimeError:
+            parent_task = None
+        task = TracedTask(coro, loop=self._loop)
+        self._created_tracebacks[task] = _extract_stack_from_frame(sys._getframe())[:-1]  # strip this wrapper method
+        if parent_task is not None:
+            self._created_traceback_chains[task] = parent_task
+        return task
 
     def _server(self) -> None:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -213,7 +249,7 @@ class Monitor:
             result = self._empty_result
             caught_ex = e
             msg = 'Probably incorrect number of arguments to command method:\n{}\n'  # noqa
-            self._sout.write(msg.format(repr(e)))
+            traceback.print_exc(file=self._sout)
         except Exception as e:
             result = self._empty_result
             caught_ex = e
@@ -353,13 +389,40 @@ class Monitor:
 
     @alt_names('w')
     def do_where(self, taskid: int) -> None:
-        """Show stack frames for a task"""
+        """Show stack frames and its task creation chain of a task"""
+        depth = 0
         task = task_by_id(taskid, self._loop)
-        if task:
-            self._sout.write(_format_stack(task))
-            self._sout.write('\n')
-        else:
+        if task is None:
             self._sout.write('No task %d\n' % taskid)
+            return
+        task_chain: List[asyncio.Task[Any]] = []
+        while task is not None:
+            task_chain.append(task)
+            task = self._created_traceback_chains.get(task)
+        prev_task = None
+        for task in reversed(task_chain):
+            if depth == 0:
+                self._sout.write('Stack of the root task or coroutine scheduled in the event loop (most recent call last):\n\n')
+            elif depth > 0:
+                assert prev_task is not None
+                self._sout.write('Stack of %s when creating the next task (most recent call last):\n\n' % _format_task(prev_task))
+            stack = self._created_tracebacks.get(task)
+            if stack is None:
+                self._sout.write('  No stack available (maybe it is a native code or the event loop itself)\n')
+            else:
+                stack = _filter_stack(stack)
+                self._sout.write(''.join(traceback.format_list(stack)))
+            prev_task = task
+            depth += 1
+            self._sout.write('\n')
+        task = task_chain[0]
+        self._sout.write('Stack of %s (most recent call last):\n\n' % _format_task(task))
+        stack = _extract_stack_from_task(task)
+        if not stack:
+            self._sout.write('  No stack available for %s' % _format_task(task))
+        else:
+            self._sout.write(''.join(traceback.format_list(stack)))
+        self._sout.write('\n')
 
     def do_signal(self, signame: str) -> None:
         """Send a Unix signal"""
@@ -418,10 +481,12 @@ def start_monitor(loop: Loop, *,
                   port: int = MONITOR_PORT,
                   console_port: int = CONSOLE_PORT,
                   console_enabled: bool = True,
+                  hook_task_factory: bool = False,
                   locals: OptLocals = None) -> Monitor:
 
     m = monitor(loop, host=host, port=port, console_port=console_port,
-                console_enabled=console_enabled, locals=locals)
+                console_enabled=console_enabled, hook_task_factory=hook_task_factory,
+                locals=locals)
     m.start()
 
     return m
