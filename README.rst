@@ -14,15 +14,17 @@ This library provides a python console using aioconsole_ module. It is possible
 to execute asynchronous commands inside your running application. Extensible
 with you own commands, in the style of the standard library's cmd_ module
 
-+--------------------------------------------------------------------------------------+
-| .. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/master/docs/tty.gif |
-+--------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------------+
+| .. image:: https://raw.githubusercontent.com/achimnol/aiomonitor-ng/master/docs/screenshot-ps-example.png |
++-----------------------------------------------------------------------------------------------------------+
+| .. image:: https://raw.githubusercontent.com/achimnol/aiomonitor-ng/master/docs/screenshot-where-example.png |
++-----------------------------------------------------------------------------------------------------------+
 
 Installation
 ------------
 Installation process is simple, just::
 
-    $ pip install aiomonitor
+    $ pip install aiomonitor-ng
 
 
 Example
