@@ -14,8 +14,10 @@ def read(f):
     return open(os.path.join(os.path.dirname(__file__), f)).read().strip()
 
 
-install_requires = ['terminaltables',
-                    'aioconsole']
+install_requires = [
+    'terminaltables',
+    'aioconsole',
+]
 extras_require = {}
 
 

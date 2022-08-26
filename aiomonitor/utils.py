@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from inspect import trace
 import linecache
 import selectors
 import sys
 import telnetlib
 import traceback
 from asyncio.coroutines import _format_coroutine
+from datetime import timedelta
 from concurrent.futures import Future  # noqa
+from pathlib import Path
 from types import FrameType
 from typing import Callable, IO, Any, Optional, List, Set, Sequence  # noqa
 
@@ -27,6 +28,48 @@ def _format_task(task: asyncio.Task[Any]) -> str:
     """
     coro = _format_coroutine(task.get_coro()).partition(" ")[0]
     return f"<Task name={task.get_name()} coro={coro}>"
+
+
+def _format_filename(filename: str) -> str:
+    """
+    Simplifies the site-pkg directory path of the given source filename.
+    """
+    stdlib = f"{sys.prefix}/lib/python{sys.version_info.major}.{sys.version_info.minor}/"
+    site_pkg = f"{sys.prefix}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages/"
+    home = f"{Path.home()}/"
+    cwd = f"{Path.cwd()}/"
+    if filename.startswith(site_pkg):
+        return "<sitepkg>/" + filename[len(site_pkg):]
+    if filename.startswith(stdlib):
+        return "<stdlib>/" + filename[len(stdlib):]
+    if filename.startswith(cwd):
+        return "<cwd>/" + filename[len(cwd):]
+    if filename.startswith(home):
+        return "<home>/" + filename[len(home):]
+    return filename
+
+
+def _format_timedelta(td: timedelta) -> str:
+    seconds = int(td.total_seconds())
+    periods = [
+        ('y', 60*60*24*365),
+        ('m', 60*60*24*30),
+        ('d', 60*60*24),
+        ('h', 60*60),
+        (':', 60),
+        ('',  1)
+    ]
+    parts = []
+    for period_name, period_seconds in periods:
+        period_value, seconds = divmod(seconds, period_seconds)
+        if period_name in (':', ''):
+            parts.append(f"{period_value:02d}{period_name}")
+        else:
+            if period_value == 0:
+                continue
+            parts.append(f"{period_value}{period_name}")
+    parts.append(f"{td.microseconds / 1e6:.03f}"[1:])
+    return "".join(parts)
 
 
 def _filter_stack(stack: List[traceback.FrameSummary]) -> List[traceback.FrameSummary]:

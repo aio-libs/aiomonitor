@@ -6,7 +6,9 @@ Next release
 
 * Made it compatible with Python 3.10
 
-* Added the task creation stack chain display to the 'where' command by setting a custom task factory
+* Added the task creation stack chain display to the 'where' command by setting a custom task factory (#1)
+
+* Changed the 'ps' command view to be more concise and display many tasks in a better way (#2)
 
 0.4.5 (2019-11-03)
 ------------------

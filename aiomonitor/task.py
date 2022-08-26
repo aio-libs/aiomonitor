@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 
 from .utils import _extract_stack_from_frame
 
@@ -10,6 +11,7 @@ class TracedTask(asyncio.Task):
         super().__init__(*args, **kwargs)
         self._cancelled_tracebacks = cancelled_tracebacks
         self._cancelled_traceback_chains = cancelled_traceback_chains
+        self._started_at = time.monotonic()
 
     def cancel(self, msg: str = None) -> bool:
         try:
