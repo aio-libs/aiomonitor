@@ -388,12 +388,13 @@ class Monitor:
                 creation_stack = self._created_tracebacks.get(task)
                 # Some values are masked as "-" when they are unavailable
                 # if it's the root task/coro or if the task factory is not applied.
-                if creation_stack is None:
+                if not creation_stack:
                     created_location = "-"
                 else:
                     creation_stack = _filter_stack(creation_stack)
-                    fn = _format_filename(creation_stack[0].filename)
-                    created_location = f"{fn}:{creation_stack[0].lineno}"
+                    fn = _format_filename(creation_stack[-1].filename)
+                    lineno = creation_stack[-1].lineno
+                    created_location = f"{fn}:{lineno}"
                 if isinstance(task, TracedTask):
                     running_since = _format_timedelta(timedelta(
                         seconds=(time.monotonic() - task._started_at),
