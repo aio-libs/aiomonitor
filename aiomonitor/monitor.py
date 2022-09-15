@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
 import logging
@@ -81,7 +83,7 @@ CmdName = NamedTuple("CmdName", [("cmd_name", str), ("method_name", str)])
 
 
 class Monitor:
-    _event_loop_thread_id = None  # type: int
+    _event_loop_thread_id: Optional[int] = None
     _cmd_prefix = "do_"
     _empty_result = object()
 
@@ -92,8 +94,22 @@ class Monitor:
         "    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}"  # noqa
     )
 
-    _sin = None  # type: IO[str]
-    _sout = None  # type: IO[str]
+    _sin: IO[str] | None = None
+    _sout: IO[str] | None = None
+    _created_traceback_chains: weakref.WeakKeyDictionary[
+        asyncio.Task[Any],
+        asyncio.Task[Any],
+    ]
+    _created_tracebacks: weakref.WeakKeyDictionary[
+        asyncio.Task[Any], List[traceback.FrameSummary]
+    ]
+    _cancelled_traceback_chains: weakref.WeakKeyDictionary[
+        asyncio.Task[Any],
+        asyncio.Task[Any],
+    ]
+    _cancelled_tracebacks: weakref.WeakKeyDictionary[
+        asyncio.Task[Any], List[traceback.FrameSummary]
+    ]
 
     def __init__(
         self,
@@ -247,6 +263,7 @@ class Monitor:
     def _command_dispatch(self, user_input: str) -> None:
         if not user_input:
             return self.emptyline()
+        assert self._sout is not None
 
         self.lastcmd = user_input
         comm, *args = user_input.split(" ")
@@ -358,6 +375,7 @@ class Monitor:
             self._command_dispatch(self.lastcmd)
 
     def default(self, comm: str, *args: str) -> None:
+        assert self._sout is not None
         self._sout.write("No such command: {}\n".format(comm))
 
     @alt_names("? h")
@@ -367,8 +385,10 @@ class Monitor:
         Any number of command names may be given to help, and the long help
         text for all of them will be shown.
         """
+        assert self._sout is not None
 
         def _h(cmd: str, template: str) -> None:
+            assert self._sout is not None
             try:
                 func = getattr(self, cmd)
             except AttributeError:
@@ -409,6 +429,8 @@ class Monitor:
             "Since",
         )
         table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
+        assert self._sout is not None
+
         for task in sorted(all_tasks(loop=self._loop), key=id):
             taskid = str(id(task))
             if task:
@@ -451,6 +473,7 @@ class Monitor:
     @alt_names("w")
     def do_where(self, taskid: int) -> None:
         """Show stack frames and its task creation chain of a task"""
+        assert self._sout is not None
         depth = 0
         task = task_by_id(taskid, self._loop)
         if task is None:
@@ -496,6 +519,7 @@ class Monitor:
 
     def do_signal(self, signame: str) -> None:
         """Send a Unix signal"""
+        assert self._sout is not None
         if hasattr(signal, signame):
             os.kill(os.getpid(), getattr(signal, signame))
         else:
@@ -504,11 +528,15 @@ class Monitor:
     @alt_names("st")
     def do_stacktrace(self) -> None:
         """Print a stack trace from the event loop thread"""
-        frame = sys._current_frames()[self._event_loop_thread_id]
+        assert self._sout is not None
+        tid = self._event_loop_thread_id
+        assert tid is not None
+        frame = sys._current_frames()[tid]
         traceback.print_stack(frame, file=self._sout)
 
     def do_cancel(self, taskid: int) -> None:
         """Cancel an indicated task"""
+        assert self._sout is not None
         task = task_by_id(taskid, self._loop)
         if task:
             fut = asyncio.run_coroutine_threadsafe(cancel_task(task), loop=self._loop)
@@ -520,11 +548,14 @@ class Monitor:
     @alt_names("quit q")
     def do_exit(self) -> None:
         """Leave the monitor"""
+        assert self._sout is not None
         self._sout.write("Leaving monitor. Hit Ctrl-C to exit\n")
         self._sout.flush()
 
     def do_console(self) -> None:
         """Switch to async Python REPL"""
+        assert self._sin is not None
+        assert self._sout is not None
         if not self._console_enabled:
             self._sout.write("Python console disabled for this sessiong\n")
             self._sout.flush()

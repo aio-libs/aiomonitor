@@ -130,7 +130,7 @@ def _extract_stack_from_task(
     return extracted_list
 
 
-def _extract_stack_from_frame(frame: FrameType) -> Sequence[traceback.FrameSummary]:
+def _extract_stack_from_frame(frame: FrameType) -> List[traceback.FrameSummary]:
     stack = traceback.StackSummary.extract(traceback.walk_stack(frame))
     stack.reverse()
     return stack
