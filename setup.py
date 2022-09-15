@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from typing import Dict
 
 from setuptools import find_packages, setup
 
@@ -18,7 +19,7 @@ install_requires = [
     "terminaltables",
     "aioconsole",
 ]
-extras_require = {}
+extras_require: Dict[str, str] = {}
 
 
 def read_version():

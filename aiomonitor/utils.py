@@ -12,7 +12,7 @@ from concurrent.futures import Future
 from datetime import timedelta
 from pathlib import Path
 from types import FrameType
-from typing import IO, Any, Callable, List, Optional, Sequence, Set
+from typing import IO, Any, Callable, List, Optional, Set
 
 import aioconsole
 
