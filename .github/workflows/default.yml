@@ -39,6 +39,7 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
+        cache: pip
         cache-dependency-path: |
           setup.py
           requirements-dev.txt
@@ -62,6 +63,7 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
+        cache: pip
         cache-dependency-path: |
           setup.py
           requirements-dev.txt
@@ -85,6 +87,7 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
+        cache: pip
         cache-dependency-path: |
           setup.py
           requirements-dev.txt
