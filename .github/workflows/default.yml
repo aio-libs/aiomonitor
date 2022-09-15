@@ -12,7 +12,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: "3.10"
         check-latest: true
         cache: pip
     - name: Install
@@ -22,7 +22,7 @@ jobs:
     - name: Lint
       run:
         echo "::add-matcher::.github/workflows/flake8-matcher.json"
-        python -m flake8
+        python -m flake8 aiomonitor/ examples/ tests/ setup.py
 
   lint-isort:
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: "3.10"
         check-latest: true
         cache: pip
     - name: Install
@@ -42,7 +42,6 @@ jobs:
         pip install -U -r requirements-dev.txt
     - name: Lint
       run:
-        echo "::add-matcher::.github/workflows/flake8-matcher.json"
         python -m isort aiomonitor/ examples/ tests/ setup.py
 
   lint-black:
@@ -54,7 +53,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: "3.10"
         check-latest: true
         cache: pip
     - name: Install
@@ -63,7 +62,6 @@ jobs:
         pip install -U -r requirements-dev.txt
     - name: Lint
       run:
-        echo "::add-matcher::.github/workflows/flake8-matcher.json"
         python -m black --check aiomonitor/ examples/ tests/ setup.py
 
   typecheck-mypy:
@@ -75,7 +73,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: "3.10"
         check-latest: true
         cache: pip
     - name: Install
@@ -84,5 +82,5 @@ jobs:
         pip install -U -r requirements-dev.txt
     - name: Lint
       run:
-        echo "::add-matcher::.github/workflows/flake8-matcher.json"
+        echo "::add-matcher::.github/workflows/mypy-matcher.json"
         python -m mypy aiomonitor/ examples/ tests/ setup.py
