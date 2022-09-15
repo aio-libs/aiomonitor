@@ -16,17 +16,27 @@ def monitor_client(host: str, port: int) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser('usage: python -m aiomonitor [options]')
-    parser.add_argument('-H', '--host', dest='monitor_host',
-                        default=MONITOR_HOST, type=str,
-                        help='monitor host ip')
+    parser = argparse.ArgumentParser("usage: python -m aiomonitor [options]")
+    parser.add_argument(
+        "-H",
+        "--host",
+        dest="monitor_host",
+        default=MONITOR_HOST,
+        type=str,
+        help="monitor host ip",
+    )
 
-    parser.add_argument('-p', '--port', dest='monitor_port',
-                        default=MONITOR_PORT, type=int,
-                        help='monitor port number')
+    parser.add_argument(
+        "-p",
+        "--port",
+        dest="monitor_port",
+        default=MONITOR_PORT,
+        type=int,
+        help="monitor port number",
+    )
     args = parser.parse_args()
     monitor_client(args.monitor_host, args.monitor_port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
