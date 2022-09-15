@@ -20,11 +20,11 @@ jobs:
           requirements-dev.txt
           requirements-doc.txt
     - name: Install
-      run:
+      run: |
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
     - name: Lint with flake8
-      run:
+      run: |
         echo "::add-matcher::.github/workflows/flake8-matcher.json"
         python -m flake8 aiomonitor/ examples/ tests/ setup.py
 
@@ -44,11 +44,11 @@ jobs:
           requirements-dev.txt
           requirements-doc.txt
     - name: Install
-      run:
+      run: |
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
     - name: Lint with isort
-      run:
+      run: |
         python -m isort --check aiomonitor/ examples/ tests/ setup.py
 
   lint-black:
@@ -67,11 +67,11 @@ jobs:
           requirements-dev.txt
           requirements-doc.txt
     - name: Install
-      run:
+      run: |
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
     - name: Lint with black
-      run:
+      run: |
         python -m black --check aiomonitor/ examples/ tests/ setup.py
 
   typecheck-mypy:
@@ -90,10 +90,10 @@ jobs:
           requirements-dev.txt
           requirements-doc.txt
     - name: Install
-      run:
+      run: |
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
     - name: Typecheck with mypy
-      run:
+      run: |
         echo "::add-matcher::.github/workflows/mypy-matcher.json"
         python -m mypy aiomonitor/ examples/ tests/ setup.py
