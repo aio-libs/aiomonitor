@@ -9,26 +9,22 @@ import threading
 import time
 import traceback
 import weakref
-from asyncio.coroutines import _format_coroutine
-from concurrent.futures import Future  # noqa
+from asyncio.coroutines import _format_coroutine  # type: ignore
+from concurrent.futures import Future
 from contextlib import suppress
 from datetime import timedelta
 from types import TracebackType
-from typing import Generator  # noqa
-from typing import NamedTuple  # noqa
-from typing import get_type_hints  # noqa
 from typing import (
     IO,
     Any,
     Callable,
-    Dict,
+    Generator,
     List,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
     Type,
-    TypeVar,
-    cast,
 )
 
 from terminaltables import AsciiTable
@@ -515,9 +511,7 @@ class Monitor:
         """Cancel an indicated task"""
         task = task_by_id(taskid, self._loop)
         if task:
-            fut = asyncio.run_coroutine_threadsafe(
-                cancel_task(task), loop=self._loop
-            )
+            fut = asyncio.run_coroutine_threadsafe(cancel_task(task), loop=self._loop)
             fut.result(timeout=3)
             self._sout.write("Cancel task %d\n" % taskid)
         else:

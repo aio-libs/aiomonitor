@@ -7,12 +7,12 @@ import selectors
 import sys
 import telnetlib
 import traceback
-from asyncio.coroutines import _format_coroutine
-from concurrent.futures import Future  # noqa
+from asyncio.coroutines import _format_coroutine  # type: ignore
+from concurrent.futures import Future
 from datetime import timedelta
 from pathlib import Path
 from types import FrameType
-from typing import IO, Any, Callable, List, Optional, Sequence, Set  # noqa
+from typing import IO, Any, Callable, List, Optional, Sequence, Set
 
 import aioconsole
 
@@ -91,15 +91,15 @@ def _filter_stack(
         and stack[-1].name == "create_task"
     ):
         stack = stack[:-1]
-    cut_idx = 0
-    for cut_idx, f in reversed(list(enumerate(stack))):
+    _cut_idx = 0
+    for _cut_idx, f in reversed(list(enumerate(stack))):
         # uvloop
         if f.filename.endswith("asyncio/runners.py") and f.name == "run":
             break
         # vanilla
         if f.filename.endswith("asyncio/events.py") and f.name == "_run":
             break
-    return stack[cut_idx + 1 :]
+    return stack[_cut_idx + 1 :]
 
 
 def _extract_stack_from_task(
@@ -126,9 +126,7 @@ def _extract_stack_from_task(
             checked.add(filename)
             linecache.checkcache(filename)
         line = linecache.getline(filename, lineno, f.f_globals)
-        extracted_list.append(
-            traceback.FrameSummary(filename, lineno, name, line=line)
-        )
+        extracted_list.append(traceback.FrameSummary(filename, lineno, name, line=line))
     return extracted_list
 
 
@@ -153,9 +151,7 @@ def init_console_server(
     host: str, port: int, locals: OptLocals, loop: Loop
 ) -> "Future[Server]":
     def _factory(streams: Any = None) -> aioconsole.AsynchronousConsole:
-        return aioconsole.AsynchronousConsole(
-            locals=locals, streams=streams, loop=loop
-        )
+        return aioconsole.AsynchronousConsole(locals=locals, streams=streams, loop=loop)
 
     coro = aioconsole.start_interactive_server(
         host=host, port=port, factory=_factory, loop=loop

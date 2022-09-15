@@ -16,3 +16,4 @@ pytest-sugar==0.9.5
 pytest==7.1.2
 terminaltables==3.1.10
 uvloop==0.16.0
+types-requests
