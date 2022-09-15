@@ -15,11 +15,15 @@ jobs:
         python-version: "3.10"
         check-latest: true
         cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
     - name: Install
       run:
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
-    - name: Lint
+    - name: Lint with flake8
       run:
         echo "::add-matcher::.github/workflows/flake8-matcher.json"
         python -m flake8 aiomonitor/ examples/ tests/ setup.py
@@ -35,14 +39,17 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
-        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
     - name: Install
       run:
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
-    - name: Lint
+    - name: Lint with isort
       run:
-        python -m isort aiomonitor/ examples/ tests/ setup.py
+        python -m isort --check aiomonitor/ examples/ tests/ setup.py
 
   lint-black:
     runs-on: ubuntu-latest
@@ -55,12 +62,15 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
-        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
     - name: Install
       run:
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
-    - name: Lint
+    - name: Lint with black
       run:
         python -m black --check aiomonitor/ examples/ tests/ setup.py
 
@@ -75,12 +85,15 @@ jobs:
       with:
         python-version: "3.10"
         check-latest: true
-        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
     - name: Install
       run:
         pip install -U pip setuptools wheel
         pip install -U -r requirements-dev.txt
-    - name: Lint
+    - name: Typecheck with mypy
       run:
         echo "::add-matcher::.github/workflows/mypy-matcher.json"
         python -m mypy aiomonitor/ examples/ tests/ setup.py
