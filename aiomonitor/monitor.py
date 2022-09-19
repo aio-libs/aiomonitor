@@ -466,6 +466,7 @@ class Monitor:
         table = AsciiTable(table_data)
         table.inner_row_border = False
         table.inner_column_border = False
+        self._sout.write(f"{len(table_data)} tasks running\n")
         self._sout.write(table.table)
         self._sout.write("\n")
         self._sout.flush()
