@@ -17,6 +17,7 @@ def read(f):
 
 install_requires = [
     "terminaltables",
+    "prompt_toolkit>=3.0",
     "aioconsole",
 ]
 extras_require: Dict[str, str] = {}

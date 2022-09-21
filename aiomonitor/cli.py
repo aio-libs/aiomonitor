@@ -1,22 +1,24 @@
 import argparse
-import telnetlib
+import asyncio
 
 from .monitor import MONITOR_HOST, MONITOR_PORT
+from .telnet import TelnetClient
+
+
+async def async_monitor_client(host: str, port: int) -> None:
+    async with TelnetClient(host, port) as client:
+        await client.interact()
 
 
 def monitor_client(host: str, port: int) -> None:
-    tn = telnetlib.Telnet()
-    tn.open(host, port, timeout=1)
     try:
-        tn.interact()
+        asyncio.run(async_monitor_client(host, port))
     except KeyboardInterrupt:
         pass
-    finally:
-        tn.close()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser("usage: python -m aiomonitor [options]")
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "-H",
         "--host",
@@ -25,7 +27,6 @@ def main() -> None:
         type=str,
         help="monitor host ip",
     )
-
     parser.add_argument(
         "-p",
         "--port",

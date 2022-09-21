@@ -37,13 +37,8 @@ Monitor has context manager interface:
 
 Now from separate terminal it is possible to connect to the application::
 
-    $ nc localhost 50101
-    
+    $ telnet localhost 50101
 
-To make arrow keys working properly you can use the `rlwrap` trick:
-
-    $ rlwrap nc localhost 50101
-    
 
 or the included python client::
 

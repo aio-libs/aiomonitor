@@ -5,7 +5,6 @@ import inspect
 import logging
 import os
 import signal
-import socket
 import sys
 import threading
 import time
@@ -17,7 +16,6 @@ from contextlib import suppress
 from datetime import timedelta
 from types import TracebackType
 from typing import (
-    IO,
     Any,
     Callable,
     Generator,
@@ -25,10 +23,13 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
+    TextIO,
     Tuple,
     Type,
 )
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.contrib.telnet.server import TelnetConnection, TelnetServer
 from terminaltables import AsciiTable
 
 from .mypy_types import Loop, OptLocals
@@ -94,8 +95,7 @@ class Monitor:
         "    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}"  # noqa
     )
 
-    _sin: IO[str] | None = None
-    _sout: IO[str] | None = None
+    _sout: TextIO
     _created_traceback_chains: weakref.WeakKeyDictionary[
         asyncio.Task[Any],
         asyncio.Task[Any],
@@ -122,7 +122,7 @@ class Monitor:
         hook_task_factory: bool = False,
         locals: OptLocals = None,
     ) -> None:
-        self._loop = loop or asyncio.get_event_loop()
+        self._monitored_loop = loop or asyncio.get_event_loop()
         self._host = host
         self._port = port
         self._console_port = console_port
@@ -132,7 +132,6 @@ class Monitor:
         log.info("Starting aiomonitor at %s:%d", host, port)
 
         self._ui_thread = threading.Thread(target=self._server, args=(), daemon=True)
-        self._closing = threading.Event()
         self._closed = False
         self._started = False
         self._console_future = None  # type: Optional[Future[Any]]
@@ -156,9 +155,9 @@ class Monitor:
         assert not self._started
 
         self._started = True
-        self._original_task_factory = self._loop.get_task_factory()
+        self._original_task_factory = self._monitored_loop.get_task_factory()
         if self._hook_task_factory:
-            self._loop.set_task_factory(self._create_task)
+            self._monitored_loop.set_task_factory(self._create_task)
         self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
 
@@ -183,19 +182,22 @@ class Monitor:
         self.close()
 
     def close(self) -> None:
+        assert self._started, "The monitor must have been started to close it."
         if not self._closed:
-            self._closing.set()
+            self._telnet_server_loop.call_soon_threadsafe(
+                self._telnet_server_future.cancel,
+            )
             self._ui_thread.join()
-            self._loop.set_task_factory(self._original_task_factory)
+            self._monitored_loop.set_task_factory(self._original_task_factory)
             self._closed = True
 
     def _create_task(self, loop, coro) -> asyncio.Task:
-        assert loop is self._loop
+        assert loop is self._monitored_loop
         try:
             parent_task = asyncio.current_task()
         except RuntimeError:
             parent_task = None
-        task = TracedTask(coro, loop=self._loop)
+        task = TracedTask(coro, loop=self._monitored_loop)
         self._created_tracebacks[task] = _extract_stack_from_frame(sys._getframe())[
             :-1
         ]  # strip this wrapper method
@@ -204,67 +206,56 @@ class Monitor:
         return task
 
     def _server(self) -> None:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        asyncio.run(self._server_async())
+
+    async def _server_async(self) -> None:
+        loop = asyncio.get_running_loop()
+        self._telnet_server_loop = loop
+        self._telnet_server_future = loop.create_future()
+        telnet_server = TelnetServer(
+            interact=self._interact, host=self._host, port=self._port
+        )
+        telnet_server.start()
         try:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        except AttributeError:
+            await self._telnet_server_future
+        except asyncio.CancelledError:
             pass
+        finally:
+            await telnet_server.stop()
 
-        # set the timeout to prevent the server loop from
-        # blocking indefinitaly on sock.accept()
-        sock.settimeout(0.5)
-        sock.bind((self._host, self._port))
-        sock.listen(1)
-        with sock:
-            while not self._closing.is_set():
-                try:
-                    client, addr = sock.accept()
-                    with client:
-                        sout = client.makefile("w", encoding="utf-8")
-                        sin = client.makefile("r", encoding="utf-8")
-                        self._interactive_loop(sin, sout)
-                except (socket.timeout, OSError):
-                    continue
-
-    def _interactive_loop(self, sin: IO[str], sout: IO[str]) -> None:
+    async def _interact(self, connection: TelnetConnection) -> None:
         """Main interactive loop of the monitor"""
-        self._sin = sin
-        self._sout = sout
-        tasknum = len(all_tasks(loop=self._loop))
+        await asyncio.sleep(0.3)  # wait until telnet negotiation is done
+        self._sout = connection.stdout
+        tasknum = len(all_tasks(loop=self._monitored_loop))
         s = "" if tasknum == 1 else "s"
         self._sout.write(self.intro.format(tasknum=tasknum, s=s))
-        try:
-            while not self._closing.is_set():
-                self._sout.write(self.prompt)
+        prompt_session: PromptSession[str] = PromptSession(self.prompt)
+        while True:
+            try:
+                user_input = (await prompt_session.prompt_async()).strip()
+            except (EOFError, KeyboardInterrupt):
+                return
+            except Exception as e:
+                msg = "Could not read from user input due to:\n{}\n"
+                log.exception(msg)
+                self._sout.write(msg.format(repr(e)))
                 self._sout.flush()
+            else:
                 try:
-                    user_input = sin.readline()
-                    if not user_input:
-                        break
-                    user_input = user_input.strip()
+                    self._command_dispatch(user_input)
                 except Exception as e:
-                    msg = "Could not read from user input due to:\n{}\n"
+                    msg = "Unexpected Exception during command execution:\n{}\n"  # noqa
                     log.exception(msg)
                     self._sout.write(msg.format(repr(e)))
                     self._sout.flush()
-                else:
-                    try:
-                        self._command_dispatch(user_input)
-                    except Exception as e:
-                        msg = "Unexpected Exception during command execution:\n{}\n"  # noqa
-                        log.exception(msg)
-                        self._sout.write(msg.format(repr(e)))
-                        self._sout.flush()
-        finally:
-            self._sin = None  # type: ignore
-            self._sout = None  # type: ignore
 
     def _command_dispatch(self, user_input: str) -> None:
         if not user_input:
             return self.emptyline()
         assert self._sout is not None
 
+        result = None
         self.lastcmd = user_input
         comm, *args = user_input.split(" ")
         try:
@@ -431,7 +422,7 @@ class Monitor:
         table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
         assert self._sout is not None
 
-        for task in sorted(all_tasks(loop=self._loop), key=id):
+        for task in sorted(all_tasks(loop=self._monitored_loop), key=id):
             taskid = str(id(task))
             if task:
                 coro = _format_coroutine(task.get_coro()).partition(" ")[0]
@@ -476,7 +467,7 @@ class Monitor:
         """Show stack frames and its task creation chain of a task"""
         assert self._sout is not None
         depth = 0
-        task = task_by_id(taskid, self._loop)
+        task = task_by_id(taskid, self._monitored_loop)
         if task is None:
             self._sout.write("No task %d\n" % taskid)
             return
@@ -538,9 +529,11 @@ class Monitor:
     def do_cancel(self, taskid: int) -> None:
         """Cancel an indicated task"""
         assert self._sout is not None
-        task = task_by_id(taskid, self._loop)
+        task = task_by_id(taskid, self._monitored_loop)
         if task:
-            fut = asyncio.run_coroutine_threadsafe(cancel_task(task), loop=self._loop)
+            fut = asyncio.run_coroutine_threadsafe(
+                cancel_task(task), loop=self._monitored_loop
+            )
             fut.result(timeout=3)
             self._sout.write("Cancel task %d\n" % taskid)
         else:
@@ -565,14 +558,16 @@ class Monitor:
         h, p = self._host, self._console_port
         log.info("Starting console at %s:%d", h, p)
         fut = init_console_server(
-            self._host, self._console_port, self._locals, self._loop
+            self._host, self._console_port, self._locals, self._monitored_loop
         )
         server = fut.result(timeout=3)
         try:
             console_proxy(self._sin, self._sout, self._host, self._console_port)
         finally:
             coro = close_server(server)
-            close_fut = asyncio.run_coroutine_threadsafe(coro, loop=self._loop)
+            close_fut = asyncio.run_coroutine_threadsafe(
+                coro, loop=self._monitored_loop
+            )
             close_fut.result(timeout=15)
 
 
