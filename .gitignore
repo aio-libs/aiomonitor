@@ -74,3 +74,4 @@ Pipfile.lock
 .python-version
 
 .DS_Store
+.vim/
