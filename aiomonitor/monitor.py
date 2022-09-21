@@ -89,7 +89,7 @@ class Monitor:
     _empty_result = object()
 
     prompt = "monitor >>> "
-    intro = "\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n\n"  # noqa
+    intro = "\nAsyncio Monitor: {tasknum} task{s} running\nType help for available commands\n"  # noqa
     help_template = "{cmd_name} {arg_list}\n    {doc}\n"
     help_short_template = (
         "    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}"  # noqa
@@ -229,7 +229,7 @@ class Monitor:
         self._sout = connection.stdout
         tasknum = len(all_tasks(loop=self._monitored_loop))
         s = "" if tasknum == 1 else "s"
-        self._sout.write(self.intro.format(tasknum=tasknum, s=s))
+        print(self.intro.format(tasknum=tasknum, s=s), file=self._sout)
         prompt_session: PromptSession[str] = PromptSession(self.prompt)
         while True:
             try:
@@ -307,13 +307,14 @@ class Monitor:
         params = inspect.signature(cmd).parameters.values()
         ia = iter(args)
         for param in params:
-            if param.annotation is param.empty or not callable(param.annotation):
-
-                def type_(x: Any) -> Any:
-                    return x
-
+            if param.annotation is param.empty:
+                type_ = lambda x: x
             else:
-                type_ = param.annotation
+                if isinstance(param.annotation, str):
+                    type_ = eval(param.annotation)
+                else:
+                    type_ = param.annotation
+                assert callable(type_)
             try:
                 if str(param).startswith("*"):
                     for arg in ia:
