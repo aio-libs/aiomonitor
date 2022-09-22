@@ -270,7 +270,7 @@ class Monitor:
         print(self.intro.format(tasknum=tasknum, s=s), file=connection.stdout)
         current_stdout_token = current_stdout.set(connection.stdout)
         prompt_session: PromptSession[str] = PromptSession()
-        lastcmd = "help"
+        lastcmd = "noop"
         style_prompt = "#5fd7ff bold"
         try:
             while True:
@@ -298,6 +298,7 @@ class Monitor:
                         ctx.run(
                             monitor_cli.main,
                             args,
+                            prog_name="",
                             obj=self,
                             standalone_mode=False,  # type: ignore
                             max_content_width=term_size.columns,
@@ -313,9 +314,14 @@ class Monitor:
             current_stdout.reset(current_stdout_token)
 
 
+@monitor_cli.command(hidden=True)
+def noop(ctx: click.Context) -> None:
+    pass
+
+
 @monitor_cli.command(aliases=["?", "h"])
 @click.argument("cmd_names", type=str, nargs=-1)
-def help(ctx, cmd_names: Sequence[str]) -> None:
+def help(ctx: click.Context, cmd_names: Sequence[str]) -> None:
     """Show help for command name
 
     Any number of command names may be given to help, and the long help
@@ -328,7 +334,7 @@ def help(ctx, cmd_names: Sequence[str]) -> None:
 
 @monitor_cli.command(name="signal")
 @click.argument("signame", type=str)
-def signal_(ctx, signame: str) -> None:
+def signal_(ctx: click.Context, signame: str) -> None:
     """Send a Unix signal"""
     self: Monitor = ctx.obj
     if hasattr(signal, signame):
@@ -339,7 +345,7 @@ def signal_(ctx, signame: str) -> None:
 
 
 @monitor_cli.command(aliases=["st"])
-def stacktrace(ctx) -> None:
+def stacktrace(ctx: click.Context) -> None:
     """Print a stack trace from the event loop thread"""
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
@@ -351,7 +357,7 @@ def stacktrace(ctx) -> None:
 
 @monitor_cli.command()
 @click.argument("taskid", type=int)
-def cancel(ctx, taskid: int) -> None:
+def cancel(ctx: click.Context, taskid: int) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
     task = task_by_id(taskid, self._monitored_loop)
@@ -366,13 +372,13 @@ def cancel(ctx, taskid: int) -> None:
 
 
 @monitor_cli.command(aliases=["q", "quit"])
-def exit(ctx) -> None:
+def exit(ctx: click.Context) -> None:
     """Leave the monitor client session"""
     raise asyncio.CancelledError("exit by user")
 
 
 @monitor_cli.command()
-def console(ctx) -> None:
+def console(ctx: click.Context) -> None:
     """Switch to async Python REPL"""
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
@@ -396,7 +402,7 @@ def console(ctx) -> None:
 
 
 @monitor_cli.command(aliases=["p"])
-def ps(ctx) -> None:
+def ps(ctx: click.Context) -> None:
     """Show task table"""
     headers = (
         "Task ID",
@@ -453,7 +459,7 @@ def ps(ctx) -> None:
 
 @monitor_cli.command(aliases=["w"])
 @click.argument("taskid", type=int)
-def where(ctx, taskid: int) -> None:
+def where(ctx: click.Context, taskid: int) -> None:
     """Show stack frames and its task creation chain of a task"""
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
