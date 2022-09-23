@@ -15,7 +15,7 @@ from concurrent.futures import Future
 from contextvars import ContextVar, copy_context
 from datetime import timedelta
 from types import TracebackType
-from typing import Any, List, NamedTuple, Optional, Sequence, TextIO, Tuple, Type
+from typing import Any, Final, List, Optional, Sequence, TextIO, Tuple, Type
 
 import click
 from prompt_toolkit import PromptSession
@@ -43,42 +43,18 @@ from .utils import (
 )
 
 __all__ = ("Monitor", "start_monitor")
+
 log = logging.getLogger(__name__)
+current_stdout: ContextVar[TextIO] = ContextVar("current_stdout")
 
-
-MONITOR_HOST = "127.0.0.1"
-MONITOR_PORT = 50101
-CONSOLE_PORT = 50102
+MONITOR_HOST: Final = "127.0.0.1"
+MONITOR_PORT: Final = 50101
+CONSOLE_PORT: Final = 50102
 
 
 @click.group(cls=AliasGroupMixin)
 def monitor_cli():
     pass
-
-
-Server = asyncio.AbstractServer  # noqa
-
-
-class CommandException(Exception):
-    pass
-
-
-class UnknownCommandException(CommandException):
-    pass
-
-
-class MultipleCommandException(CommandException):
-    def __init__(self, cmds: List["CmdName"]) -> None:
-        self.cmds = cmds
-        super().__init__()
-
-
-class ArgumentMappingException(CommandException):
-    pass
-
-
-CmdName = NamedTuple("CmdName", [("cmd_name", str), ("method_name", str)])
-current_stdout: ContextVar[TextIO] = ContextVar("current_stdout")
 
 
 def _get_current_stdout() -> TextIO:
