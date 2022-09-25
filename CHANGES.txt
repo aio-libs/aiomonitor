@@ -1,6 +1,22 @@
 CHANGES
 =======
 
+0.6.0 (2022-09-26)
+------------------
+
+* Promote `console_locals` as public attr
+
+* Reimplement console command (#6)
+
+* Migrate to Click-based command line interface (#5)
+
+* Adopt `prompt_toolkit` and support concurrent clients (#4)
+
+* Show the total number of tasks when executing `ps` (#3)
+
+* Apply black, isort, mypy, flake8 and automate CI workflows using GitHub Actions
+
+
 0.5.1 (2022-08-29)
 ------------------
 
