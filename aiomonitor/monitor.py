@@ -86,6 +86,7 @@ class Monitor:
         "    {cmd_name}{cmd_arg_sep}{arg_list}: {doc_firstline}"  # noqa
     )
 
+    console_locals: Dict[str, Any]
     _console_tasks: weakref.WeakSet[asyncio.Task[Any]]
 
     _created_traceback_chains: weakref.WeakKeyDictionary[
@@ -119,7 +120,10 @@ class Monitor:
         self._port = port
         self._console_port = console_port
         self._console_enabled = console_enabled
-        self._locals = locals
+        if locals is None:
+            self.console_locals = {"__name__": "__console__", "__doc__": None}
+        else:
+            self.console_locals = locals
 
         self.prompt = "monitor >>> "
 
@@ -442,7 +446,7 @@ def do_console(ctx: click.Context) -> None:
         server = await console.start(
             self._host,
             self._console_port,
-            self._locals,
+            self.console_locals,
             self._monitored_loop,
         )
         try:
