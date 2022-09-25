@@ -3,23 +3,17 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import linecache
-import selectors
 import sys
-import telnetlib
 import traceback
 from asyncio.coroutines import _format_coroutine  # type: ignore
-from concurrent.futures import Future
 from datetime import timedelta
 from pathlib import Path
 from types import FrameType
-from typing import IO, Any, List, Optional, Set
+from typing import Any, List, Optional, Set
 
-import aioconsole
 import click
 
-from .mypy_types import Loop, OptLocals
-
-Server = asyncio.AbstractServer  # noqa
+from .mypy_types import Loop
 
 
 def _format_task(task: asyncio.Task[Any]) -> str:
@@ -208,70 +202,22 @@ class AliasGroupMixin(click.Group):
                     formatter.write_dl(rows)
 
 
-def task_by_id(taskid: int, loop: Loop) -> "Optional[asyncio.Task[Any]]":
+def task_by_id(
+    taskid: int, loop: asyncio.AbstractEventLoop
+) -> Optional[asyncio.Task[Any]]:
     tasks = all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
-async def cancel_task(task: "asyncio.Task[Any]") -> None:
+async def cancel_task(task: asyncio.Task[Any]) -> None:
     with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
 
 
-def init_console_server(
-    host: str, port: int, locals: OptLocals, loop: Loop
-) -> "Future[Server]":
-    def _factory(streams: Any = None) -> aioconsole.AsynchronousConsole:
-        return aioconsole.AsynchronousConsole(locals=locals, streams=streams, loop=loop)
-
-    coro = aioconsole.start_interactive_server(
-        host=host, port=port, factory=_factory, loop=loop
-    )
-    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
-    return console_future
-
-
-async def close_server(server: Server) -> None:
-    server.close()
-    await server.wait_closed()
-
-
-_TelnetSelector = getattr(
-    selectors, "PollSelector", selectors.SelectSelector
-)  # Type: selectors.BaseSelector
-
-
-def console_proxy(sin: IO[str], sout: IO[str], host: str, port: int) -> None:
-    tn = telnetlib.Telnet()
-    with contextlib.closing(tn):
-        tn.open(host, port, timeout=10)
-        with _TelnetSelector() as selector:
-            selector.register(tn, selectors.EVENT_READ)
-            selector.register(sin, selectors.EVENT_READ)
-
-            while True:
-                for key, _ in selector.select():
-                    if key.fileobj is tn:
-                        try:
-                            data = tn.read_eager()
-                        except EOFError:
-                            print("*Connection closed by remote host*")
-                            return
-
-                        if data:
-                            sout.write(data.decode("utf-8"))
-                            sout.flush()
-                    else:
-                        resp = sin.readline()
-                        if not resp:
-                            return
-                        tn.write(resp.encode("utf-8"))
-
-
-def all_tasks(loop: Loop) -> "Set[asyncio.Task[Any]]":
+def all_tasks(loop: Loop) -> Set[asyncio.Task[Any]]:
     if sys.version_info >= (3, 7):
-        tasks = asyncio.all_tasks(loop=loop)  # type: Set[asyncio.Task[Any]]
+        tasks = asyncio.all_tasks(loop=loop)
     else:
         tasks = asyncio.Task.all_tasks(loop=loop)
     return tasks
