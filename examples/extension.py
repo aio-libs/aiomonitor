@@ -1,7 +1,8 @@
 import asyncio
 
-import aiomonitor
 import click
+
+import aiomonitor
 from aiomonitor.monitor import auto_async_command_done, auto_command_done
 
 
