@@ -31,22 +31,26 @@ Monitor has context manager interface:
 
     import aiomonitor
 
-    loop = asyncio.get_event_loop()
-    with aiomonitor.start_monitor(loop=loop):
-        loop.run_forever()
+    async def main():
+        loop = asyncio.get_running_loop()
+        run_forever = loop.create_future()
+        with aiomonitor.start_monitor(loop):
+            await run_forever
+
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
 
 Now from separate terminal it is possible to connect to the application::
 
     $ telnet localhost 50101
-
 
 or the included python client::
 
     $ python -m aiomonitor.cli
     
     
-    
-
 Tutorial
 --------
 
@@ -89,80 +93,84 @@ Let's save this code in file ``simple_srv.py``, so we can run it with the follow
     (Press CTRL+C to quit)
 
 And now one can connect to a running application from a separate terminal, with
-the ``nc`` command, and ``aiomonitor`` will immediately respond with prompt::
+the ``telnet`` command, and ``aiomonitor`` will immediately respond with prompt::
 
-    $ nc localhost 50101
+    $ telnet localhost 50101
     Asyncio Monitor: 1 tasks running
     Type help for commands
     monitor >>>
 
-
-Note in order to make arrow keys and editing work properly just prepend command with `rlwrap`::
-
-    $ rlwrap nc localhost 50101
-
-
 Now you can type commands, for instance, ``help``::
 
     monitor >>> help
+    Usage: help [OPTIONS] COMMAND [ARGS]...
+    
+      To see the usage of each command, run them with "--help" option.
+    
     Commands:
-                 ps               : Show task table
-                 where taskid     : Show stack frames for a task
-                 cancel taskid    : Cancel an indicated task
-                 signal signame   : Send a Unix signal
-                 stacktrace       : Print a stack trace from the event loop thread
-                 console          : Switch to async Python REPL
-                 quit             : Leave the monitor
+      cancel                 Cancel an indicated task
+      console                Switch to async Python REPL
+      exit (q,quit)          Leave the monitor client session
+      help (?,h)             Show the list of commands
+      ps (p)                 Show task table
+      signal                 Send a Unix signal
+      stacktrace (st,stack)  Print a stack trace from the event loop thread
+      where (w)              Show stack frames and its task creation chain of a task
 
 ``aiomonitor`` also supports async python console inside a running event loop
 so you can explore the state of your application::
 
     monitor >>> console
-    Python 3.5.2 (default, Oct 11 2016, 05:05:28)
-    [GCC 4.2.1 Compatible Apple LLVM 8.0.0 (clang-800.0.38)] on darwin
+    Python 3.10.7 (main, Sep  9 2022, 12:31:20) [Clang 13.1.6 (clang-1316.0.21.2.5)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     ---
     This console is running in an asyncio event loop.
     It allows you to wait for coroutines using the 'await' syntax.
-    Try: await asyncio.sleep(1, result=3, loop=loop)
+    Try: await asyncio.sleep(1, result=3)
     ---
-    >>> await asyncio.sleep(1, result=3, loop=loop)
+    >>> await asyncio.sleep(1, result=3)
+    3
+    >>>
 
-To leave the console type ``exit()``::
+To leave the console type ``exit()`` or press Ctrl+D::
 
     >>> exit()
+
+    ✓ The console session is closed.
     monitor >>>
 
+Extension
+---------
+
+Additional console variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may add more variables that can be directly referenced in the ``console`` command.
+Refer `the console-variables example code <https://github.com/achimnol/aiomonitor-ng/tree/master/examples/console-variables.py>`_
+
+Custom console commands
+~~~~~~~~~~~~~~~~~~~~~~~
 
 ``aiomonitor`` is very easy to extend with your own console commands.
-
-.. code:: python
-
-   class WebMonitor(aiomonitor.Monitor):
-       def do_hello(self, sin, sout, name=None):
-           """Using the /hello GET interface
-
-           There is one optional argument, "name".  This name argument must be
-           provided with proper URL excape codes, like %20 for spaces.
-           """
-           name = '' if name is None else '/' + name
-           r = requests.get('http://localhost:8090/hello' + name)
-           sout.write(r.text + '\n')
-
+Refer `the extension example code <https://github.com/achimnol/aiomonitor-ng/tree/master/examples/extension.py>`_
 
 Requirements
 ------------
 
-* Python_ 3.5+
+* Python_ 3.8+ (3.10.7+ recommended)
 * aioconsole_
+* Click_
+* prompt_toolkit_
 * uvloop_ (optional)
 
 
 .. _PEP492: https://www.python.org/dev/peps/pep-0492/
 .. _Python: https://www.python.org
 .. _aioconsole: https://github.com/vxgmichel/aioconsole
-.. _aiohttp: https://github.com/KeepSafe/aiohttp
-.. _asyncio: http://docs.python.org/3.5/library/asyncio.html
+.. _aiohttp: https://github.com/aio-libs/aiohttp
+.. _asyncio: http://docs.python.org/3/library/asyncio.html
+.. _Click: https://click.palletsprojects.com
 .. _curio: https://github.com/dabeaz/curio
+.. _prompt_toolkit: https://python-prompt-toolkit.readthedocs.io
 .. _uvloop: https://github.com/MagicStack/uvloop
 .. _cmd: http://docs.python.org/3/library/cmd.html

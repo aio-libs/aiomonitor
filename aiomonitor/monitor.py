@@ -40,7 +40,11 @@ from .utils import (
     task_by_id,
 )
 
-__all__ = ("Monitor", "start_monitor")
+__all__ = (
+    "Monitor",
+    "monitor_cli",
+    "start_monitor",
+)
 
 log = logging.getLogger(__name__)
 current_stdout: ContextVar[TextIO] = ContextVar("current_stdout")
@@ -140,6 +144,14 @@ class Monitor:
         self._cancelled_traceback_chains = weakref.WeakKeyDictionary()
         self._cancelled_tracebacks = weakref.WeakKeyDictionary()
 
+    @property
+    def host(self) -> str:
+        return self._host
+
+    @property
+    def port(self) -> int:
+        return self._port
+
     def __repr__(self) -> str:
         name = self.__class__.__name__
         return "<{name}: {host}:{port}>".format(
@@ -225,8 +237,6 @@ class Monitor:
             for console_task in console_tasks:
                 console_task.cancel()
             await asyncio.gather(*console_tasks, return_exceptions=True)
-            del console_tasks
-            await asyncio.sleep(0.1)
             await telnet_server.stop()
 
     def _print_ok(self, msg: str) -> None:

@@ -20,10 +20,18 @@ Alternatively you can use more verbose try/finally approach::
         m.close()
 """
 
-from .monitor import CONSOLE_PORT, MONITOR_HOST, MONITOR_PORT, Monitor, start_monitor
+from .monitor import (
+    CONSOLE_PORT,
+    MONITOR_HOST,
+    MONITOR_PORT,
+    Monitor,
+    monitor_cli,
+    start_monitor,
+)
 
 __all__ = (
     "Monitor",
+    "monitor_cli",
     "start_monitor",
     "MONITOR_HOST",
     "MONITOR_PORT",

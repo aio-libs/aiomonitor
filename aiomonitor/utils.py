@@ -13,8 +13,6 @@ from typing import Any, List, Optional, Set
 
 import click
 
-from .mypy_types import Loop
-
 
 def _format_task(task: asyncio.Task[Any]) -> str:
     """
@@ -215,7 +213,7 @@ async def cancel_task(task: asyncio.Task[Any]) -> None:
         await task
 
 
-def all_tasks(loop: Loop) -> Set[asyncio.Task[Any]]:
+def all_tasks(loop: asyncio.AbstractEventLoop) -> Set[asyncio.Task[Any]]:
     if sys.version_info >= (3, 7):
         tasks = asyncio.all_tasks(loop=loop)
     else:
