@@ -42,8 +42,8 @@ def do_hello(ctx: click.Context) -> None:
     # or:
 
     monitor: aiomonitor.Monitor = ctx.obj
-    monitor._print_ok("Hello, world, success!")
-    monitor._print_error("Hello, world, failure!")
+    monitor.print_ok("Hello, world, success!")
+    monitor.print_fail("Hello, world, failure!")
 
 
 @aiomonitor.monitor_cli.command(name="hello-async")

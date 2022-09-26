@@ -239,7 +239,7 @@ class Monitor:
             await asyncio.gather(*console_tasks, return_exceptions=True)
             await telnet_server.stop()
 
-    def _print_ok(self, msg: str) -> None:
+    def print_ok(self, msg: str) -> None:
         print_formatted_text(
             FormattedText(
                 [
@@ -249,7 +249,7 @@ class Monitor:
             )
         )
 
-    def _print_error(self, msg: str) -> None:
+    def print_fail(self, msg: str) -> None:
         print_formatted_text(
             FormattedText(
                 [
@@ -287,11 +287,11 @@ class Monitor:
                         )
                     ).strip()
                 except KeyboardInterrupt:
-                    self._print_error("To terminate, press Ctrl+D or type 'exit'.")
+                    self.print_fail("To terminate, press Ctrl+D or type 'exit'.")
                 except (EOFError, asyncio.CancelledError):
                     return
                 except Exception:
-                    self._print_error(traceback.format_exc())
+                    self.print_fail(traceback.format_exc())
                 else:
                     command_done_event = asyncio.Event()
                     command_done_token = command_done.set(command_done_event)
@@ -315,11 +315,11 @@ class Monitor:
                         else:
                             lastcmd = user_input
                     except (click.BadParameter, click.UsageError) as e:
-                        self._print_error(str(e))
+                        self.print_fail(str(e))
                     except asyncio.CancelledError:
                         return
                     except Exception:
-                        self._print_error(traceback.format_exc())
+                        self.print_fail(traceback.format_exc())
                     finally:
                         command_done.reset(command_done_token)
         finally:
@@ -395,9 +395,9 @@ def do_signal(ctx: click.Context, signame: str) -> None:
     self: Monitor = ctx.obj
     if hasattr(signal, signame):
         os.kill(os.getpid(), getattr(signal, signame))
-        self._print_ok(f"Sent signal to {signame} PID {os.getpid()}")
+        self.print_ok(f"Sent signal to {signame} PID {os.getpid()}")
     else:
-        self._print_error(f"Unknown signal {signame}")
+        self.print_fail(f"Unknown signal {signame}")
 
 
 @monitor_cli.command(name="stacktrace", aliases=["st", "stack"])
@@ -426,9 +426,9 @@ def do_cancel(ctx: click.Context, taskid: int) -> None:
             cancel_task(task), loop=self._monitored_loop
         )
         fut.result(timeout=3)
-        self._print_ok(f"Cancelled task {taskid}")
+        self.print_ok(f"Cancelled task {taskid}")
     else:
-        self._print_error(f"No task {taskid}")
+        self.print_fail(f"No task {taskid}")
 
 
 @monitor_cli.command(name="exit", aliases=["q", "quit"])
@@ -445,7 +445,7 @@ def do_console(ctx: click.Context) -> None:
     """Switch to async Python REPL"""
     self: Monitor = ctx.obj
     if not self._console_enabled:
-        self._print_error("Python console is disabled for this session!")
+        self.print_fail("Python console is disabled for this session!")
         return
 
     @auto_async_command_done
@@ -471,7 +471,7 @@ def do_console(ctx: click.Context) -> None:
         finally:
             await console.close(server, self._monitored_loop)
             log.info("Terminated aioconsole at %s:%d", h, p)
-            self._print_ok("The console session is closed.")
+            self.print_ok("The console session is closed.")
 
     # Since we are already inside the UI's event loop,
     # spawn the async command function as a new task and let it
@@ -549,7 +549,7 @@ def do_where(ctx: click.Context, taskid: int) -> None:
     depth = 0
     task = task_by_id(taskid, self._monitored_loop)
     if task is None:
-        self._print_error(f"No task {taskid}")
+        self.print_fail(f"No task {taskid}")
         return
     task_chain: List[asyncio.Task[Any]] = []
     while task is not None:
