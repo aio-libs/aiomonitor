@@ -333,6 +333,7 @@ class Monitor:
         #       current telnet connection.
         prompt_session: PromptSession[str] = PromptSession(
             completer=ClickCompleter(monitor_cli),
+            complete_while_typing=False,
         )
         lastcmd = "noop"
         style_prompt = "#5fd7ff bold"
