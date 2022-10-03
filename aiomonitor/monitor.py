@@ -15,12 +15,16 @@ from asyncio.coroutines import _format_coroutine  # type: ignore
 from contextvars import ContextVar, copy_context
 from datetime import timedelta
 from types import TracebackType
-from typing import Any, Dict, Final, List, Optional, TextIO, Tuple, Type
+from typing import Any, Dict, Final, Iterable, List, Optional, TextIO, Tuple, Type
 
 import click
+from click.parser import split_arg_string
+from click.shell_completion import CompletionItem, _resolve_context, _resolve_incomplete
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application.current import get_app_session
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.contrib.telnet.server import TelnetConnection, TelnetServer
+from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.shortcuts import print_formatted_text
 from terminaltables import AsciiTable
@@ -47,6 +51,7 @@ __all__ = (
 )
 
 log = logging.getLogger(__name__)
+current_monitor: ContextVar[Monitor] = ContextVar("current_monitor")
 current_stdout: ContextVar[TextIO] = ContextVar("current_stdout")
 command_done: ContextVar[asyncio.Event] = ContextVar("command_done")
 
@@ -77,6 +82,60 @@ def _get_current_stderr() -> TextIO:
         return sys.stderr
     else:
         return stdout
+
+
+class ClickCompleter(Completer):
+    def __init__(self, root_command: click.BaseCommand) -> None:
+        self._root_command = root_command
+
+    def get_completions(
+        self,
+        document: Document,
+        complete_event: CompleteEvent,
+    ) -> Iterable[Completion]:
+        args = split_arg_string(document.current_line)
+        incomplete = document.get_word_under_cursor()
+        if incomplete and args and args[-1] == incomplete:
+            args.pop()
+        click_ctx = _resolve_context(self._root_command, {}, "", args)
+        cmd_or_param, incomplete = _resolve_incomplete(click_ctx, args, incomplete)
+        completions: List[CompletionItem] = cmd_or_param.shell_complete(
+            click_ctx, incomplete
+        )
+        start_position = document.find_backwards(incomplete) or 0
+        for completion in completions:
+            yield Completion(
+                completion.value,
+                start_position=start_position,
+            )
+
+
+def complete_task_id(
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
+) -> Iterable[str]:
+    # ctx here is created in the completer and does not have ctx.obj set as monitor.
+    # We take the monitor instance from the global context variable instead.
+    try:
+        self: Monitor = current_monitor.get()
+    except LookupError:
+        return []
+    return [
+        task_id
+        for task_id in map(str, sorted(map(id, all_tasks(loop=self._monitored_loop))))
+        if task_id.startswith(incomplete)
+    ][
+        :10
+    ]  # prevent flooding the terminal...
+
+
+def complete_signal_names(
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
+) -> Iterable[str]:
+    return [sig.name for sig in signal.Signals if sig.name.startswith(incomplete)]
 
 
 class Monitor:
@@ -267,11 +326,14 @@ class Monitor:
         tasknum = len(all_tasks(loop=self._monitored_loop))
         s = "" if tasknum == 1 else "s"
         print(self.intro.format(tasknum=tasknum, s=s), file=connection.stdout)
+        current_monitor_token = current_monitor.set(self)
         current_stdout_token = current_stdout.set(connection.stdout)
         # NOTE: prompt_toolkit's all internal console output automatically uses
         #       an internal contextvar to keep the stdout consistent with the
         #       current telnet connection.
-        prompt_session: PromptSession[str] = PromptSession()
+        prompt_session: PromptSession[str] = PromptSession(
+            completer=ClickCompleter(monitor_cli),
+        )
         lastcmd = "noop"
         style_prompt = "#5fd7ff bold"
         try:
@@ -324,6 +386,7 @@ class Monitor:
                         command_done.reset(command_done_token)
         finally:
             current_stdout.reset(current_stdout_token)
+            current_monitor.reset(current_monitor_token)
 
 
 def auto_command_done(cmdfunc):
@@ -387,7 +450,7 @@ def do_help(ctx: click.Context) -> None:
 
 
 @monitor_cli.command(name="signal")
-@click.argument("signame", type=str)
+@click.argument("signame", type=str, shell_complete=complete_signal_names)
 @custom_help_option
 @auto_command_done
 def do_signal(ctx: click.Context, signame: str) -> None:
@@ -414,21 +477,22 @@ def do_stacktrace(ctx: click.Context) -> None:
 
 
 @monitor_cli.command(name="cancel")
-@click.argument("taskid", type=int)
+@click.argument("taskid", shell_complete=complete_task_id)
 @custom_help_option
 @auto_command_done
-def do_cancel(ctx: click.Context, taskid: int) -> None:
+def do_cancel(ctx: click.Context, taskid: str) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
-    task = task_by_id(taskid, self._monitored_loop)
+    task_id = int(taskid)
+    task = task_by_id(task_id, self._monitored_loop)
     if task:
         fut = asyncio.run_coroutine_threadsafe(
             cancel_task(task), loop=self._monitored_loop
         )
         fut.result(timeout=3)
-        self.print_ok(f"Cancelled task {taskid}")
+        self.print_ok(f"Cancelled task {task_id}")
     else:
-        self.print_fail(f"No task {taskid}")
+        self.print_fail(f"No task {task_id}")
 
 
 @monitor_cli.command(name="exit", aliases=["q", "quit"])
@@ -539,17 +603,18 @@ def do_ps(ctx: click.Context) -> None:
 
 
 @monitor_cli.command(name="where", aliases=["w"])
-@click.argument("taskid", type=int)
+@click.argument("taskid", shell_complete=complete_task_id)
 @custom_help_option
 @auto_command_done
-def do_where(ctx: click.Context, taskid: int) -> None:
+def do_where(ctx: click.Context, taskid: str) -> None:
     """Show stack frames and its task creation chain of a task"""
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     depth = 0
-    task = task_by_id(taskid, self._monitored_loop)
+    task_id = int(taskid)
+    task = task_by_id(task_id, self._monitored_loop)
     if task is None:
-        self.print_fail(f"No task {taskid}")
+        self.print_fail(f"No task {task_id}")
         return
     task_chain: List[asyncio.Task[Any]] = []
     while task is not None:
