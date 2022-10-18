@@ -16,7 +16,9 @@ def read(f):
 
 
 install_requires = [
-    "click>=7",
+    "attrs>=20",
+    "click>=8",
+    "janus>=1.0",
     "terminaltables",
     "prompt_toolkit>=3.0",
     "aioconsole",

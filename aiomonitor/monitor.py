@@ -15,9 +15,23 @@ from asyncio.coroutines import _format_coroutine  # type: ignore
 from contextvars import ContextVar, copy_context
 from datetime import timedelta
 from types import TracebackType
-from typing import Any, Dict, Final, Iterable, List, Optional, TextIO, Tuple, Type
+from typing import (
+    Any,
+    Awaitable,
+    Dict,
+    Final,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 import click
+import janus
 from click.parser import split_arg_string
 from click.shell_completion import CompletionItem, _resolve_context, _resolve_incomplete
 from prompt_toolkit import PromptSession
@@ -31,13 +45,16 @@ from terminaltables import AsciiTable
 
 from . import console
 from .task import TracedTask
+from .types import CancellationChain, TerminatedTaskInfo
 from .utils import (
     AliasGroupMixin,
+    _extract_stack_from_exception,
     _extract_stack_from_frame,
     _extract_stack_from_task,
     _filter_stack,
     _format_filename,
     _format_task,
+    _format_terminated_task,
     _format_timedelta,
     all_tasks,
     cancel_task,
@@ -58,6 +75,9 @@ command_done: ContextVar[asyncio.Event] = ContextVar("command_done")
 MONITOR_HOST: Final = "127.0.0.1"
 MONITOR_PORT: Final = 50101
 CONSOLE_PORT: Final = 50102
+
+T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
 
 @click.group(cls=AliasGroupMixin, add_help_option=False)
@@ -125,9 +145,23 @@ def complete_task_id(
         task_id
         for task_id in map(str, sorted(map(id, all_tasks(loop=self._monitored_loop))))
         if task_id.startswith(incomplete)
-    ][
-        :10
-    ]  # prevent flooding the terminal...
+    ][:10]
+
+
+def complete_trace_id(
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
+) -> Iterable[str]:
+    try:
+        self: Monitor = current_monitor.get()
+    except LookupError:
+        return []
+    return [
+        trace_id
+        for trace_id in map(str, sorted(self._terminated_tasks.keys()))
+        if trace_id.startswith(incomplete)
+    ][:10]
 
 
 def complete_signal_names(
@@ -154,18 +188,17 @@ class Monitor:
 
     _created_traceback_chains: weakref.WeakKeyDictionary[
         asyncio.Task[Any],
-        asyncio.Task[Any],
+        weakref.ReferenceType[asyncio.Task[Any]],
     ]
     _created_tracebacks: weakref.WeakKeyDictionary[
         asyncio.Task[Any], List[traceback.FrameSummary]
     ]
-    _cancelled_traceback_chains: weakref.WeakKeyDictionary[
-        asyncio.Task[Any],
-        asyncio.Task[Any],
-    ]
-    _cancelled_tracebacks: weakref.WeakKeyDictionary[
-        asyncio.Task[Any], List[traceback.FrameSummary]
-    ]
+    _terminated_tasks: Dict[str, TerminatedTaskInfo]
+    _terminated_history: List[str]
+    _termination_info_queue: janus.Queue[TerminatedTaskInfo]
+    _canceller_chain: Dict[str, str]
+    _canceller_stacks: Dict[str, List[traceback.FrameSummary] | None]
+    _cancellation_chain_queue: janus.Queue[CancellationChain]
 
     def __init__(
         self,
@@ -176,6 +209,7 @@ class Monitor:
         console_port: int = CONSOLE_PORT,
         console_enabled: bool = True,
         hook_task_factory: bool = False,
+        max_termination_history: int = 1000,
         locals: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._monitored_loop = loop or asyncio.get_running_loop()
@@ -192,7 +226,6 @@ class Monitor:
 
         log.info("Starting aiomonitor at %s:%d", host, port)
 
-        self._ui_thread = threading.Thread(target=self._server, args=(), daemon=True)
         self._closed = False
         self._started = False
         self._console_tasks = weakref.WeakSet()
@@ -200,8 +233,14 @@ class Monitor:
         self._hook_task_factory = hook_task_factory
         self._created_traceback_chains = weakref.WeakKeyDictionary()
         self._created_tracebacks = weakref.WeakKeyDictionary()
-        self._cancelled_traceback_chains = weakref.WeakKeyDictionary()
-        self._cancelled_tracebacks = weakref.WeakKeyDictionary()
+        self._terminated_tasks = {}
+        self._canceller_chain = {}
+        self._canceller_stacks = {}
+        self._terminated_history = []
+        self._max_termination_history = max_termination_history
+
+        self._ui_started = threading.Event()
+        self._ui_thread = threading.Thread(target=self._ui_main, args=(), daemon=True)
 
     @property
     def host(self) -> str:
@@ -226,6 +265,7 @@ class Monitor:
             self._monitored_loop.set_task_factory(self._create_task)
         self._event_loop_thread_id = threading.get_ident()
         self._ui_thread.start()
+        self._ui_started.wait()
 
         # Override the Click's stdout/stderr reference cache functions
         # to let them use the correct stdout handler.
@@ -255,40 +295,69 @@ class Monitor:
     def close(self) -> None:
         assert self._started, "The monitor must have been started to close it."
         if not self._closed:
-            self._telnet_server_loop.call_soon_threadsafe(
-                self._telnet_server_future.cancel,
+            self._ui_loop.call_soon_threadsafe(
+                self._ui_forever_future.cancel,
             )
             self._ui_thread.join()
             self._monitored_loop.set_task_factory(self._original_task_factory)
             self._closed = True
 
-    def _create_task(self, loop, coro) -> asyncio.Task:
+    async def _coro_wrapper(self, coro: Awaitable[T_co]) -> T_co:
+        myself = asyncio.current_task()
+        assert isinstance(myself, TracedTask)
+        try:
+            return await coro
+        except BaseException as e:
+            myself._termination_stack = _extract_stack_from_exception(e)[:-1]
+            raise
+
+    def _create_task(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        coro: Generator[Any, Any, T_co],
+    ) -> asyncio.Future[T_co]:
         assert loop is self._monitored_loop
         try:
             parent_task = asyncio.current_task()
         except RuntimeError:
             parent_task = None
-        task = TracedTask(coro, loop=self._monitored_loop)
+        task = TracedTask(
+            self._coro_wrapper(coro),  # type: ignore
+            termination_info_queue=self._termination_info_queue.sync_q,
+            cancellation_chain_queue=self._cancellation_chain_queue.sync_q,
+            loop=self._monitored_loop,
+        )
+        task._orig_coro = coro
         self._created_tracebacks[task] = _extract_stack_from_frame(sys._getframe())[
             :-1
         ]  # strip this wrapper method
         if parent_task is not None:
-            self._created_traceback_chains[task] = parent_task
+            self._created_traceback_chains[task] = weakref.ref(parent_task)
         return task
 
-    def _server(self) -> None:
-        asyncio.run(self._server_async())
+    def _ui_main(self) -> None:
+        asyncio.run(self._ui_main_async())
 
-    async def _server_async(self) -> None:
+    async def _ui_main_async(self) -> None:
         loop = asyncio.get_running_loop()
-        self._telnet_server_loop = loop
-        self._telnet_server_future = loop.create_future()
+        self._termination_info_queue = janus.Queue()
+        self._cancellation_chain_queue = janus.Queue()
+        self._ui_loop = loop
+        self._ui_forever_future = loop.create_future()
+        self._ui_termination_handler_task = asyncio.create_task(
+            self._ui_handle_termination_updates()
+        )
+        self._ui_cancellation_handler_task = asyncio.create_task(
+            self._ui_handle_cancellation_updates()
+        )
         telnet_server = TelnetServer(
             interact=self._interact, host=self._host, port=self._port
         )
         telnet_server.start()
+        await asyncio.sleep(0)
+        self._ui_started.set()
         try:
-            await self._telnet_server_future
+            await self._ui_forever_future
         except asyncio.CancelledError:
             pass
         finally:
@@ -296,7 +365,41 @@ class Monitor:
             for console_task in console_tasks:
                 console_task.cancel()
             await asyncio.gather(*console_tasks, return_exceptions=True)
+            self._ui_termination_handler_task.cancel()
+            self._ui_cancellation_handler_task.cancel()
+            await self._ui_termination_handler_task
+            await self._ui_cancellation_handler_task
             await telnet_server.stop()
+
+    async def _ui_handle_termination_updates(self) -> None:
+        while True:
+            try:
+                update: TerminatedTaskInfo = (
+                    await self._termination_info_queue.async_q.get()
+                )
+            except asyncio.CancelledError:
+                return
+            self._terminated_tasks[update.id] = update
+            self._terminated_history.append(update.id)
+            # canceller stack is already put in _ui_handle_cancellation_updates()
+            if canceller_stack := self._canceller_stacks.pop(update.id, None):
+                update.canceller_stack = canceller_stack
+            while len(self._terminated_history) > self._max_termination_history:
+                removed_id = self._terminated_history.pop(0)
+                self._terminated_tasks.pop(removed_id, None)
+                self._canceller_chain.pop(removed_id, None)
+                self._canceller_stacks.pop(removed_id, None)
+
+    async def _ui_handle_cancellation_updates(self) -> None:
+        while True:
+            try:
+                update: CancellationChain = (
+                    await self._cancellation_chain_queue.async_q.get()
+                )
+            except asyncio.CancelledError:
+                return
+            self._canceller_stacks[update.target_id] = update.canceller_stack
+            self._canceller_chain[update.target_id] = update.canceller_id
 
     def print_ok(self, msg: str) -> None:
         print_formatted_text(
@@ -546,9 +649,10 @@ def do_console(ctx: click.Context) -> None:
 
 
 @monitor_cli.command(name="ps", aliases=["p"])
+@click.option("-f", "--filter", "filter_", help="filter by coroutine or task name")
 @custom_help_option
 @auto_command_done
-def do_ps(ctx: click.Context) -> None:
+def do_ps(ctx: click.Context, filter_: str) -> None:
     """Show task table"""
     headers = (
         "Task ID",
@@ -561,43 +665,110 @@ def do_ps(ctx: click.Context) -> None:
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
+    all_running_tasks = all_tasks(loop=self._monitored_loop)
 
-    for task in sorted(all_tasks(loop=self._monitored_loop), key=id):
+    for task in sorted(all_running_tasks, key=id):
         taskid = str(id(task))
-        if task:
-            coro = _format_coroutine(task.get_coro()).partition(" ")[0]
-            creation_stack = self._created_tracebacks.get(task)
-            # Some values are masked as "-" when they are unavailable
-            # if it's the root task/coro or if the task factory is not applied.
-            if not creation_stack:
-                created_location = "-"
-            else:
-                creation_stack = _filter_stack(creation_stack)
-                fn = _format_filename(creation_stack[-1].filename)
-                lineno = creation_stack[-1].lineno
-                created_location = f"{fn}:{lineno}"
-            if isinstance(task, TracedTask):
-                running_since = _format_timedelta(
-                    timedelta(
-                        seconds=(time.monotonic() - task._started_at),
-                    )
-                )
-            else:
-                running_since = "-"
-            table_data.append(
-                (
-                    taskid,
-                    task._state,
-                    task.get_name(),
-                    coro,
-                    created_location,
-                    running_since,
+        if isinstance(task, TracedTask):
+            coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
+        else:
+            coro_repr = _format_coroutine(task.get_coro()).partition(" ")[0]
+        if filter_ and (filter_ not in coro_repr and filter_ not in task.get_name()):
+            continue
+        creation_stack = self._created_tracebacks.get(task)
+        # Some values are masked as "-" when they are unavailable
+        # if it's the root task/coro or if the task factory is not applied.
+        if not creation_stack:
+            created_location = "-"
+        else:
+            creation_stack = _filter_stack(creation_stack)
+            fn = _format_filename(creation_stack[-1].filename)
+            lineno = creation_stack[-1].lineno
+            created_location = f"{fn}:{lineno}"
+        if isinstance(task, TracedTask):
+            running_since = _format_timedelta(
+                timedelta(
+                    seconds=(time.perf_counter() - task._started_at),
                 )
             )
+        else:
+            running_since = "-"
+        table_data.append(
+            (
+                taskid,
+                task._state,
+                task.get_name(),
+                coro_repr,
+                created_location,
+                running_since,
+            )
+        )
     table = AsciiTable(table_data)
     table.inner_row_border = False
     table.inner_column_border = False
-    stdout.write(f"{len(table_data)} tasks running\n")
+    if filter_:
+        stdout.write(
+            f"{len(all_running_tasks)} tasks running "
+            f"(showing {len(table_data) - 1} tasks)\n"
+        )
+    else:
+        stdout.write(f"{len(all_running_tasks)} tasks running\n")
+    stdout.write(table.table)
+    stdout.write("\n")
+    stdout.flush()
+
+
+@monitor_cli.command(name="ps-terminated", aliases=["pt", "pst"])
+@click.option("-f", "--filter", "filter_", help="filter by coroutine or task name")
+@custom_help_option
+@auto_command_done
+def do_ps_terminated(ctx: click.Context, filter_: str) -> None:
+    """List recently terminated/cancelled tasks"""
+    headers = (
+        "Trace ID",
+        "Name",
+        "Coro",
+        "Since Started",
+        "Since Terminated",
+    )
+    self: Monitor = ctx.obj
+    stdout = _get_current_stdout()
+    table_data: List[Tuple[str, str, str, str, str]] = [headers]
+    terminated_tasks = self._terminated_tasks.values()
+    for item in sorted(
+        terminated_tasks,
+        key=lambda info: info.terminated_at,
+        reverse=True,
+    ):
+        if filter_ and (filter_ not in item.coro and filter_ not in item.name):
+            continue
+        run_since = _format_timedelta(
+            timedelta(seconds=time.perf_counter() - item.started_at)
+        )
+        cancelled_since = _format_timedelta(
+            timedelta(seconds=time.perf_counter() - item.terminated_at)
+        )
+        table_data.append(
+            (
+                str(item.id),
+                item.name,
+                item.coro,
+                run_since,
+                cancelled_since,
+            )
+        )
+    table = AsciiTable(table_data)
+    table.inner_row_border = False
+    table.inner_column_border = False
+    if filter_:
+        stdout.write(
+            f"{len(terminated_tasks)} tasks running "
+            f"(showing {len(table_data) - 1} tasks)\n"
+        )
+    else:
+        stdout.write(
+            f"{len(terminated_tasks)} tasks terminated (old ones may be stripped)\n"
+        )
     stdout.write(table.table)
     stdout.write("\n")
     stdout.flush()
@@ -608,7 +779,7 @@ def do_ps(ctx: click.Context) -> None:
 @custom_help_option
 @auto_command_done
 def do_where(ctx: click.Context, taskid: str) -> None:
-    """Show stack frames and its task creation chain of a task"""
+    """Show stack frames and the task creation chain of a task"""
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     depth = 0
@@ -620,7 +791,8 @@ def do_where(ctx: click.Context, taskid: str) -> None:
     task_chain: List[asyncio.Task[Any]] = []
     while task is not None:
         task_chain.append(task)
-        task = self._created_traceback_chains.get(task)
+        task_ref = self._created_traceback_chains.get(task)
+        task = task_ref() if task_ref is not None else None
     prev_task = None
     for task in reversed(task_chain):
         if depth == 0:
@@ -636,7 +808,7 @@ def do_where(ctx: click.Context, taskid: str) -> None:
         stack = self._created_tracebacks.get(task)
         if stack is None:
             stdout.write(
-                "  No stack available (maybe it is a native code or the event loop itself)\n"
+                "  No stack available (maybe it is a native code, a synchronous callback function, or the event loop itself)\n"
             )
         else:
             stack = _filter_stack(stack)
@@ -649,6 +821,57 @@ def do_where(ctx: click.Context, taskid: str) -> None:
     stack = _extract_stack_from_task(task)
     if not stack:
         stdout.write("  No stack available for %s" % _format_task(task))
+    else:
+        stdout.write("".join(traceback.format_list(stack)))
+    stdout.write("\n")
+
+
+@monitor_cli.command(name="where-terminated", aliases=["wt"])
+@click.argument("trace_id", shell_complete=complete_trace_id)
+@custom_help_option
+@auto_command_done
+def do_where_terminated(ctx: click.Context, trace_id: str) -> None:
+    """Show stack frames and the termination/cancellation chain of a task"""
+    self: Monitor = ctx.obj
+    stdout = _get_current_stdout()
+    depth = 0
+    tinfo_chain: List[TerminatedTaskInfo] = []
+    while trace_id is not None:
+        tinfo_chain.append(self._terminated_tasks[trace_id])
+        trace_id = self._canceller_chain.get(trace_id)  # type: ignore
+    prev_tinfo = None
+    for tinfo in reversed(tinfo_chain):
+        if depth == 0:
+            stdout.write(
+                "Stack of the root task or coroutine scheduled in the event loop (most recent call last):\n\n"
+            )
+        elif depth > 0:
+            assert prev_tinfo is not None
+            stdout.write(
+                "Stack of %s when creating the next task (most recent call last):\n\n"
+                % _format_terminated_task(prev_tinfo)
+            )
+        stack = tinfo.canceller_stack
+        if stack is None:
+            stdout.write(
+                "  No stack available (maybe it is a self-raised cancellation or exception)\n"
+            )
+        else:
+            stack = _filter_stack(stack)
+            stdout.write("".join(traceback.format_list(stack)))
+        prev_tinfo = tinfo
+        depth += 1
+        stdout.write("\n")
+    tinfo = tinfo_chain[0]
+    stdout.write(
+        "Stack of %s (most recent call last):\n\n" % _format_terminated_task(tinfo)
+    )
+    stack = tinfo.termination_stack
+    if not stack:
+        stdout.write(
+            "  No stack available for %s (the task has run to completion)"
+            % _format_terminated_task(tinfo)
+        )
     else:
         stdout.write("".join(traceback.format_list(stack)))
     stdout.write("\n")

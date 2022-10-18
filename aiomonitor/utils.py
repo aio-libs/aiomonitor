@@ -13,6 +13,8 @@ from typing import Any, List, Optional, Set
 
 import click
 
+from .types import TerminatedTaskInfo
+
 
 def _format_task(task: asyncio.Task[Any]) -> str:
     """
@@ -20,6 +22,18 @@ def _format_task(task: asyncio.Task[Any]) -> str:
     """
     coro = _format_coroutine(task.get_coro()).partition(" ")[0]
     return f"<Task name={task.get_name()} coro={coro}>"
+
+
+def _format_terminated_task(tinfo: TerminatedTaskInfo) -> str:
+    """
+    A simpler version of task's repr()
+    """
+    status = []
+    if tinfo.cancelled:
+        status.append("cancelled")
+    if tinfo.exc_repr and not tinfo.cancelled:
+        status.append(f"exc={tinfo.exc_repr}")
+    return f"<TerminatedTask name={tinfo.name} coro={tinfo.coro} {' '.join(status)}>"
 
 
 def _format_filename(filename: str) -> str:
@@ -125,6 +139,12 @@ def _extract_stack_from_task(
 
 def _extract_stack_from_frame(frame: FrameType) -> List[traceback.FrameSummary]:
     stack = traceback.StackSummary.extract(traceback.walk_stack(frame))
+    stack.reverse()
+    return stack
+
+
+def _extract_stack_from_exception(e: BaseException) -> List[traceback.FrameSummary]:
+    stack = traceback.StackSummary.extract(traceback.walk_tb(e.__traceback__))
     stack.reverse()
     return stack
 
