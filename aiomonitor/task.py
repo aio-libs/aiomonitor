@@ -1,16 +1,30 @@
 import asyncio
 import base64
+import functools
 import struct
 import sys
 import time
 import traceback
+import weakref
 from asyncio.coroutines import _format_coroutine  # type: ignore
-from typing import Any, Generator, List, Optional
+from typing import Any, Callable, Coroutine, Generator, List, Optional, TypeVar
 
 import janus
+from typing_extensions import ParamSpec
 
 from .types import CancellationChain, TerminatedTaskInfo
 from .utils import _extract_stack_from_frame
+
+__all__ = (
+    "TracedTask",
+    "preserve_termination_log",
+    "persistent_coro",
+)
+
+persistent_coro: weakref.WeakSet[Coroutine] = weakref.WeakSet()
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class TracedTask(asyncio.Task):
@@ -22,6 +36,7 @@ class TracedTask(asyncio.Task):
         *args,
         termination_info_queue: janus._SyncQueueProxy[TerminatedTaskInfo],
         cancellation_chain_queue: janus._SyncQueueProxy[CancellationChain],
+        persistent: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -30,6 +45,7 @@ class TracedTask(asyncio.Task):
         self._started_at = time.perf_counter()
         self._termination_stack = None
         self.add_done_callback(self._trace_termination)
+        self._persistent = persistent
 
     def get_trace_id(self) -> str:
         h = hash(
@@ -58,6 +74,7 @@ class TracedTask(asyncio.Task):
             terminated_at=time.perf_counter(),
             termination_stack=self._termination_stack,
             canceller_stack=None,
+            persistent=self._persistent,
         )
         self._termination_info_queue.put_nowait(task_info)
 
@@ -75,3 +92,20 @@ class TracedTask(asyncio.Task):
             )
             self._cancellation_chain_queue.put_nowait(cancellation_chain)
         return super().cancel(msg)
+
+
+def preserve_termination_log(
+    corofunc: Callable[P, Coroutine[Any, None, T]]
+) -> Callable[P, Coroutine[Any, None, T]]:
+    """
+    Guard the given coroutine function from being stripped out due to the max history
+    limit when created as TracedTask.
+    """
+
+    @functools.wraps(corofunc)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, None, T]:
+        coro = corofunc(*args, **kwargs)
+        persistent_coro.add(coro)
+        return coro
+
+    return inner

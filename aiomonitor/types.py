@@ -15,6 +15,7 @@ class TerminatedTaskInfo:
     termination_stack: Optional[List[traceback.FrameSummary]]
     canceller_stack: Optional[List[traceback.FrameSummary]] = None
     exc_repr: Optional[str] = None
+    persistent: bool = False
 
 
 @define

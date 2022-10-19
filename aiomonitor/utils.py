@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import linecache
 import sys
 import traceback
@@ -147,6 +148,15 @@ def _extract_stack_from_exception(e: BaseException) -> List[traceback.FrameSumma
     stack = traceback.StackSummary.extract(traceback.walk_tb(e.__traceback__))
     stack.reverse()
     return stack
+
+
+def get_default_args(func):
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
 
 class AliasGroupMixin(click.Group):

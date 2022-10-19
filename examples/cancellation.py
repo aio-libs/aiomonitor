@@ -1,6 +1,15 @@
 import asyncio
 
 import aiomonitor
+from aiomonitor.task import preserve_termination_log
+
+
+@preserve_termination_log
+async def should_have_run_until_exit():
+    print("should_have_run_until_exit: begin")
+    await asyncio.sleep(5)
+    print("should_have_run_until_exit: cancel")
+    raise asyncio.CancelledError("cancelled-suspiciously")
 
 
 async def chain3():
@@ -65,7 +74,12 @@ async def unhandled_exc_main():
 
 async def main():
     loop = asyncio.get_running_loop()
-    with aiomonitor.start_monitor(loop, hook_task_factory=True):
+    with aiomonitor.start_monitor(
+        loop,
+        hook_task_factory=True,
+        max_termination_history=10,
+    ):
+        asyncio.create_task(should_have_run_until_exit())
         chain_main_task = asyncio.create_task(chain_main())
         self_cancel_main_task = asyncio.create_task(self_cancel_main())
         unhandled_exc_main_task = asyncio.create_task(unhandled_exc_main())

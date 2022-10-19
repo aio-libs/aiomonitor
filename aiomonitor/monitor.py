@@ -44,7 +44,7 @@ from prompt_toolkit.shortcuts import print_formatted_text
 from terminaltables import AsciiTable
 
 from . import console
-from .task import TracedTask
+from .task import TracedTask, persistent_coro
 from .types import CancellationChain, TerminatedTaskInfo
 from .utils import (
     AliasGroupMixin,
@@ -58,6 +58,7 @@ from .utils import (
     _format_timedelta,
     all_tasks,
     cancel_task,
+    get_default_args,
     task_by_id,
 )
 
@@ -321,10 +322,12 @@ class Monitor:
             parent_task = asyncio.current_task()
         except RuntimeError:
             parent_task = None
+        persistent = coro in persistent_coro
         task = TracedTask(
             self._coro_wrapper(coro),  # type: ignore
             termination_info_queue=self._termination_info_queue.sync_q,
             cancellation_chain_queue=self._cancellation_chain_queue.sync_q,
+            persistent=persistent,
             loop=self._monitored_loop,
         )
         task._orig_coro = coro
@@ -380,7 +383,8 @@ class Monitor:
             except asyncio.CancelledError:
                 return
             self._terminated_tasks[update.id] = update
-            self._terminated_history.append(update.id)
+            if not update.persistent:
+                self._terminated_history.append(update.id)
             # canceller stack is already put in _ui_handle_cancellation_updates()
             if canceller_stack := self._canceller_stacks.pop(update.id, None):
                 update.canceller_stack = canceller_stack
@@ -650,9 +654,14 @@ def do_console(ctx: click.Context) -> None:
 
 @monitor_cli.command(name="ps", aliases=["p"])
 @click.option("-f", "--filter", "filter_", help="filter by coroutine or task name")
+@click.option("-p", "--persistent", is_flag=True, help="show only persistent tasks")
 @custom_help_option
 @auto_command_done
-def do_ps(ctx: click.Context, filter_: str) -> None:
+def do_ps(
+    ctx: click.Context,
+    filter_: str,
+    persistent: bool,
+) -> None:
     """Show task table"""
     headers = (
         "Task ID",
@@ -671,8 +680,13 @@ def do_ps(ctx: click.Context, filter_: str) -> None:
         taskid = str(id(task))
         if isinstance(task, TracedTask):
             coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
+            if persistent and task._orig_coro not in persistent_coro:
+                continue
         else:
             coro_repr = _format_coroutine(task.get_coro()).partition(" ")[0]
+            if persistent:
+                # untracked tasks should be skipped when showing persistent ones only
+                continue
         if filter_ and (filter_ not in coro_repr and filter_ not in task.get_name()):
             continue
         creation_stack = self._created_tracebacks.get(task)
@@ -706,7 +720,7 @@ def do_ps(ctx: click.Context, filter_: str) -> None:
     table = AsciiTable(table_data)
     table.inner_row_border = False
     table.inner_column_border = False
-    if filter_:
+    if filter_ or persistent:
         stdout.write(
             f"{len(all_running_tasks)} tasks running "
             f"(showing {len(table_data) - 1} tasks)\n"
@@ -720,9 +734,14 @@ def do_ps(ctx: click.Context, filter_: str) -> None:
 
 @monitor_cli.command(name="ps-terminated", aliases=["pt", "pst"])
 @click.option("-f", "--filter", "filter_", help="filter by coroutine or task name")
+@click.option("-p", "--persistent", is_flag=True, help="show only persistent tasks")
 @custom_help_option
 @auto_command_done
-def do_ps_terminated(ctx: click.Context, filter_: str) -> None:
+def do_ps_terminated(
+    ctx: click.Context,
+    filter_: str,
+    persistent: bool,
+) -> None:
     """List recently terminated/cancelled tasks"""
     headers = (
         "Trace ID",
@@ -740,6 +759,8 @@ def do_ps_terminated(ctx: click.Context, filter_: str) -> None:
         key=lambda info: info.terminated_at,
         reverse=True,
     ):
+        if persistent and not item.persistent:
+            continue
         if filter_ and (filter_ not in item.coro and filter_ not in item.name):
             continue
         run_since = _format_timedelta(
@@ -760,9 +781,9 @@ def do_ps_terminated(ctx: click.Context, filter_: str) -> None:
     table = AsciiTable(table_data)
     table.inner_row_border = False
     table.inner_column_border = False
-    if filter_:
+    if filter_ or persistent:
         stdout.write(
-            f"{len(terminated_tasks)} tasks running "
+            f"{len(terminated_tasks)} tasks terminated "
             f"(showing {len(table_data) - 1} tasks)\n"
         )
     else:
@@ -880,21 +901,24 @@ def do_where_terminated(ctx: click.Context, trace_id: str) -> None:
 def start_monitor(
     loop: asyncio.AbstractEventLoop,
     *,
-    monitor: Type[Monitor] = Monitor,
+    monitor_cls: Type[Monitor] = Monitor,
     host: str = MONITOR_HOST,
     port: int = MONITOR_PORT,
     console_port: int = CONSOLE_PORT,
     console_enabled: bool = True,
     hook_task_factory: bool = False,
+    max_termination_history: Optional[int] = None,
     locals: Optional[Dict[str, Any]] = None,
 ) -> Monitor:
-    m = monitor(
+    m = monitor_cls(
         loop,
         host=host,
         port=port,
         console_port=console_port,
         console_enabled=console_enabled,
         hook_task_factory=hook_task_factory,
+        max_termination_history=max_termination_history
+        or get_default_args(monitor_cls.__init__)["max_termination_history"],
         locals=locals,
     )
     m.start()

@@ -20,6 +20,7 @@ install_requires = [
     "click>=8",
     "janus>=1.0",
     "terminaltables",
+    "typing-extensions>=4.1",
     "prompt_toolkit>=3.0",
     "aioconsole",
 ]
