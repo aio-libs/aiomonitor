@@ -7,7 +7,7 @@ import time
 import traceback
 import weakref
 from asyncio.coroutines import _format_coroutine  # type: ignore
-from typing import Any, Callable, Coroutine, Generator, List, Optional, TypeVar
+from typing import Any, Callable, Coroutine, List, Optional, TypeVar
 
 import janus
 from typing_extensions import ParamSpec
