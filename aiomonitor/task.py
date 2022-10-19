@@ -28,7 +28,7 @@ P = ParamSpec("P")
 
 
 class TracedTask(asyncio.Task):
-    _orig_coro: Generator[Any, Any, Any]
+    _orig_coro: Coroutine[Any, Any, Any]
     _termination_stack: Optional[List[traceback.FrameSummary]]
 
     def __init__(

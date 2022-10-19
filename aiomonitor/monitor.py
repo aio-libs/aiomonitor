@@ -18,6 +18,7 @@ from types import TracebackType
 from typing import (
     Any,
     Awaitable,
+    Coroutine,
     Dict,
     Final,
     Generator,
@@ -28,6 +29,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    cast,
 )
 
 import click
@@ -315,7 +317,7 @@ class Monitor:
     def _create_task(
         self,
         loop: asyncio.AbstractEventLoop,
-        coro: Generator[Any, Any, T_co],
+        coro: Coroutine[Any, Any, T_co] | Generator[Any, None, T_co],
     ) -> asyncio.Future[T_co]:
         assert loop is self._monitored_loop
         try:
@@ -330,7 +332,7 @@ class Monitor:
             persistent=persistent,
             loop=self._monitored_loop,
         )
-        task._orig_coro = coro
+        task._orig_coro = cast(Coroutine[Any, Any, T_co], coro)
         self._created_tracebacks[task] = _extract_stack_from_frame(sys._getframe())[
             :-1
         ]  # strip this wrapper method
