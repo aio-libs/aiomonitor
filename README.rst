@@ -108,14 +108,16 @@ Now you can type commands, for instance, ``help``::
       To see the usage of each command, run them with "--help" option.
     
     Commands:
-      cancel                 Cancel an indicated task
-      console                Switch to async Python REPL
-      exit (q,quit)          Leave the monitor client session
-      help (?,h)             Show the list of commands
-      ps (p)                 Show task table
-      signal                 Send a Unix signal
-      stacktrace (st,stack)  Print a stack trace from the event loop thread
-      where (w)              Show stack frames and its task creation chain of a task
+      cancel                  Cancel an indicated task
+      console                 Switch to async Python REPL
+      exit (q,quit)           Leave the monitor client session
+      help (?,h)              Show the list of commands
+      ps (p)                  Show task table
+      ps-terminated (pst,pt)  List recently terminated/cancelled tasks
+      signal                  Send a Unix signal
+      stacktrace (st,stack)   Print a stack trace from the event loop thread
+      where (w)               Show stack frames and the task creation chain of a task
+      where-terminated (wt)   Show stack frames and the termination/cancellation chain of a task
 
 ``aiomonitor`` also supports async python console inside a running event loop
 so you can explore the state of your application::
