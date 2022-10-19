@@ -1,6 +1,20 @@
 CHANGES
 =======
 
+0.7.0 (2022-10-19)
+------------------
+
+* Selective persistent termination logs (#9)
+
+* Implement cancellation chain tracker (#8)
+
+* Trigger auto-completion only when Tab is pressed
+
+* Support auto-completion of commands and arguments (#7)
+
+* Add missing explicit dependency to Click
+
+
 0.6.0 (2022-09-26)
 ------------------
 
