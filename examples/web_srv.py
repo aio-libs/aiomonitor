@@ -7,9 +7,8 @@ from aiohttp import web
 
 
 async def simple(request):
-    loop = request.app.loop
-    await asyncio.sleep(10, loop=loop)
-    await asyncio.sleep(10, loop=loop)
+    await asyncio.sleep(10)
+    await asyncio.sleep(10)
     return web.Response(text='Simple answer')
 
 
@@ -20,7 +19,7 @@ async def hello(request):
     resp.content_length = len(answer)
     resp.content_type = 'text/plain'
     await resp.prepare(request)
-    await asyncio.sleep(100, loop=loop)
+    await asyncio.sleep(100)
     resp.write(answer)
     await resp.write_eof()
     return resp

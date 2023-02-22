@@ -51,7 +51,7 @@ def _format_stack(task: 'asyncio.Task[Any]') -> str:
 
 
 def task_by_id(taskid: int, loop: Loop) -> 'Optional[asyncio.Task[Any]]':
-    tasks = all_tasks(loop=loop)
+    tasks = all_tasks()
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
@@ -67,11 +67,11 @@ def init_console_server(host: str,
                         loop: Loop) -> 'Future[Server]':
     def _factory(streams: Any = None) -> aioconsole.AsynchronousConsole:
         return aioconsole.AsynchronousConsole(
-            locals=locals, streams=streams, loop=loop)
+            locals=locals, streams=streams)
 
     coro = aioconsole.start_interactive_server(
-        host=host, port=port, factory=_factory, loop=loop)
-    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
+        host=host, port=port, factory=_factory)
+    console_future = asyncio.run_coroutine_threadsafe(coro)
     return console_future
 
 
@@ -128,7 +128,7 @@ def alt_names(names: str) -> Callable[..., Any]:
 
 def all_tasks(loop: Loop) -> 'Set[asyncio.Task[Any]]':
     if sys.version_info >= (3, 7):
-        tasks = asyncio.all_tasks(loop=loop)  # type: Set[asyncio.Task[Any]]
+        tasks = asyncio.all_tasks()  # type: Set[asyncio.Task[Any]]
     else:
-        tasks = asyncio.Task.all_tasks(loop=loop)
+        tasks = asyncio.Task.all_tasks()
     return tasks
