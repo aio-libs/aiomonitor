@@ -49,7 +49,8 @@ classifiers = [
 
 
 setup(name='aiomonitor',
-      version=read_version(),
+      use_scm_version=True,
+      setup_requires=["setuptools_scm"],
       description=('aiomonitor adds monitor and python REPL '
                    'capabilities for asyncio application'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
