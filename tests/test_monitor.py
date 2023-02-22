@@ -101,7 +101,7 @@ def execute(tn, command, pattern=b'>>>'):
 
 
 def get_task_ids(loop):
-    return [id(t) for t in all_tasks()]
+    return [id(t) for t in all_tasks(loop=loop)]
 
 
 def test_basic_monitor(monitor, tn_client, loop):
