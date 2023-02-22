@@ -51,7 +51,7 @@ def _format_stack(task: 'asyncio.Task[Any]') -> str:
 
 
 def task_by_id(taskid: int, loop: Loop) -> 'Optional[asyncio.Task[Any]]':
-    tasks = all_tasks()
+    tasks = all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
@@ -71,7 +71,7 @@ def init_console_server(host: str,
 
     coro = aioconsole.start_interactive_server(
         host=host, port=port, factory=_factory)
-    console_future = asyncio.run_coroutine_threadsafe(coro)
+    console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
     return console_future
 
 
