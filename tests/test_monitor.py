@@ -146,7 +146,7 @@ def test_cancel_where_tasks(monitor, tn_client, loop):
     async def sleeper(loop):
         await asyncio.sleep(100)  # xxx
 
-    fut = asyncio.run_coroutine_threadsafe(sleeper(loop))
+    fut = asyncio.run_coroutine_threadsafe(sleeper(loop), loop=loop)
     # TODO: we should not rely on timeout
     time.sleep(0.1)
 
