@@ -22,8 +22,9 @@ Alternatively you can use more verbose try/finally approach::
 
 from .monitor import (Monitor, start_monitor,
                       MONITOR_HOST, MONITOR_PORT, CONSOLE_PORT)
+from importlib.metadata import version
 
 
 __all__ = ('Monitor', 'start_monitor', 'MONITOR_HOST', 'MONITOR_PORT',
            'CONSOLE_PORT')
-__version__ = '0.4.6'
+__version__ = version('aiomonitor')
