@@ -17,7 +17,7 @@ env:
 
   # For re-actors/checkout-python-sdist
   sdist-artifact: python-package-distributions
-  sdist-name: environ_config-1.0.tar.gz
+  sdist-name: aiomonitor-1.0.tar.gz
 
 permissions:
   contents: read
