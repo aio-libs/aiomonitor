@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 from setuptools import setup, find_packages
 from importlib.metadata import version
@@ -39,7 +38,7 @@ classifiers = [
 
 setup(name='aiomonitor',
       use_scm_version=True,
-      setup_requires=["setuptools_scm"],
+      setup_requires=['setuptools_scm'],
       description=('aiomonitor adds monitor and python REPL '
                    'capabilities for asyncio application'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
