@@ -89,6 +89,7 @@ jobs:
   deploy:
     name: Upload to PyPi
     runs-on: ubuntu-latest
+    environment: release
     needs: tests
     # Run only on pushing a tag
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
