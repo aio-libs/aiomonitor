@@ -26,4 +26,4 @@ from .monitor import (Monitor, start_monitor,
 
 __all__ = ('Monitor', 'start_monitor', 'MONITOR_HOST', 'MONITOR_PORT',
            'CONSOLE_PORT')
-__version__ = '0.4.5'
+__version__ = '0.4.6'
