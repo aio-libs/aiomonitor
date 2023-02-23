@@ -32,7 +32,6 @@ jobs:
         path: "./docs/_build/html/"
   deploy:
     name: "Deploy docs"
-    if: github.event_name == 'release' && github.event.action == 'created'
     needs: build
     runs-on: ubuntu-latest
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
