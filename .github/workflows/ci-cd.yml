@@ -1,66 +1,104 @@
-name: Run unit tests
+---
+name: CI/CD
 
 on:
   push:
-    branches:
-      - master
-      - '[0-9].[0-9]+'  # matches to backport branches, e.g. 3.6
-    tags: [ 'v*' ]
+    branches: [main]
   pull_request:
-    branches:
-      - master
-      - '[0-9].[0-9]+'
+    branches: [main]
+  workflow_dispatch:
 
+env:
+  FORCE_COLOR: "1" # Make tools pretty.
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
+  PYTHON_LATEST: "3.11"
+  SETUPTOOLS_SCM_PRETEND_VERSION: "1.0" # avoid warnings about shallow checkout
+
+  # For re-actors/checkout-python-sdist
+  sdist-artifact: python-package-distributions
+  sdist-name: environ_config-1.0.tar.gz
+
+permissions:
+  contents: read
 
 jobs:
-  test:
-    name: Test
-    strategy:
-      matrix:
-        pyver: ['3.8', '3.9', '3.10', '3.11']
-        os: [ubuntu, macos, windows]
-        include:
-          - pyver: pypy-3.8
-            os: ubuntu
-    runs-on: ${{ matrix.os }}-latest
-    timeout-minutes: 15
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Setup Python ${{ matrix.pyver }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.pyver }}
-    - name: Get pip cache dir
-      id: pip-cache
-      run: |
-        echo "::set-output name=dir::$(pip cache dir)"    # - name: Cache
-    - name: Cache PyPI
-      uses: actions/cache@v2
-      with:
-        key: pip-ci-${{ runner.os }}-${{ matrix.pyver }}-${{ hashFiles('requirements-dev.txt') }}
-        path: ${{ steps.pip-cache.outputs.dir }}
-        restore-keys: |
-            pip-ci-${{ runner.os }}-${{ matrix.pyver }}-
-    - name: Install dependencies
-      uses: py-actions/py-dependency-install@v3.0.0
-      with:
-        path: requirements-dev.txt
-    - name: Run unittests
-      run: make test
-
-  check:  # This job does nothing and is only used for the branch protection
-    if: always()
-
-    needs: [test]
-
+  build-sdist:
+    name: 📦 Build the source distribution
     runs-on: ubuntu-latest
 
     steps:
-    - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@release/v1
-      with:
-        jobs: ${{ toJSON(needs) }}
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_LATEST }}
+      - run: python -Im pip install build
+
+      - run: python -Im build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.sdist-artifact }}
+          # NOTE: Exact expected file names are specified here
+          # NOTE: as a safety measure — if anything weird ends
+          # NOTE: up being in this dir or not all dists will be
+          # NOTE: produced, this will fail the workflow.
+          path: dist/${{ env.sdist-name }}
+          retention-days: 15
+
+  tests:
+    name: Tests on ${{ matrix.python-version }}
+    needs: [build-sdist]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "~3.12.0-0"
+    continue-on-error: >-
+      ${{ contains(matrix.python-version, '~') && true || false }}
+    steps:
+      - name: Get source code from pre-built sdist
+        uses: re-actors/checkout-python-sdist@release/v1
+        with:
+          source-tarball-name: ${{ env.sdist-name }}
+          workflow-artifact-name: ${{ env.sdist-artifact }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -Im pip install --upgrade wheel nox
+
+      - name: Determine Python version for Nox
+        run: |
+          V=${{ matrix.python-version }}
+          if [[ "$V" = ~* ]]; then
+            # Extract version from a '~3.XX.0-0' specifier.
+            V=${V:1:4}
+          fi
+          echo NOX_PYTHON=$V >>$GITHUB_ENV
+      - run: python -Im nox --python ${{ env.NOX_PYTHON }} --tags tests
+        
+      - name: Install dependencies
+        run: >
+          pip install --upgrade setuptools
+          pip install codecov
+          pip install -r requirements-dev.txt
+      - name: Run codecov
+        run: make cov
+      - name: Run tests
+        run: make test
+
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-data
+          path: .coverage.*
+          if-no-files-found: ignore
 
   deploy:
     name: Deploy
