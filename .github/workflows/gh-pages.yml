@@ -33,6 +33,8 @@ jobs:
         path: "./docs/_build/html/"
   deploy:
     name: "Deploy docs"
+    # Run only on pushing a tag
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
