@@ -70,18 +70,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -Im pip install --upgrade wheel nox
-
-      - name: Determine Python version for Nox
-        run: |
-          V=${{ matrix.python-version }}
-          if [[ "$V" = ~* ]]; then
-            # Extract version from a '~3.XX.0-0' specifier.
-            V=${V:1:4}
-          fi
-          echo NOX_PYTHON=$V >>$GITHUB_ENV
-      - run: python -Im nox --python ${{ env.NOX_PYTHON }} --tags tests
-        
       - name: Install dependencies
         run: >
           pip install --upgrade setuptools
