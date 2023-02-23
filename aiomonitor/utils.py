@@ -128,7 +128,7 @@ def alt_names(names: str) -> Callable[..., Any]:
 
 def all_tasks(loop: Loop) -> 'Set[asyncio.Task[Any]]':
     if sys.version_info >= (3, 7):
-        tasks = asyncio.all_tasks()  # type: Set[asyncio.Task[Any]]
+        tasks = asyncio.all_tasks(loop=loop)  # type: Set[asyncio.Task[Any]]
     else:
-        tasks = asyncio.Task.all_tasks()
+        tasks = asyncio.Task.all_tasks(loop=loop)
     return tasks
