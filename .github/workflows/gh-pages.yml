@@ -23,6 +23,7 @@ jobs:
       run: >
         pip install -r requirements-dev.txt
         pip install -r requirements-doc.txt
+        pip install -e .
     - name: "Install doc build deps and build with Sphinx"
       run: make doc
     - name: "Upload artifacts"
