@@ -1,8 +1,7 @@
 import os
-import re
 import sys
 from setuptools import setup, find_packages
-
+from importlib.metadata import version
 
 PY_VER = sys.version_info
 
@@ -20,17 +19,7 @@ extras_require = {}
 
 
 def read_version():
-    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrc]+)'")
-    init_py = os.path.join(os.path.dirname(__file__),
-                           'aiomonitor', '__init__.py')
-    with open(init_py) as f:
-        for line in f:
-            match = regexp.match(line)
-            if match is not None:
-                return match.group(1)
-        else:
-            msg = 'Cannot find version in aiomonitor/__init__.py'
-            raise RuntimeError(msg)
+    return version('aiomonitor')
 
 
 classifiers = [
@@ -48,7 +37,8 @@ classifiers = [
 
 
 setup(name='aiomonitor',
-      version=read_version(),
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
       description=('aiomonitor adds monitor and python REPL '
                    'capabilities for asyncio application'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),

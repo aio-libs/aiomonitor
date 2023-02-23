@@ -1,33 +1,113 @@
-name: Run unit tests
+---
+name: CI/CD
 
 on:
   push:
-    branches: ["master"]
+    branches: [master]
   pull_request:
-    branches: ["master"]
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  FORCE_COLOR: "1" # Make tools pretty.
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
+  PYTHON_LATEST: "3.11"
+  SETUPTOOLS_SCM_PRETEND_VERSION: "1.0" # avoid warnings about shallow checkout
+
+  # For re-actors/checkout-python-sdist
+  sdist-artifact: python-package-distributions
+  sdist-name: aiomonitor-1.0.tar.gz
+
+permissions:
+  contents: read
 
 jobs:
+  build-sdist:
+    name: 📦 Build the source distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_LATEST }}
+      - run: python -Im pip install build
+
+      - run: python -Im build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.sdist-artifact }}
+          # NOTE: Exact expected file names are specified here
+          # NOTE: as a safety measure — if anything weird ends
+          # NOTE: up being in this dir or not all dists will be
+          # NOTE: produced, this will fail the workflow.
+          path: dist/${{ env.sdist-name }}
+          retention-days: 15
+
   tests:
-    name: "Python ${{ matrix.python-version }}"
-    runs-on: "ubuntu-latest"
+    name: Tests on ${{ matrix.python-version }}
+    needs: [build-sdist]
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-        
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+    continue-on-error: >-
+      ${{ contains(matrix.python-version, '~') && true || false }}
     steps:
-      - uses: "actions/checkout@v3"
+      - name: Get source code from pre-built sdist
+        uses: re-actors/checkout-python-sdist@release/v1
         with:
-            fetch-depth: 0
-      - uses: "actions/setup-python@v4"
+          source-tarball-name: ${{ env.sdist-name }}
+          workflow-artifact-name: ${{ env.sdist-artifact }}
+      - uses: actions/setup-python@v4
         with:
-          python-version: "${{ matrix.python-version }}"
-      - name: "Install dependencies"
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
         run: >
           pip install --upgrade setuptools
           pip install codecov
           pip install -r requirements-dev.txt
-      - name: "Run codecov"
+      - name: Run codecov
         run: make cov
-      - name: "Run tests"
+      - name: Run tests
         run: make test
+
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-data
+          path: .coverage.*
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: tests
+    # Run only on pushing a tag
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run:
+        python -m pip install -U build pip wheel twine
+    - name: Make dists
+      run:
+        python -m build
+    - name: PyPI upload
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        twine upload dist/*
