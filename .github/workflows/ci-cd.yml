@@ -34,7 +34,7 @@ jobs:
           python-version: ${{ env.PYTHON_LATEST }}
       - run: python -Im pip install build
 
-      - run: python -Im build --sdist
+      - run: python -Im build
 
       - uses: actions/upload-artifact@v3
         with:
