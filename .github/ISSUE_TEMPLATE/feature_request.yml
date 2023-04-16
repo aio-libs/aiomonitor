@@ -6,7 +6,7 @@ body:
 - type: markdown
   attributes:
     value: |
-      **Thanks for taking a minute to file a feature for aiomysql!**
+      **Thanks for taking a minute to file a feature for aiomonitor!**
 
       ⚠
       Verify first that your feature request is not [already reported on

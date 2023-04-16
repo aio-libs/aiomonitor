@@ -67,11 +67,11 @@ body:
     required: true
 - type: textarea
   attributes:
-    label: aiomysql Version
-    description: Attach your version of aiomysql.
+    label: aiomonitor Version
+    description: Attach your version of aiomonitor.
     render: console
     value: |
-      $ python -m pip show aiomysql
+      $ python -m pip show aiomonitor
   validations:
     required: true
 - type: textarea
