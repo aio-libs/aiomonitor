@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+0.7.1 (2023-04-16)
+------------------
+
+* Support Python 3.11 properly by allowing the optional `name` and `context` kwargs passed to `asyncio.create_task()` in the hooked task factory function (#10)
+
+* Update development dependencies
+
+
 0.7.0 (2022-10-19)
 ------------------
 
