@@ -89,25 +89,17 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: tests
-    # Run only on pushing a tag
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: [tests]
+    # Run only on creating release for new tag
+    if: github.event_name == 'release' && github.event.action == 'created'
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Setup Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run:
-        python -m pip install -U build pip wheel twine
-    - name: Make dists
-      run:
-        python -m build
-    - name: PyPI upload
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      run: |
-        twine upload dist/*
+      - uses: actions/download-artifact@v3
+        name: Download artifacts
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        name: Publish package to PyPI
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
