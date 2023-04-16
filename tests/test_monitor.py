@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import telnetlib
 import threading
 import time
@@ -140,6 +141,32 @@ def test_basic_monitor(monitor, tn_client, loop):
 
     resp = execute(tn, "ca 123\n")
     assert "No task 123" in resp
+
+
+myvar = contextvars.ContextVar("myvar", default=42)
+
+
+def test_monitor_task_factory():
+    ctx = contextvars.Context()
+    # This context is bound at the outermost scope,
+    # and inside it the initial value of myvar is kept intact.
+
+    async def do():
+        await asyncio.sleep(0)
+        assert myvar.get() == 42  # we are referring the outer context
+        myself = asyncio.current_task()
+        assert myself is not None
+        assert myself.get_name() == "mytask"
+
+    async def main():
+        myvar.set(99)  # override in the current task's context
+        loop = asyncio.get_running_loop()
+        with Monitor(loop, console_enabled=False, hook_task_factory=True):
+            t = asyncio.create_task(do(), name="mytask", context=ctx)
+            await t
+        assert myvar.get() == 99
+
+    asyncio.run(main())
 
 
 def test_cancel_where_tasks(monitor, tn_client, loop):
