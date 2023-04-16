@@ -67,10 +67,10 @@ def init_console_server(host: str,
                         loop: Loop) -> 'Future[Server]':
     def _factory(streams: Any = None) -> aioconsole.AsynchronousConsole:
         return aioconsole.AsynchronousConsole(
-            locals=locals, streams=streams, loop=loop)
+            locals=locals, streams=streams)
 
     coro = aioconsole.start_interactive_server(
-        host=host, port=port, factory=_factory, loop=loop)
+        host=host, port=port, factory=_factory)
     console_future = asyncio.run_coroutine_threadsafe(coro, loop=loop)
     return console_future
 

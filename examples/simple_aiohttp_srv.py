@@ -5,14 +5,13 @@ from aiohttp import web
 
 
 async def simple(request):
-    loop = request.app.loop
     print('Start sleeping')
-    await asyncio.sleep(100, loop=loop)
+    await asyncio.sleep(100)
     return web.Response(text='Simple answer')
 
 
 async def init(loop):
-    app = web.Application(loop=loop)
+    app = web.Application()
     app.router.add_get('/simple', simple)
     return app
 
