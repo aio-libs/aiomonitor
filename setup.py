@@ -1,12 +1,13 @@
 import os
+import re
 import sys
 from setuptools import setup, find_packages
-from importlib.metadata import version
+
 
 PY_VER = sys.version_info
 
-if not PY_VER >= (3, 8):
-    raise RuntimeError("aiomonitor doesn't support Python earlier than 3.8")
+if not PY_VER >= (3, 5):
+    raise RuntimeError("aiomonitor doesn't support Python earlier than 3.5")
 
 
 def read(f):
@@ -19,17 +20,27 @@ extras_require = {}
 
 
 def read_version():
-    return version('aiomonitor')
+    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrc]+)'")
+    init_py = os.path.join(os.path.dirname(__file__),
+                           'aiomonitor', '__init__.py')
+    with open(init_py) as f:
+        for line in f:
+            match = regexp.match(line)
+            if match is not None:
+                return match.group(1)
+        else:
+            msg = 'Cannot find version in aiomonitor/__init__.py'
+            raise RuntimeError(msg)
 
 
 classifiers = [
     'License :: OSI Approved :: MIT License',
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
     'Operating System :: POSIX',
     'Development Status :: 3 - Alpha',
     'Framework :: AsyncIO',
@@ -37,8 +48,7 @@ classifiers = [
 
 
 setup(name='aiomonitor',
-      use_scm_version=True,
-      setup_requires=['setuptools_scm'],
+      version=read_version(),
       description=('aiomonitor adds monitor and python REPL '
                    'capabilities for asyncio application'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),

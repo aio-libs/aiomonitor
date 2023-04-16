@@ -46,7 +46,7 @@ Monitor has context manager interface:
     import aiomonitor
 
     loop = asyncio.get_event_loop()
-    with aiomonitor.start_monitor():
+    with aiomonitor.start_monitor(loop=loop):
         loop.run_forever()
 
 Now from separate terminal it is possible to connect to the application::
@@ -84,12 +84,12 @@ be integrated with it.
         loop = request.app.loop
 
         print('Start sleeping')
-        await asyncio.sleep(100)
+        await asyncio.sleep(100, loop=loop)
         return web.Response(text="Simple answer")
 
     loop = asyncio.get_event_loop()
     # create application and register route
-    app = web.Application()
+    app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
 
     # it is possible to pass a dictionary with local variables
@@ -143,9 +143,9 @@ so you can explore the state of your application::
     ---
     This console is running in an asyncio event loop.
     It allows you to wait for coroutines using the 'await' syntax.
-    Try: await asyncio.sleep(1, result=3)
+    Try: await asyncio.sleep(1, result=3, loop=loop)
     ---
-    >>> await asyncio.sleep(1, result=3)
+    >>> await asyncio.sleep(1, result=3, loop=loop)
 
 To leave the console type ``exit()``::
 

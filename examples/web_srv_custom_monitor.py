@@ -8,7 +8,8 @@ import requests
 
 
 async def simple(request):
-    await asyncio.sleep(10)
+    loop = request.app.loop
+    await asyncio.sleep(10, loop=loop)
     return web.Response(text='Simple answer')
 
 
@@ -19,14 +20,14 @@ async def hello(request):
     resp.content_length = len(answer)
     resp.content_type = 'text/plain'
     await resp.prepare(request)
-    await asyncio.sleep(10)
+    await asyncio.sleep(10, loop=loop)
     await resp.write(answer)
     await resp.write_eof()
     return resp
 
 
 async def init(loop):
-    app = web.Application()
+    app = web.Application(loop=loop)
     app.router.add_get('/simple', simple)
     app.router.add_get('/hello/{name}', hello)
     app.router.add_get('/hello', hello)

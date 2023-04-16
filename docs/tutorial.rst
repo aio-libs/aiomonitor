@@ -19,7 +19,7 @@ Basic aiohttp server
         loop = request.app.loop
 
         print('Start sleeping')
-        await asyncio.sleep(100)
+        await asyncio.sleep(100, loop=loop)
         return web.Response(text="Simple answer")
 
     loop = asyncio.get_event_loop()
@@ -96,7 +96,7 @@ so you can explore state of your application::
     ---
     This console is running in an asyncio event loop.
     It allows you to wait for coroutines using the 'await' syntax.
-    Try: await asyncio.sleep(1, result=3)
+    Try: await asyncio.sleep(1, result=3, loop=loop)
     ---
     >>>
 
