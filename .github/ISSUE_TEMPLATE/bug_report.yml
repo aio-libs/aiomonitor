@@ -74,38 +74,12 @@ body:
       $ python -m pip show aiomonitor
   validations:
     required: true
-- type: textarea
-  attributes:
-    label: PyMySQL Version
-    description: Attach your version of PyMySQL.
-    render: console
-    value: |
-      $ python -m pip show PyMySQL
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: SQLAlchemy Version
-    description: Attach your version of SQLAlchemy if you're using it.
-    render: console
-    value: |
-      $ python -m pip show sqlalchemy
 
 - type: textarea
   attributes:
     label: OS
     placeholder: >-
       For example, Arch Linux, Windows, macOS, etc.
-  validations:
-    required: true
-
-- type: textarea
-  attributes:
-    label: Database type and version
-    description: Attach your version of MariaDB/MySQL.
-    render: console
-    value: |
-      SELECT VERSION();
   validations:
     required: true
 
