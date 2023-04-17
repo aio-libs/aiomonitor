@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-0.4.6 (2023-04-17)
+0.4.6 (undefined)
 ------------------
 
 * Remove loop=loop from all asynchronous calls to support newer Python versions #329
