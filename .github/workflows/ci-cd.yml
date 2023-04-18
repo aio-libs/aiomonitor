@@ -17,7 +17,6 @@ env:
 
   # For re-actors/checkout-python-sdist
   sdist-artifact: python-package-distributions
-  sdist-name: aiomonitor-1.0.tar.gz
 
 permissions:
   contents: read
@@ -72,7 +71,6 @@ jobs:
       - name: Get source code from pre-built sdist
         uses: re-actors/checkout-python-sdist@release/v1
         with:
-          source-tarball-name: ${{ env.sdist-name }}
           workflow-artifact-name: ${{ env.sdist-artifact }}
       - uses: actions/setup-python@v4
         with:
