@@ -29,14 +29,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        name: Checkout project
       - uses: actions/setup-python@v4
+        name: Setup ${{ env.PYTHON_LATEST }}
         with:
           python-version: ${{ env.PYTHON_LATEST }}
       - run: python -Im pip install build
+        name: Install core libraries for build and install
 
       - run: python -Im build
+        name: Build artifacts
 
       - uses: actions/upload-artifact@v3
+        name: Upload built artifacts for testing
         with:
           name: ${{ env.sdist-artifact }}
           # NOTE: Exact expected file names are specified here
