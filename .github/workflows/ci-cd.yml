@@ -30,6 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         name: Checkout project
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         name: Setup ${{ env.PYTHON_LATEST }}
         with:
