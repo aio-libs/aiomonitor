@@ -71,12 +71,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: >
+        run: |
           pip install --upgrade setuptools
-          pip install codecov
           pip install -r requirements-dev.txt
-      - name: Run codecov
-        run: make cov
       - name: Run tests
         run: make test
 
