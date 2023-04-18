@@ -18,10 +18,6 @@ install_requires = ['terminaltables',
 extras_require = {}
 
 
-def read_version():
-    return version('aiomonitor')
-
-
 classifiers = [
     'License :: OSI Approved :: MIT License',
     'Intended Audience :: Developers',
