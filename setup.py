@@ -48,4 +48,6 @@ setup(name='aiomonitor',
       packages=find_packages(),
       install_requires=install_requires,
       extras_require=extras_require,
-      include_package_data=True)
+      include_package_data=True,
+      python_requires=">=3.8",
+      )
