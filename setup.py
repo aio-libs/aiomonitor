@@ -1,12 +1,6 @@
 import os
 import sys
 from setuptools import setup, find_packages
-from importlib.metadata import version
-
-PY_VER = sys.version_info
-
-if not PY_VER >= (3, 8):
-    raise RuntimeError("aiomonitor doesn't support Python earlier than 3.8")
 
 
 def read(f):
