@@ -39,6 +39,8 @@ class TracedTask(asyncio.Task):
         persistent: bool = False,
         **kwargs,
     ) -> None:
+        if sys.version_info < (3, 11):
+            kwargs.pop("context")
         super().__init__(*args, **kwargs)
         self._termination_info_queue = termination_info_queue
         self._cancellation_chain_queue = cancellation_chain_queue

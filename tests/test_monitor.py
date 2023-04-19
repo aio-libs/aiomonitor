@@ -1,5 +1,6 @@
 import asyncio
 import contextvars
+import sys
 import telnetlib
 import threading
 import time
@@ -147,6 +148,26 @@ myvar = contextvars.ContextVar("myvar", default=42)
 
 
 def test_monitor_task_factory():
+    async def do():
+        await asyncio.sleep(0)
+        myself = asyncio.current_task()
+        assert myself is not None
+        assert myself.get_name() == "mytask"
+
+    async def main():
+        loop = asyncio.get_running_loop()
+        with Monitor(loop, console_enabled=False, hook_task_factory=True):
+            t = asyncio.create_task(do(), name="mytask")
+            await t
+
+    asyncio.run(main())
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="The context argument of asyncio.create_task() is added in Python 3.11",
+)
+def test_monitor_task_factory_with_context():
     ctx = contextvars.Context()
     # This context is bound at the outermost scope,
     # and inside it the initial value of myvar is kept intact.
