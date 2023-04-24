@@ -1,0 +1,102 @@
+name: default
+
+on: [push, pull_request]
+
+jobs:
+  lint-flake8:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -U -r requirements-dev.txt
+    - name: Lint with flake8
+      run: |
+        echo "::add-matcher::.github/workflows/flake8-matcher.json"
+        python -m flake8 aiomonitor/ examples/ tests/ setup.py
+
+  lint-isort:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -U -r requirements-dev.txt
+    - name: Lint with isort
+      run: |
+        python -m isort --check aiomonitor/ examples/ tests/ setup.py
+
+  lint-black:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -U -r requirements-dev.txt
+    - name: Lint with black
+      run: |
+        python -m black --check aiomonitor/ examples/ tests/ setup.py
+
+  typecheck-mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -U -r requirements-dev.txt
+    - name: Typecheck with mypy
+      run: |
+        echo "::add-matcher::.github/workflows/mypy-matcher.json"
+        python -m mypy aiomonitor/ examples/ tests/ setup.py

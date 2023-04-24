@@ -1,0 +1,11 @@
+[flake8]
+# ref: http://pep8.readthedocs.io/en/latest/intro.html#error-codes
+ignore = E203,E731,W503,W504,Q000
+# allow exeeding max-line-length because black sometimes fails to fit the code in the limit
+# when there are long string constants composed of paths and URLs
+extend-ignore = E501
+max-line-length = 88
+builtins = _
+exclude = .git,.cache,.idea,.egg,__pycache__,venv,dist,build,docs
+
+# vim: ft=dosini
