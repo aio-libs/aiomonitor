@@ -163,7 +163,7 @@ jobs:
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
     if: always()
-    needs: lint-isort, lint-flake8, lint-black, typecheck-mypy, test-pytest
+    needs: [lint-isort, lint-flake8, lint-black, typecheck-mypy, test-pytest]
     runs-on: ubuntu-latest
     steps:
     - name: Decide whether the needed jobs succeeded or failed
@@ -175,13 +175,12 @@ jobs:
     name: 📦 Build the source distribution
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'created'
-
     steps:
       - name: Checkout project
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Setup ${{ env.PYTHON_LATEST }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_LATEST }}
@@ -207,7 +206,7 @@ jobs:
     environment: pypi
     if: github.event_name == 'release' && github.event.action == 'created'
     steps:
-      - name: Download artifacts
+      - name: Download the sdist artifact
         uses: actions/download-artifact@v3
         with:
           name: artifact
