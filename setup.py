@@ -39,10 +39,10 @@ setup(
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     description=(
-        "aiomonitor-ng adds monitor and python REPL "
+        "aiomonitor adds monitor and python REPL "
         "capabilities for asyncio application"
     ),
-    long_description="\n\n".join((read("README.rst"), read("CHANGES.txt"))),
+    long_description="\n\n".join((read("README.rst"), read("CHANGES.rst"))),
     classifiers=classifiers,
     platforms=["POSIX"],
     author="Nikolay Novik",
