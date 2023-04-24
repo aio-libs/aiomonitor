@@ -1,22 +1,41 @@
 import asyncio
+import logging
 
-import aiomonitor
+import uvloop
 from aiohttp import web
 
+import aiomonitor
 
-async def simple(request):
-    print('Start sleeping')
+
+async def inner2() -> None:
     await asyncio.sleep(100)
-    return web.Response(text='Simple answer')
 
 
-async def init(loop):
+async def inner1() -> None:
+    t = asyncio.create_task(inner2())
+    await t
+
+
+async def simple(request: web.Request) -> web.Response:
+    print("Start sleeping")
+    t = asyncio.create_task(inner1())
+    await t
+    return web.Response(text="Simple answer")
+
+
+async def main() -> None:
+    loop = asyncio.get_running_loop()
     app = web.Application()
-    app.router.add_get('/simple', simple)
-    return app
+    app.router.add_get("/simple", simple)
+    with aiomonitor.start_monitor(loop, hook_task_factory=True):
+        await web._run_app(app, port=8090, host="localhost")
 
-loop = asyncio.get_event_loop()
-app = loop.run_until_complete(init(loop))
 
-with aiomonitor.start_monitor(loop=loop):
-    web.run_app(app, port=8090, host='localhost')
+if __name__ == "__main__":
+    logging.basicConfig()
+    logging.getLogger("aiomonitor").setLevel(logging.DEBUG)
+    uvloop.install()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

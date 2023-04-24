@@ -71,3 +71,7 @@ Pipfile.lock
 .tags
 
 .pytest_cache
+.python-version
+
+.DS_Store
+.vim/
