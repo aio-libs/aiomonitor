@@ -1,22 +1,14 @@
 CHANGES
 =======
 
-0.7.2 (2023-04-19)
+0.5.0 (undefined)
 -----------------
 
 * Fix a regression in Python 3.10 due to #10 (#11)
 
-
-0.7.1 (2023-04-16)
-------------------
-
 * Support Python 3.11 properly by allowing the optional `name` and `context` kwargs passed to `asyncio.create_task()` in the hooked task factory function (#10)
 
 * Update development dependencies
-
-
-0.7.0 (2022-10-19)
-------------------
 
 * Selective persistent termination logs (#9)
 
@@ -27,10 +19,6 @@ CHANGES
 * Support auto-completion of commands and arguments (#7)
 
 * Add missing explicit dependency to Click
-
-
-0.6.0 (2022-09-26)
-------------------
 
 * Promote `console_locals` as public attr
 
@@ -44,19 +32,14 @@ CHANGES
 
 * Apply black, isort, mypy, flake8 and automate CI workflows using GitHub Actions
 
-
-0.5.1 (2022-08-29)
-------------------
-
 * Fix the task creation location in the 'ps' command output
-
-
-0.5.0 (2022-08-26)
-------------------
 
 * Remove loop=loop from all asynchronous calls to support newer Python versions (#329)
 
 * Added the task creation stack chain display to the 'where' command by setting a custom task factory (#1)
+
+These are the backported changes from [aiomonitor-ng](https://github.com/achimnol/aiomonitor-ng).
+As the version bumps have gone far away in the fork, all those extra releases are squashed into the v0.5.0 release.
 
 
 0.4.5 (2019-11-03)
