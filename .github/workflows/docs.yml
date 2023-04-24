@@ -24,9 +24,7 @@ jobs:
         fetch-depth: 0 # otherwise, you will fail to push refs to dest repo
     - name: "Install runtime dependencies"
       run: >
-        pip install -r requirements-dev.txt
         pip install -r requirements-doc.txt
-        pip install -e .
     - name: "Install doc build deps and build with Sphinx"
       run: make doc
     - name: "Upload artifacts"
