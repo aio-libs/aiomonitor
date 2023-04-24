@@ -69,16 +69,16 @@ def console_enabled(request):
 def test_ctor(loop, unused_port, console_enabled):
 
     with Monitor(loop, console_enabled=console_enabled):
-        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+        loop.run_until_complete(asyncio.sleep(0.01))
 
     with start_monitor(loop, console_enabled=console_enabled) as m:
-        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+        loop.run_until_complete(asyncio.sleep(0.01))
     assert m.closed
 
     m = Monitor(loop, console_enabled=console_enabled)
     m.start()
     try:
-        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+        loop.run_until_complete(asyncio.sleep(0.01))
     finally:
         m.close()
         m.close()  # make sure call is idempotent
@@ -87,13 +87,13 @@ def test_ctor(loop, unused_port, console_enabled):
     m = Monitor(loop, console_enabled=console_enabled)
     m.start()
     with m:
-        loop.run_until_complete(asyncio.sleep(0.01, loop=loop))
+        loop.run_until_complete(asyncio.sleep(0.01))
     assert m.closed
 
     # make sure that monitor inside async func can exit correctly
     async def f():
         with Monitor(loop, console_enabled=console_enabled):
-            await asyncio.sleep(0.01, loop=loop)
+            await asyncio.sleep(0.01)
 
     loop.run_until_complete(f())
 
@@ -194,7 +194,7 @@ def test_cancel_where_tasks(monitor, tn_client, loop):
     tn = tn_client
 
     async def sleeper(loop):
-        await asyncio.sleep(100, loop=loop)  # xxx
+        await asyncio.sleep(100)  # xxx
 
     fut = asyncio.run_coroutine_threadsafe(sleeper(loop), loop=loop)
     # TODO: we should not rely on timeout
@@ -214,7 +214,7 @@ def test_monitor_with_console(monitor, tn_client):
     tn = tn_client
     resp = execute(tn, "console\n")
     assert "This console is running in an asyncio event loop" in resp
-    execute(tn, "await asyncio.sleep(0, loop=loop)\n")
+    execute(tn, "await asyncio.sleep(0)\n")
 
     resp = execute(tn, "foo\n")
     assert " 'bar'\n>>>" == resp

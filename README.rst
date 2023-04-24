@@ -69,12 +69,12 @@ be integrated with it.
         loop = request.app.loop
 
         print('Start sleeping')
-        await asyncio.sleep(100, loop=loop)
+        await asyncio.sleep(100)
         return web.Response(text="Simple answer")
 
     loop = asyncio.get_event_loop()
     # create application and register route
-    app = web.Application(loop=loop)
+    app = web.Application()
     app.router.add_get('/simple', simple)
 
     # it is possible to pass a dictionary with local variables

@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+0.7.2 (2023-04-19)
+-----------------
+
+* Fix a regression in Python 3.10 due to #10 (#11)
+
+
 0.7.1 (2023-04-16)
 ------------------
 
@@ -48,11 +54,9 @@ CHANGES
 0.5.0 (2022-08-26)
 ------------------
 
-* Made it compatible with Python 3.10
+* Remove loop=loop from all asynchronous calls to support newer Python versions (#329)
 
 * Added the task creation stack chain display to the 'where' command by setting a custom task factory (#1)
-
-* Changed the 'ps' command view to be more concise and display many tasks in a better way (#2)
 
 
 0.4.5 (2019-11-03)

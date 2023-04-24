@@ -6,7 +6,7 @@ To enable the monitor, just use context manager protocol with start function::
     import aiomonitor
 
     loop = asyncio.get_event_loop()
-    with aiomonitor.start_monitor(loop=loop):
+    with aiomonitor.start_monitor():
         print("Now you can connect with: nc localhost 50101")
         loop.run_forever()
 
@@ -19,6 +19,8 @@ Alternatively you can use more verbose try/finally approach::
     finally:
         m.close()
 """
+
+from importlib.metadata import version
 
 from .monitor import (
     CONSOLE_PORT,
@@ -37,4 +39,4 @@ __all__ = (
     "MONITOR_PORT",
     "CONSOLE_PORT",
 )
-__version__ = "0.7.2"
+__version__ = version("aiomonitor")
