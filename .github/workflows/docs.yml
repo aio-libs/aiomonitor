@@ -36,7 +36,7 @@ jobs:
         path: "./docs/_build/html/"
   publish-docs:
     name: "Publish the docs"
-    needs: build
+    needs: build-docs
     runs-on: ubuntu-latest
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
