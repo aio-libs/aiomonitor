@@ -11,20 +11,33 @@ on:
       - 'master'
   workflow_dispatch:
 
+env:
+  FORCE_COLOR: "1"  # Make tools pretty.
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
+  PYTHON_LATEST: "3.11"
+
 jobs:
   build-docs:
     name: "Build docs"
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
     - name: Checkout the source code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0 # otherwise, you will fail to push refs to dest repo
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-doc.txt
     - name: "Install runtime dependencies"
-      run: >
-        pip install -r requirements-doc.txt
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -U -r requirements-doc.txt
     - name: "Install doc build deps and build with Sphinx"
       run: make doc
     - name: "Upload artifacts"

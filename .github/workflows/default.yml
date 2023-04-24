@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_COLOR: "1" # Make tools pretty.
+  FORCE_COLOR: "1"  # Make tools pretty.
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_PYTHON_VERSION_WARNING: "1"
   PYTHON_LATEST: "3.11"
@@ -33,12 +33,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_LATEST }}
-        check-latest: true
         cache: pip
         cache-dependency-path: |
           setup.py
           requirements-dev.txt
-          requirements-doc.txt
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
