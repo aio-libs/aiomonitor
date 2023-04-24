@@ -1,8 +1,5 @@
-aiomonitor-ng
-=============
-
-**aiomonitor-ng** is a (temporary) fork of **aiomonitor** with support for
-Python 3.10+ and additional usability & debuggability improvements.
+aiomonitor
+==========
 
 **aiomonitor** is a module that adds monitor and cli capabilities
 for asyncio_ applications. Idea and code were borrowed from curio_ project.
@@ -14,13 +11,13 @@ This library provides a python console using aioconsole_ module. It is possible
 to execute asynchronous commands inside your running application. Extensible
 with you own commands, in the style of the standard library's cmd_ module
 
-.. image:: https://raw.githubusercontent.com/achimnol/aiomonitor-ng/master/docs/screenshot-ps-where-example.png
+.. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/master/docs/screenshot-ps-where-example.png
 
 Installation
 ------------
 Installation process is simple, just::
 
-    $ pip install aiomonitor-ng
+    $ pip install aiomonitor
 
 
 Example
@@ -148,13 +145,13 @@ Additional console variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may add more variables that can be directly referenced in the ``console`` command.
-Refer `the console-variables example code <https://github.com/achimnol/aiomonitor-ng/tree/master/examples/console-variables.py>`_
+Refer `the console-variables example code <https://github.com/aio-libs/aiomonitor/tree/master/examples/console-variables.py>`_
 
 Custom console commands
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 ``aiomonitor`` is very easy to extend with your own console commands.
-Refer `the extension example code <https://github.com/achimnol/aiomonitor-ng/tree/master/examples/extension.py>`_
+Refer `the extension example code <https://github.com/aio-libs/aiomonitor/tree/master/examples/extension.py>`_
 
 Requirements
 ------------
