@@ -1,5 +1,5 @@
-aiomonitor-ng
-=============
+aiomonitor
+==========
 
 **aiomonitor** is a module that adds monitor and cli capabilities
 for asyncio_ applications. Idea and code were borrowed from curio_ project.
