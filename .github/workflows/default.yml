@@ -21,156 +21,6 @@ env:
   sdist-artifact: python-package-distributions
 
 jobs:
-  lint-flake8:
-    name: Lint with Flake8
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        cache: pip
-        cache-dependency-path: |
-          setup.py
-          requirements-dev.txt
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools wheel
-        pip install -U -r requirements-dev.txt
-    - name: Lint with flake8
-      run: |
-        echo "::add-matcher::.github/workflows/flake8-matcher.json"
-        python -m flake8 aiomonitor/ examples/ tests/ setup.py
-
-  lint-isort:
-    name: Lint with isort
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        check-latest: true
-        cache: pip
-        cache-dependency-path: |
-          setup.py
-          requirements-dev.txt
-          requirements-doc.txt
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools wheel
-        pip install -U -r requirements-dev.txt
-    - name: Lint with isort
-      run: |
-        python -m isort --check aiomonitor/ examples/ tests/ setup.py
-
-  lint-black:
-    name: Lint with Black
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        check-latest: true
-        cache: pip
-        cache-dependency-path: |
-          setup.py
-          requirements-dev.txt
-          requirements-doc.txt
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools wheel
-        pip install -U -r requirements-dev.txt
-    - name: Lint with black
-      run: |
-        python -m black --check aiomonitor/ examples/ tests/ setup.py
-
-  typecheck-mypy:
-    name: Check typing and annotations
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        check-latest: true
-        cache: pip
-        cache-dependency-path: |
-          setup.py
-          requirements-dev.txt
-          requirements-doc.txt
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools wheel
-        pip install -U -r requirements-dev.txt
-    - name: Typecheck with mypy
-      run: |
-        echo "::add-matcher::.github/workflows/mypy-matcher.json"
-        python -m mypy aiomonitor/ examples/ tests/ setup.py
-
-  test-pytest:
-    name: Tests on ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental }}
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version:
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-        experimental: [false]
-        include:
-          - python-version: "~3.12.0-0"
-            experimental: true
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Checkout the source code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Install dependencies
-        run: |
-          pip install --upgrade setuptools
-          pip install -r requirements-dev.txt
-      - name: Run tests
-        run: make test
-      - name: Upload coverage data
-        uses: codecov/codecov-action@v3
-        with:
-            token: ${{ secrets.CODECOV_TOKEN }}
-
-  check:  # This job does nothing and is only used for the branch protection
-    name: ✅ Ensure the required checks passing
-    if: always()
-    needs: [lint-isort, lint-flake8, lint-black, typecheck-mypy, test-pytest]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@release/v1
-      with:
-        jobs: ${{ toJSON(needs) }}
 
   build-sdist:
     name: 📦 Build the source distribution
@@ -199,6 +49,155 @@ jobs:
           # NOTE: produced, this will fail the workflow.
           path: dist/${{ env.sdist-name }}
           retention-days: 15
+
+  lint-flake8:
+    name: Lint with Flake8
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+    - name: Install dependencies
+      run: |
+        pip install -U -r requirements-dev.txt
+    - name: Lint with flake8
+      run: |
+        echo "::add-matcher::.github/workflows/flake8-matcher.json"
+        python -m flake8 aiomonitor/ examples/ tests/ setup.py
+
+  lint-isort:
+    name: Lint with isort
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install dependencies
+      run: |
+        pip install -U -r requirements-dev.txt
+    - name: Lint with isort
+      run: |
+        python -m isort --check aiomonitor/ examples/ tests/ setup.py
+
+  lint-black:
+    name: Lint with Black
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install dependencies
+      run: |
+        pip install -U -r requirements-dev.txt
+    - name: Lint with black
+      run: |
+        python -m black --check aiomonitor/ examples/ tests/ setup.py
+
+  typecheck-mypy:
+    name: Check typing and annotations
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        check-latest: true
+        cache: pip
+        cache-dependency-path: |
+          setup.py
+          requirements-dev.txt
+          requirements-doc.txt
+    - name: Install dependencies
+      run: |
+        pip install -U -r requirements-dev.txt
+    - name: Typecheck with mypy
+      run: |
+        echo "::add-matcher::.github/workflows/mypy-matcher.json"
+        python -m mypy aiomonitor/ examples/ tests/ setup.py
+
+  test-pytest:
+    name: Tests on ${{ matrix.python-version }}
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+        experimental: [false]
+        include:
+          - python-version: "~3.12.0-0"
+            experimental: true
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Checkout the source code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+      - name: Run tests
+        run: make test
+      - name: Upload coverage data
+        uses: codecov/codecov-action@v3
+
+  check:  # This job does nothing and is only used for the branch protection
+    name: ✅ Ensure the required checks passing
+    if: always()
+    needs: [lint-isort, lint-flake8, lint-black, typecheck-mypy, test-pytest]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}
 
   publish:  # Run only on creating release for new tag
     name: 📦 Publish to PyPI
