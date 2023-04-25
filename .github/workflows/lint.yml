@@ -29,7 +29,7 @@ jobs:
         python-version: ${{ env.PYTHON_LATEST }}
         cache: pip
         cache-dependency-path: |
-          setup.py
+          pyproject.toml
           requirements-dev.txt
     - name: Install dependencies
       run: |
@@ -37,7 +37,7 @@ jobs:
     - name: Lint with flake8
       run: |
         echo "::add-matcher::.github/workflows/flake8-matcher.json"
-        python -m flake8 aiomonitor/ examples/ tests/ setup.py
+        python -m flake8 aiomonitor/ examples/ tests/
 
   lint-isort:
     name: Lint with isort
@@ -54,7 +54,7 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          setup.py
+          pyproject.toml
           requirements-dev.txt
           requirements-doc.txt
     - name: Install dependencies
@@ -62,7 +62,7 @@ jobs:
         pip install -U -r requirements-dev.txt
     - name: Lint with isort
       run: |
-        python -m isort --check aiomonitor/ examples/ tests/ setup.py
+        python -m isort --check aiomonitor/ examples/ tests/
 
   lint-black:
     name: Lint with Black
@@ -79,7 +79,7 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          setup.py
+          pyproject.toml
           requirements-dev.txt
           requirements-doc.txt
     - name: Install dependencies
@@ -87,7 +87,7 @@ jobs:
         pip install -U -r requirements-dev.txt
     - name: Lint with black
       run: |
-        python -m black --check aiomonitor/ examples/ tests/ setup.py
+        python -m black --check aiomonitor/ examples/ tests/
 
   typecheck-mypy:
     name: Check typing and annotations
@@ -104,7 +104,7 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          setup.py
+          pyproject.toml
           requirements-dev.txt
           requirements-doc.txt
     - name: Install dependencies
@@ -113,4 +113,4 @@ jobs:
     - name: Typecheck with mypy
       run: |
         echo "::add-matcher::.github/workflows/mypy-matcher.json"
-        python -m mypy aiomonitor/ examples/ tests/ setup.py
+        python -m mypy aiomonitor/ examples/ tests/
