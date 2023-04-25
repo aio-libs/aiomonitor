@@ -1,0 +1,19 @@
+# Required
+version: 2
+
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+  builder: dirhtml
+  configuration: docs/conf.py
+  fail_on_warning: true
+
+# Optionally build your docs in additional formats
+# such as PDF and ePub
+formats: []
+
+build:
+  os: ubuntu-20.04
+  tools:
+    python: >-  # PyYAML parses it as float but RTD demands an explicit string
+      3.11
+
