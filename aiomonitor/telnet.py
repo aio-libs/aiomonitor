@@ -28,18 +28,27 @@ class TelnetClient:
         port: int,
         stdin: Optional[TextIO] = None,
         stdout: Optional[TextIO] = None,
+        *,
+        output_replication_queue: Optional[asyncio.Queue] = None,
     ) -> None:
         self._host = host
         self._port = port
         self._term = os.environ.get("TERM", "unknown")
         self._stdin = stdin or sys.stdin
         self._stdout = stdout or sys.stdout
-        self._isatty = os.path.sameopenfile(self._stdin.fileno(), self._stdout.fileno())
+        try:
+            self._isatty = os.path.sameopenfile(self._stdin.fileno(), self._stdout.fileno())
+        except (NotImplementedError, ValueError):
+            self._isatty = False
         self._remote_options: Dict[bytes, bool] = collections.defaultdict(lambda: False)
+        self._output_replication_queue = output_replication_queue
 
     def get_mode(self) -> Optional[ModeDef]:
         if self._isatty:
-            return ModeDef(*termios.tcgetattr(self._stdin.fileno()))
+            try:
+                return ModeDef(*termios.tcgetattr(self._stdin.fileno()))
+            except termios.error:
+                return None
         return None
 
     def set_mode(self, mode: ModeDef) -> None:
@@ -163,10 +172,13 @@ class TelnetClient:
             self._conn_writer.write(telnetlib.IAC + telnetlib.SB + telnetlib.NAWS)
             fmt = "HHHH"
             buf = b"\x00" * struct.calcsize(fmt)
-            buf = fcntl.ioctl(self._stdin.fileno(), termios.TIOCGWINSZ, buf)
-            rows, cols, _, _ = struct.unpack(fmt, buf)
-            self._conn_writer.write(struct.pack(">HH", cols, rows))
-            self._conn_writer.write(telnetlib.IAC + telnetlib.SE)
+            try:
+                buf = fcntl.ioctl(self._stdin.fileno(), termios.TIOCGWINSZ, buf)
+                rows, cols, _, _ = struct.unpack(fmt, buf)
+                self._conn_writer.write(struct.pack(">HH", cols, rows))
+                self._conn_writer.write(telnetlib.IAC + telnetlib.SE)
+            except OSError:
+                rows, cols = 22, 80
             await self._conn_writer.drain()
         elif command == telnetlib.WILL:
             self._remote_options[option] = True
@@ -184,6 +196,8 @@ class TelnetClient:
         try:
             while not self._conn_reader.at_eof():
                 buf += await self._conn_reader.read(128)
+                if self._output_replication_queue is not None:
+                    await self._output_replication_queue.put(buf)
                 while buf:
                     cmd_begin = buf.find(telnetlib.IAC)
                     if cmd_begin == -1:
@@ -225,4 +239,6 @@ class TelnetClient:
                             await self._handle_sb(option, subnego_chunk)
                         buf = buf_after
         finally:
+            if self._output_replication_queue is not None:
+                await self._output_replication_queue.put(b'')
             self._closed.set()
