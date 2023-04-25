@@ -16,4 +16,7 @@ build:
   tools:
     python: >-  # PyYAML parses it as float but RTD demands an explicit string
       3.11
-
+python:
+  - method: pip
+    path: .
+  - requirements: requirements-doc.txt
