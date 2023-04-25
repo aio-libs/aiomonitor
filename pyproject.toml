@@ -43,7 +43,7 @@ homepage = "https://github.com/aio-libs/aiomonitor"
 documentation = "https://aiomonitor.readthedocs.io"
 repository = "https://github.com/aio-libs/aiomonitor"
 issues = "https://github.com/aio-libs/aiomonitor/issues"
-changelog = "https://github.com/aio-libs/aiomonitor/blob/main/CHANGELOG.md"
+changelog = "https://github.com/aio-libs/aiomonitor/blob/main/CHANGES.rst"
 chat = "https://matrix.to/#/%23aio-libs:matrix.org"
 
 [tool.setuptools_scm]
