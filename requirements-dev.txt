@@ -10,7 +10,7 @@ flake8-quotes==3.3.2
 flake8==6.0.0
 ipdb==0.13.11
 isort==5.10.1
-mypy==1.0.1
+mypy==1.2.0
 pytest-cov==4.0.0
 pytest-sugar==0.9.6
 pytest==7.1.2
