@@ -17,7 +17,7 @@ import click
 from .types import TerminatedTaskInfo
 
 
-def _format_task(task: asyncio.Task[Any]) -> str:
+def _format_task(task: "asyncio.Task[Any]") -> str:
     """
     A simpler version of task's repr()
     """
@@ -111,7 +111,7 @@ def _filter_stack(
 
 
 def _extract_stack_from_task(
-    task: asyncio.Task[Any],
+    task: "asyncio.Task[Any]",
 ) -> List[traceback.FrameSummary]:
     """
     Extracts the stack as a list of FrameSummary objects from an asyncio task.
@@ -232,18 +232,18 @@ class AliasGroupMixin(click.Group):
 
 def task_by_id(
     taskid: int, loop: asyncio.AbstractEventLoop
-) -> Optional[asyncio.Task[Any]]:
+) -> "Optional[asyncio.Task[Any]]":
     tasks = all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
-async def cancel_task(task: asyncio.Task[Any]) -> None:
+async def cancel_task(task: "asyncio.Task[Any]") -> None:
     with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
 
 
-def all_tasks(loop: asyncio.AbstractEventLoop) -> Set[asyncio.Task[Any]]:
+def all_tasks(loop: asyncio.AbstractEventLoop) -> "Set[asyncio.Task[Any]]":
     if sys.version_info >= (3, 7):
         tasks = asyncio.all_tasks(loop=loop)
     else:
