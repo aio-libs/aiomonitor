@@ -21,7 +21,7 @@ __all__ = (
     "persistent_coro",
 )
 
-persistent_coro: weakref.WeakSet[Coroutine] = weakref.WeakSet()
+persistent_coro: "weakref.WeakSet[Coroutine]" = weakref.WeakSet()
 
 T = TypeVar("T")
 P = ParamSpec("P")
