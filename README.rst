@@ -1,8 +1,6 @@
 aiomonitor
 ==========
 
-|
-
 .. image:: https://github.com/aio-libs/aiomonitor/workflows/CI/badge.svg
    :target: https://github.com/aio-libs/aiomonitor/actions?query=workflow%3ACI
    :alt: GitHub Actions status for the main branch
@@ -22,7 +20,6 @@ aiomonitor
 .. image:: https://readthedocs.org/projects/aiomonitor-ng/badge/?version=latest
    :target: https://aiomonitor.aio-libs.org/en/latest/?badge=latest
    :alt: Documentation Status
-
 
 **aiomonitor** is a module that adds monitor and cli capabilities
 for asyncio_ applications. Idea and code were borrowed from curio_ project.
