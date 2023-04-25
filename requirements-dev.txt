@@ -5,7 +5,7 @@ aiotools==1.5.9
 attrs==22.2.0
 black==22.10.0
 docutils==0.19
-flake8-bugbear==23.2.13
+flake8-bugbear==23.3.23
 flake8-quotes==3.3.2
 flake8==6.0.0
 ipdb==0.13.11
