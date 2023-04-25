@@ -21,7 +21,7 @@ __all__ = (
     "persistent_coro",
 )
 
-persistent_coro: weakref.WeakSet[Coroutine] = weakref.WeakSet()
+persistent_coro: "weakref.WeakSet[Coroutine]" = weakref.WeakSet()
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -59,7 +59,7 @@ class TracedTask(asyncio.Task):
         b = struct.pack("P", h)
         return base64.b32encode(b).rstrip(b"=").decode()
 
-    def _trace_termination(self, _: asyncio.Task[Any]) -> None:
+    def _trace_termination(self, _: "asyncio.Task[Any]") -> None:
         self_id = self.get_trace_id()
         exc_repr = (
             repr(self.exception())
