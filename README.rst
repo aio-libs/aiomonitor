@@ -1,6 +1,29 @@
 aiomonitor
 ==========
 
+|
+
+.. image:: https://github.com/aio-libs/aiomonitor/workflows/CI/badge.svg
+   :target: https://github.com/aio-libs/aiomonitor/actions?query=workflow%3ACI
+   :alt: GitHub Actions status for the main branch
+
+.. image:: https://codecov.io/gh/aio-libs/aiomonitor/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/aio-libs/aiomonitor
+   :alt: codecov.io status for the main branch
+
+.. image:: https://badge.fury.io/py/aiomonitor.svg
+   :target: https://pypi.org/project/aiomonitor
+   :alt: Latest PyPI package version
+
+.. image:: https://img.shields.io/pypi/dm/aiomonitor
+   :target: https://pypistats.org/packages/aiomonitor
+   :alt: Downloads count
+
+.. image:: https://readthedocs.org/projects/aiomonitor-ng/badge/?version=latest
+   :target: https://aiomonitor.aio-libs.org/en/latest/?badge=latest
+   :alt: Documentation Status
+
+
 **aiomonitor** is a module that adds monitor and cli capabilities
 for asyncio_ applications. Idea and code were borrowed from curio_ project.
 Task monitor that runs concurrently to the asyncio_ loop (or fast drop-in
@@ -11,7 +34,8 @@ This library provides a python console using aioconsole_ module. It is possible
 to execute asynchronous commands inside your running application. Extensible
 with you own commands, in the style of the standard library's cmd_ module
 
-.. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/master/docs/screenshot-ps-where-example.png
+.. image:: https://raw.githubusercontent.com/aio-libs/aiomonitor/main/docs/screenshot-ps-where-example.png
+   :alt: An example to run the aiomonitor shell
 
 Installation
 ------------
@@ -145,13 +169,13 @@ Additional console variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may add more variables that can be directly referenced in the ``console`` command.
-Refer `the console-variables example code <https://github.com/aio-libs/aiomonitor/tree/master/examples/console-variables.py>`_
+Refer `the console-variables example code <https://github.com/aio-libs/aiomonitor/tree/main/examples/console-variables.py>`_
 
 Custom console commands
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 ``aiomonitor`` is very easy to extend with your own console commands.
-Refer `the extension example code <https://github.com/aio-libs/aiomonitor/tree/master/examples/extension.py>`_
+Refer `the extension example code <https://github.com/aio-libs/aiomonitor/tree/main/examples/extension.py>`_
 
 Requirements
 ------------
