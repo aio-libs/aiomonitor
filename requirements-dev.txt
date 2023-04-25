@@ -8,7 +8,7 @@ docutils==0.19
 flake8-bugbear==23.2.13
 flake8-quotes==3.3.2
 flake8==6.0.0
-ipdb==0.13.11
+ipdb==0.13.13
 isort==5.10.1
 mypy==1.0.1
 pytest-cov==4.0.0
