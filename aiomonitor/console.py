@@ -38,7 +38,7 @@ class ConsoleProxy:
         self._conn_writer.close()
         try:
             await self._conn_writer.wait_closed()
-        except NotImplementedError:
+        except (NotImplementedError, ConnectionResetError):
             pass
         self._conn_reader.feed_eof()
         await self._recv_task

@@ -1,64 +1,89 @@
 import asyncio
+import contextlib
 import contextvars
+import functools
+import io
 import sys
-import telnetlib
-import threading
-import time
+import unittest.mock
+from typing import Sequence
 
+import click
 import pytest
+from prompt_toolkit.application import create_app_session
+from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.output import DummyOutput
+from prompt_toolkit.shortcuts import print_formatted_text
 
 from aiomonitor import Monitor, start_monitor
-from aiomonitor.monitor import MONITOR_HOST, MONITOR_PORT
+from aiomonitor.monitor import (
+    auto_command_done,
+    command_done,
+    current_monitor,
+    current_stdout,
+    custom_help_option,
+    monitor_cli,
+)
 from aiomonitor.utils import all_tasks
 
 
-def monitor_common(loop, monitor_cls):
+@contextlib.contextmanager
+def monitor_common():
     def make_baz():
         return "baz"
 
     locals_ = {"foo": "bar", "make_baz": make_baz}
-    mon = monitor_cls(loop, locals=locals_)
-    ev = threading.Event()
-
-    def f(mon, loop, ev):
-        asyncio.set_event_loop(loop)
-        with mon:
-            ev.set()
-            loop.run_forever()
-
-    thread = threading.Thread(target=f, args=(mon, loop, ev))
-    thread.start()
-    ev.wait()
-    yield mon
-    loop.call_soon_threadsafe(loop.stop)
-    thread.join()
+    event_loop = asyncio.get_running_loop()
+    mon = Monitor(event_loop, locals=locals_)
+    with mon:
+        yield mon
 
 
-@pytest.yield_fixture
-def monitor(request, loop):
-    class MonitorSubclass(Monitor):
-        def do_something(self, arg):
-            self._sout.write("doing something with " + arg)
-            self._sout.flush()
-
-    yield from monitor_common(loop, MonitorSubclass)
+@pytest.fixture
+async def monitor(request, event_loop):
+    with monitor_common() as monitor_instance:
+        yield monitor_instance
 
 
-@pytest.yield_fixture
-def tn_client(monitor):
-    tn = telnetlib.Telnet()
-    for _ in range(10):
+def get_task_ids(event_loop):
+    return [id(t) for t in all_tasks(loop=event_loop)]
+
+
+class BufferedOutput(DummyOutput):
+    def __init__(self) -> None:
+        self._buffer = io.StringIO()
+
+    def write(self, data: str) -> None:
+        self._buffer.write(data)
+
+    def write_raw(self, data: str) -> None:
+        self._buffer.write(data)
+
+
+async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
+    dummy_stdout = io.StringIO()
+    current_monitor_token = current_monitor.set(monitor)
+    current_stdout_token = current_stdout.set(dummy_stdout)
+    command_done_event = asyncio.Event()
+    command_done_token = command_done.set(command_done_event)
+    with unittest.mock.patch(
+        "aiomonitor.monitor.print_formatted_text",
+        functools.partial(print_formatted_text, file=dummy_stdout),
+    ):
         try:
-            tn.open(MONITOR_HOST, MONITOR_PORT, timeout=5)
-            break
-        except OSError as e:
-            print("Retrying after error: {}".format(str(e)))
-        time.sleep(1)
-    else:
-        pytest.fail("Can not connect to the telnet server")
-    tn.read_until(b"monitor >>>", 10)
-    yield tn
-    tn.close()
+            ctx = contextvars.copy_context()
+            ctx.run(
+                monitor_cli.main,
+                args,
+                prog_name="",
+                obj=monitor,
+                standalone_mode=False,  # type: ignore
+            )
+            await command_done_event.wait()
+            return dummy_stdout.getvalue()
+        finally:
+            command_done.reset(command_done_token)
+            current_stdout.reset(current_stdout_token)
+            current_monitor.reset(current_monitor_token)
 
 
 @pytest.fixture(params=[True, False], ids=["console:True", "console:False"])
@@ -66,108 +91,93 @@ def console_enabled(request):
     return request.param
 
 
-def test_ctor(loop, unused_port, console_enabled):
+@pytest.mark.asyncio
+async def test_ctor(event_loop, unused_port, console_enabled):
 
-    with Monitor(loop, console_enabled=console_enabled):
-        loop.run_until_complete(asyncio.sleep(0.01))
-
-    with start_monitor(loop, console_enabled=console_enabled) as m:
-        loop.run_until_complete(asyncio.sleep(0.01))
+    with Monitor(event_loop, console_enabled=console_enabled):
+        await asyncio.sleep(0.01)
+    with start_monitor(event_loop, console_enabled=console_enabled) as m:
+        await asyncio.sleep(0.01)
     assert m.closed
 
-    m = Monitor(loop, console_enabled=console_enabled)
+    m = Monitor(event_loop, console_enabled=console_enabled)
     m.start()
     try:
-        loop.run_until_complete(asyncio.sleep(0.01))
+        await asyncio.sleep(0.01)
     finally:
         m.close()
         m.close()  # make sure call is idempotent
     assert m.closed
 
-    m = Monitor(loop, console_enabled=console_enabled)
+    m = Monitor(event_loop, console_enabled=console_enabled)
     m.start()
     with m:
-        loop.run_until_complete(asyncio.sleep(0.01))
+        await asyncio.sleep(0.01)
     assert m.closed
 
     # make sure that monitor inside async func can exit correctly
-    async def f():
-        with Monitor(loop, console_enabled=console_enabled):
-            await asyncio.sleep(0.01)
-
-    loop.run_until_complete(f())
+    with Monitor(event_loop, console_enabled=console_enabled):
+        await asyncio.sleep(0.01)
 
 
-def execute(tn, command, pattern=b">>>"):
-    tn.write(command.encode("utf-8"))
-    data = tn.read_until(pattern, 100)
-    return data.decode("utf-8")
+@pytest.mark.asyncio
+async def test_basic_monitor(monitor: Monitor):
+    resp = await invoke_command(monitor, ["help"])
+    assert "Commands:" in resp
 
+    with pytest.raises(click.UsageError):
+        await invoke_command(monitor, ["xxx"])
 
-def get_task_ids(loop):
-    return [id(t) for t in all_tasks(loop=loop)]
-
-
-def test_basic_monitor(monitor, tn_client, loop):
-    tn = tn_client
-    resp = execute(tn, "help\n")
-    assert "Commands" in resp
-
-    resp = execute(tn, "xxx\n")
-    assert "No such command" in resp
-
-    resp = execute(tn, "ps\n")
+    resp = await invoke_command(monitor, ["ps"])
     assert "Task" in resp
 
-    resp = execute(tn, "ps 123\n")
-    assert "TypeError" in resp
+    with pytest.raises(click.UsageError):
+        await invoke_command(monitor, ["ps", "123"])
 
-    resp = execute(tn, "signal name\n")
-    assert "Unknown signal name" in resp
+    resp = await invoke_command(monitor, ["signal", "name"])
+    assert "Unknown signal" in resp
 
-    resp = execute(tn, "stacktrace\n")
-    assert "loop.run_forever()" in resp
+    resp = await invoke_command(monitor, ["stacktrace"])
+    assert "self.run_forever()" in resp
 
-    resp = execute(tn, "w 123\n")
+    resp = await invoke_command(monitor, ["w", "123"])
     assert "No task 123" in resp
 
-    resp = execute(tn, "where 123\n")
+    resp = await invoke_command(monitor, ["where", "123"])
     assert "No task 123" in resp
 
-    resp = execute(tn, "c 123\n")
-    assert "Ambiguous command" in resp
+    with pytest.raises(click.UsageError):
+        await invoke_command(monitor, ["c", "123"])
 
-    resp = execute(tn, "cancel 123\n")
+    resp = await invoke_command(monitor, ["cancel", "123"])
     assert "No task 123" in resp
 
-    resp = execute(tn, "ca 123\n")
+    resp = await invoke_command(monitor, ["ca", "123"])
     assert "No task 123" in resp
 
 
 myvar = contextvars.ContextVar("myvar", default=42)
 
 
-def test_monitor_task_factory():
+@pytest.mark.asyncio
+async def test_monitor_task_factory(event_loop):
     async def do():
         await asyncio.sleep(0)
         myself = asyncio.current_task()
         assert myself is not None
         assert myself.get_name() == "mytask"
 
-    async def main():
-        loop = asyncio.get_running_loop()
-        with Monitor(loop, console_enabled=False, hook_task_factory=True):
-            t = asyncio.create_task(do(), name="mytask")
-            await t
-
-    asyncio.run(main())
+    with Monitor(event_loop, console_enabled=False, hook_task_factory=True):
+        t = asyncio.create_task(do(), name="mytask")
+        await t
 
 
 @pytest.mark.skipif(
     sys.version_info < (3, 11),
     reason="The context argument of asyncio.create_task() is added in Python 3.11",
 )
-def test_monitor_task_factory_with_context():
+@pytest.mark.asyncio
+async def test_monitor_task_factory_with_context():
     ctx = contextvars.Context()
     # This context is bound at the outermost scope,
     # and inside it the initial value of myvar is kept intact.
@@ -179,55 +189,74 @@ def test_monitor_task_factory_with_context():
         assert myself is not None
         assert myself.get_name() == "mytask"
 
-    async def main():
-        myvar.set(99)  # override in the current task's context
-        loop = asyncio.get_running_loop()
-        with Monitor(loop, console_enabled=False, hook_task_factory=True):
-            t = asyncio.create_task(do(), name="mytask", context=ctx)
-            await t
-        assert myvar.get() == 99
-
-    asyncio.run(main())
+    myvar.set(99)  # override in the current task's context
+    event_loop = asyncio.get_running_loop()
+    with Monitor(event_loop, console_enabled=False, hook_task_factory=True):
+        t = asyncio.create_task(do(), name="mytask", context=ctx)
+        await t
+    assert myvar.get() == 99
 
 
-def test_cancel_where_tasks(monitor, tn_client, loop):
-    tn = tn_client
-
-    async def sleeper(loop):
+@pytest.mark.asyncio
+async def test_cancel_where_tasks(
+    monitor: Monitor,
+    event_loop: asyncio.AbstractEventLoop,
+) -> None:
+    async def sleeper():
         await asyncio.sleep(100)  # xxx
 
-    fut = asyncio.run_coroutine_threadsafe(sleeper(loop), loop=loop)
-    # TODO: we should not rely on timeout
-    time.sleep(0.1)
+    t = asyncio.create_task(sleeper())
+    t_id = id(t)
+    await asyncio.sleep(0.1)
 
-    task_ids = get_task_ids(loop)
-    assert len(task_ids) > 0
-    for t_id in task_ids:
-        resp = execute(tn, "where {}\n".format(t_id))
+    try:
+        task_ids = get_task_ids(event_loop)
+        assert len(task_ids) > 0
+        assert t_id in task_ids
+        resp = await invoke_command(monitor, ["where", str(t_id)])
         assert "Task" in resp
-        resp = execute(tn, "cancel {}\n".format(t_id))
-        assert "Cancel task" in resp
-    fut.cancel()
+        resp = await invoke_command(monitor, ["cancel", str(t_id)])
+        assert "Cancelled task" in resp
+        await asyncio.sleep(0.1)
+    finally:
+        if not t.done():
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
 
 
-def test_monitor_with_console(monitor, tn_client):
-    tn = tn_client
-    resp = execute(tn, "console\n")
-    assert "This console is running in an asyncio event loop" in resp
-    execute(tn, "await asyncio.sleep(0)\n")
-
-    resp = execute(tn, "foo\n")
-    assert " 'bar'\n>>>" == resp
-    resp = execute(tn, "make_baz()\n")
-    assert " 'baz'\n>>>" == resp
-
-    execute(tn, "exit()\n")
-
-    resp = execute(tn, "help\n")
+@pytest.mark.asyncio
+async def test_monitor_with_console(monitor: Monitor) -> None:
+    with create_pipe_input() as pipe_input:
+        stdout_buf = BufferedOutput()
+        with create_app_session(input=pipe_input, output=stdout_buf):
+            await invoke_command(monitor, ["console"])
+            await asyncio.sleep(0.2)
+            pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
+            pipe_input.send_text("foo\r\n")
+            await asyncio.sleep(0.5)
+            resp = stdout_buf._buffer.getvalue()
+            assert "This console is running in an asyncio event loop." in resp
+            assert "333" in resp
+            assert "bar" in resp
+            pipe_input.send_text("exit()\r\n")
+            await asyncio.sleep(0.2)
+    # Check if we are back to the original shell.
+    resp = await invoke_command(monitor, ["help"])
     assert "Commands" in resp
 
 
-def test_custom_monitor_class(monitor, tn_client):
-    tn = tn_client
-    resp = execute(tn, "something someargument\n")
+@pytest.mark.asyncio
+async def test_custom_monitor_command(monitor: Monitor):
+    @monitor_cli.command(name="something")
+    @click.argument("arg")
+    @custom_help_option
+    @auto_command_done
+    def do_something(ctx: click.Context, arg: str) -> None:
+        self: Monitor = ctx.obj
+        self.print_ok(f"doing something with {arg}")
+
+    resp = await invoke_command(monitor, ["something", "someargument"])
     assert "doing something with someargument" in resp

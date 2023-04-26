@@ -32,7 +32,6 @@ import pathlib
 from importlib.metadata import version
 
 _docs_path = pathlib.Path(__file__).parent
-_version_path = _docs_path / "../aiomonitor/__init__.py"
 
 
 try:
