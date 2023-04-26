@@ -16,5 +16,6 @@ pytest-cov==4.0.0
 pytest-sugar==0.9.6
 pytest==7.1.2
 terminaltables==3.1.10
+types-requests
 uvloop==0.17.0
 build==0.10.0
