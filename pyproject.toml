@@ -1,3 +1,55 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiomonitor"
+description = "Adds monitor and Python REPL capabilities for asyncio applications"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {file = "LICENSE"}
+authors = [
+    {name = "Nikolay Novik", email = "nickolainovik@gmail.com"},
+]
+maintainers = [
+    {name = "Joongi Kim", email = "me@daybreaker.info"},
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: POSIX",
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+]
+
+dynamic = ["version"]
+
+requires-python = ">=3.8"
+dependencies = [
+    "attrs>=20",
+    "click>=8",
+    "janus>=1.0",
+    "terminaltables",
+    "typing-extensions>=4.1",
+    "prompt_toolkit>=3.0",
+    "aioconsole",
+]
+
+[project.urls]
+homepage = "https://github.com/aio-libs/aiomonitor"
+documentation = "https://aiomonitor.readthedocs.io"
+repository = "https://github.com/aio-libs/aiomonitor"
+issues = "https://github.com/aio-libs/aiomonitor/issues"
+changelog = "https://github.com/aio-libs/aiomonitor/blob/main/CHANGES.rst"
+chat = "https://matrix.to/#/%23aio-libs:matrix.org"
+
+[tool.setuptools_scm]
+# enables setuptools_scm to provide the dynamic version
+
 [tool.black]
 line-length = 88
 
