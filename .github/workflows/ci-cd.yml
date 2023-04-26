@@ -113,7 +113,7 @@ jobs:
       - name: Download the sdist artifact
         uses: actions/download-artifact@v3
         with:
-          name: artifact
+          name: ${{ env.sdist-artifact }}
           path: dist
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
