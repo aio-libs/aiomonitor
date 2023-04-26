@@ -1,5 +1,5 @@
 -e .
-aioconsole==0.6.0
+aioconsole==0.6.1
 aiohttp==3.8.4
 aiotools==1.6.0
 attrs==22.2.0
@@ -14,7 +14,7 @@ mypy==1.2.0
 pytest-asyncio==0.21.0
 pytest-cov==4.0.0
 pytest-sugar==0.9.7
-pytest==7.1.2
+pytest==7.3.1
 terminaltables==3.1.10
 types-requests
 uvloop==0.17.0
