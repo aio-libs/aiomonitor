@@ -28,8 +28,6 @@ class TelnetClient:
         port: int,
         stdin: Optional[TextIO] = None,
         stdout: Optional[TextIO] = None,
-        *,
-        output_replication_queue: Optional[asyncio.Queue] = None,
     ) -> None:
         self._host = host
         self._port = port
@@ -41,7 +39,6 @@ class TelnetClient:
         except (NotImplementedError, ValueError):
             self._isatty = False
         self._remote_options: Dict[bytes, bool] = collections.defaultdict(lambda: False)
-        self._output_replication_queue = output_replication_queue
 
     def get_mode(self) -> Optional[ModeDef]:
         if self._isatty:
@@ -196,8 +193,6 @@ class TelnetClient:
         try:
             while not self._conn_reader.at_eof():
                 buf += await self._conn_reader.read(128)
-                if self._output_replication_queue is not None:
-                    await self._output_replication_queue.put(buf)
                 while buf:
                     cmd_begin = buf.find(telnetlib.IAC)
                     if cmd_begin == -1:
@@ -239,6 +234,4 @@ class TelnetClient:
                             await self._handle_sb(option, subnego_chunk)
                         buf = buf_after
         finally:
-            if self._output_replication_queue is not None:
-                await self._output_replication_queue.put(b'')
             self._closed.set()

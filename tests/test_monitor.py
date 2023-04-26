@@ -46,24 +46,6 @@ async def monitor(request, event_loop):
         yield monitor_instance
 
 
-async def execute(tn, command, pattern=b">>>"):
-    tn._conn_writer.write(command)
-    await tn._conn_writer.drain()
-    buf = io.BytesIO()
-    while True:
-        data = await tn._output_replication_queue.get()
-        buf.write(data)
-        if not data:
-            return buf.getvalue()
-        if pattern in data:
-            return buf.getvalue()
-
-
-async def execute_v2(monitor: Monitor, command, pattern=b">>>"):
-    # TODO: mock TelnetConnection to directly interact with PromptSession
-    pass
-
-
 def get_task_ids(event_loop):
     return [id(t) for t in all_tasks(loop=event_loop)]
 
@@ -77,6 +59,33 @@ class BufferedOutput(DummyOutput):
 
     def write_raw(self, data: str) -> None:
         self._buffer.write(data)
+
+
+async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
+    dummy_stdout = io.StringIO()
+    current_monitor_token = current_monitor.set(monitor)
+    current_stdout_token = current_stdout.set(dummy_stdout)
+    command_done_event = asyncio.Event()
+    command_done_token = command_done.set(command_done_event)
+    with unittest.mock.patch(
+        "aiomonitor.monitor.print_formatted_text",
+        functools.partial(print_formatted_text, file=dummy_stdout),
+    ):
+        try:
+            ctx = contextvars.copy_context()
+            ctx.run(
+                monitor_cli.main,
+                args,
+                prog_name="",
+                obj=monitor,
+                standalone_mode=False,  # type: ignore
+            )
+            await command_done_event.wait()
+            return dummy_stdout.getvalue()
+        finally:
+            command_done.reset(command_done_token)
+            current_stdout.reset(current_stdout_token)
+            current_monitor.reset(current_monitor_token)
 
 
 @pytest.fixture(params=[True, False], ids=["console:True", "console:False"])
@@ -111,33 +120,6 @@ async def test_ctor(event_loop, unused_port, console_enabled):
     # make sure that monitor inside async func can exit correctly
     with Monitor(event_loop, console_enabled=console_enabled):
         await asyncio.sleep(0.01)
-
-
-async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
-    dummy_stdout = io.StringIO()
-    current_monitor_token = current_monitor.set(monitor)
-    current_stdout_token = current_stdout.set(dummy_stdout)
-    command_done_event = asyncio.Event()
-    command_done_token = command_done.set(command_done_event)
-    with unittest.mock.patch(
-        "aiomonitor.monitor.print_formatted_text",
-        functools.partial(print_formatted_text, file=dummy_stdout),
-    ):
-        try:
-            ctx = contextvars.copy_context()
-            ctx.run(
-                monitor_cli.main,
-                args,
-                prog_name="",
-                obj=monitor,
-                standalone_mode=False,  # type: ignore
-            )
-            await command_done_event.wait()
-            return dummy_stdout.getvalue()
-        finally:
-            command_done.reset(command_done_token)
-            current_stdout.reset(current_stdout_token)
-            current_monitor.reset(current_monitor_token)
 
 
 @pytest.mark.asyncio
