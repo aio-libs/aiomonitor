@@ -592,7 +592,7 @@ def do_stacktrace(ctx: click.Context) -> None:
     traceback.print_stack(frame, file=stdout)
 
 
-@monitor_cli.command(name="cancel")
+@monitor_cli.command(name="cancel", aliases=["ca"])
 @click.argument("taskid", shell_complete=complete_task_id)
 @custom_help_option
 @auto_command_done
@@ -602,10 +602,13 @@ def do_cancel(ctx: click.Context, taskid: str) -> None:
     task_id = int(taskid)
     task = task_by_id(task_id, self._monitored_loop)
     if task:
-        fut = asyncio.run_coroutine_threadsafe(
-            cancel_task(task), loop=self._monitored_loop
-        )
-        fut.result(timeout=3)
+        if self._monitored_loop == asyncio.get_running_loop():
+            asyncio.create_task(cancel_task(task))
+        else:
+            fut = asyncio.run_coroutine_threadsafe(
+                cancel_task(task), loop=self._monitored_loop
+            )
+            fut.result(timeout=3)
         self.print_ok(f"Cancelled task {task_id}")
     else:
         self.print_fail(f"No task {task_id}")
