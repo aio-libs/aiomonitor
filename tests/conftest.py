@@ -1,9 +1,8 @@
-import asyncio
-import gc
 import socket
 
 import pytest
-import uvloop
+
+# import uvloop  # TODO: run the entire test suite with both uvloop and the vanilla loop.
 
 
 @pytest.fixture(scope="session")
@@ -14,25 +13,3 @@ def unused_port():
             return s.getsockname()[1]
 
     return f
-
-
-def pytest_generate_tests(metafunc):
-    if "loop_type" in metafunc.fixturenames:
-        loop_type = ["asyncio", "uvloop"]
-        metafunc.parametrize("loop_type", loop_type)
-
-
-@pytest.yield_fixture
-def loop(request, loop_type):
-    old_loop = asyncio.get_event_loop()
-    asyncio.set_event_loop(None)
-    if loop_type == "uvloop":
-        loop = uvloop.new_event_loop()
-    else:
-        loop = asyncio.new_event_loop()
-
-    yield loop
-
-    loop.close()
-    asyncio.set_event_loop(old_loop)
-    gc.collect()
