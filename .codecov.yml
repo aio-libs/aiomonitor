@@ -1,0 +1,39 @@
+codecov:
+  branch: main
+  notify:
+    after_n_builds: 10
+
+coverage:
+  range: "95..100"
+  status:
+    project: no
+
+flags:
+  library:
+    paths:
+    - aiomonitor/
+  configs:
+    paths:
+    - requirements/
+    - ".git*"
+    - "*.toml"
+    - "*.yml"
+  changelog:
+    paths:
+    - changes/
+    - CHANGES.rst
+  docs:
+    paths:
+    - docs/
+    - "*.md"
+    - "*.rst"
+    - "*.txt"
+  tests:
+    paths:
+    - tests/
+  tools:
+    paths:
+    - tools/
+  third-party:
+    paths:
+    - vendor/

@@ -1,4 +1,0 @@
-[run]
-branch = True
-source = aiomonitor
-omit = site-packages, .tox, aiomonitor/cli.py

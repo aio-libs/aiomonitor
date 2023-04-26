@@ -80,7 +80,7 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
       - name: Run tests
-        run: python -m pytest -v tests
+        run: python -m pytest --cov=aiomonitor -v tests
       - name: Upload coverage data
         uses: codecov/codecov-action@v3
 
