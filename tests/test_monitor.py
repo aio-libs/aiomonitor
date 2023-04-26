@@ -5,16 +5,14 @@ import functools
 import io
 import sys
 import unittest.mock
-from typing import (
-    Sequence,
-)
+from typing import Sequence
 
 import click
 import pytest
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
-from prompt_toolkit.shortcuts import print_formatted_text
 from prompt_toolkit.output import DummyOutput
+from prompt_toolkit.shortcuts import print_formatted_text
 
 from aiomonitor import Monitor, start_monitor
 from aiomonitor.monitor import (
@@ -204,7 +202,6 @@ async def test_cancel_where_tasks(
     monitor: Monitor,
     event_loop: asyncio.AbstractEventLoop,
 ) -> None:
-
     async def sleeper():
         await asyncio.sleep(100)  # xxx
 
@@ -253,7 +250,6 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
 
 @pytest.mark.asyncio
 async def test_custom_monitor_command(monitor: Monitor):
-
     @monitor_cli.command(name="something")
     @click.argument("arg")
     @custom_help_option

@@ -35,7 +35,9 @@ class TelnetClient:
         self._stdin = stdin or sys.stdin
         self._stdout = stdout or sys.stdout
         try:
-            self._isatty = os.path.sameopenfile(self._stdin.fileno(), self._stdout.fileno())
+            self._isatty = os.path.sameopenfile(
+                self._stdin.fileno(), self._stdout.fileno()
+            )
         except (NotImplementedError, ValueError):
             self._isatty = False
         self._remote_options: Dict[bytes, bool] = collections.defaultdict(lambda: False)
