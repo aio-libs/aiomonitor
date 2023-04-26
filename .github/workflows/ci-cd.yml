@@ -51,6 +51,9 @@ jobs:
           path: dist/${{ env.sdist-name }}
           retention-days: 15
 
+  lint:
+    uses: ./.github/workflows/lint.yml
+
   test-pytest:
     name: Tests on ${{ matrix.python-version }}
     needs: build-sdist
@@ -92,7 +95,7 @@ jobs:
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
     if: always()
-    needs: [build-sdist, test-pytest]
+    needs: [build-sdist, lint, test-pytest]
     runs-on: ubuntu-latest
     steps:
     - name: Decide whether the needed jobs succeeded or failed
