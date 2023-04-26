@@ -29,7 +29,7 @@ jobs:
         python-version: ${{ env.PYTHON_LATEST }}
         cache: pip
         cache-dependency-path: |
-          pyproject.toml
+          setup.cfg
           requirements-dev.txt
     - name: Install dependencies
       run: |
@@ -54,9 +54,8 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          pyproject.toml
+          setup.cfg
           requirements-dev.txt
-          requirements-doc.txt
     - name: Install dependencies
       run: |
         pip install -U -r requirements-dev.txt
@@ -79,9 +78,8 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          pyproject.toml
+          setup.cfg
           requirements-dev.txt
-          requirements-doc.txt
     - name: Install dependencies
       run: |
         pip install -U -r requirements-dev.txt
@@ -104,9 +102,8 @@ jobs:
         check-latest: true
         cache: pip
         cache-dependency-path: |
-          pyproject.toml
+          setup.cfg
           requirements-dev.txt
-          requirements-doc.txt
     - name: Install dependencies
       run: |
         pip install -U -r requirements-dev.txt
