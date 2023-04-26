@@ -13,7 +13,7 @@ isort==5.10.1
 mypy==1.2.0
 pytest-asyncio==0.21.0
 pytest-cov==4.0.0
-pytest-sugar==0.9.6
+pytest-sugar==0.9.7
 pytest==7.3.1
 terminaltables==3.1.10
 types-requests
