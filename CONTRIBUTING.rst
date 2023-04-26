@@ -13,29 +13,30 @@ Fist of all just clone repository::
 
     $ git clone git@github.com:aio-libs/aiomonitor.git
 
-Create virtualenv with python3.5 (older version are not supported). For example
-using *virtualenvwrapper* commands could look like::
+Create a virtualenv with Python 3.8 or later.  For example,
+using *pyenv* commands could look like::
 
    $ cd aiomonitor
-   $ mkvirtualenv --python=`which python3.5` aiomonitor
+   $ pyenv virtualenv 3.11 aiomonitor-dev
+   $ pyenv local aiomonitor-dev
 
-
-After that please install libraries required for development::
+After that please install the dependencies required for development
+and the sources as an editable package::
 
     $ pip install -r requirements-dev.txt
-    $ pip install -e .
 
 Congratulations, you are ready to run the test suite::
 
-    $ make cov
+    $ python -m pytest --cov tests
 
-To run individual use following command::
+To run individual tests use the following command::
 
-    $ py.test -sv tests/test_monitor.py -k test_name
+    $ python -m pytest -sv tests/test_monitor.py -k test_name
 
 
 Reporting an Issue
 ------------------
+
 If you have found issue with `aiomonitor` please do
 not hesitate to file an issue on the GitHub_ project. When filing your
 issue please make sure you can express the issue with a reproducible test
