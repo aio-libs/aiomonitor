@@ -70,12 +70,12 @@ class TracedTask(asyncio.Task):
             self_id,
             name=self.get_name(),
             coro=_format_coroutine(self._orig_coro).partition(" ")[0],
-            cancelled=self.cancelled(),
-            exc_repr=exc_repr,
             started_at=self._started_at,
             terminated_at=time.perf_counter(),
+            cancelled=self.cancelled(),
             termination_stack=self._termination_stack,
             canceller_stack=None,
+            exc_repr=exc_repr,
             persistent=self._persistent,
         )
         self._termination_info_queue.put_nowait(task_info)

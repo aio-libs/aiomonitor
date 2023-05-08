@@ -67,8 +67,8 @@ Now from separate terminal it is possible to connect to the application::
 or the included python client::
 
     $ python -m aiomonitor.cli
-    
-    
+
+
 Tutorial
 --------
 
@@ -122,9 +122,9 @@ Now you can type commands, for instance, ``help``::
 
     monitor >>> help
     Usage: help [OPTIONS] COMMAND [ARGS]...
-    
+
       To see the usage of each command, run them with "--help" option.
-    
+
     Commands:
       cancel                  Cancel an indicated task
       console                 Switch to async Python REPL

@@ -93,7 +93,6 @@ def console_enabled(request):
 
 @pytest.mark.asyncio
 async def test_ctor(event_loop, unused_port, console_enabled):
-
     with Monitor(event_loop, console_enabled=console_enabled):
         await asyncio.sleep(0.01)
     with start_monitor(event_loop, console_enabled=console_enabled) as m:
