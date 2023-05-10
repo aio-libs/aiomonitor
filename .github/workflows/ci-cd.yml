@@ -1,6 +1,7 @@
+---
 name: CI
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches: ["main"]
   pull_request:
@@ -8,7 +9,7 @@ on:
   release:
     types: [created]
     branches:
-      - 'main'
+    - 'main'
   workflow_dispatch:
 
 env:
@@ -27,29 +28,29 @@ jobs:
     runs-on: ubuntu-latest
     # if: github.event_name == 'release' && github.event.action == 'created'
     steps:
-      - name: Checkout project
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_LATEST }}
-          cache: pip
-      - run: python -m pip install build
-        name: Install core libraries for build and install
-      - name: Build artifacts
-        run: python -m build
-      - name: Upload built artifacts for testing
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.sdist-artifact }}
-          # NOTE: Exact expected file names are specified here
-          # NOTE: as a safety measure — if anything weird ends
-          # NOTE: up being in this dir or not all dists will be
-          # NOTE: produced, this will fail the workflow.
-          path: dist/${{ env.sdist-name }}
-          retention-days: 15
+    - name: Checkout project
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_LATEST }}
+        cache: pip
+    - run: python -m pip install build
+      name: Install core libraries for build and install
+    - name: Build artifacts
+      run: python -m build
+    - name: Upload built artifacts for testing
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.sdist-artifact }}
+        # NOTE: Exact expected file names are specified here
+        # NOTE: as a safety measure — if anything weird ends
+        # NOTE: up being in this dir or not all dists will be
+        # NOTE: produced, this will fail the workflow.
+        path: dist/${{ env.sdist-name }}
+        retention-days: 15
 
   lint:
     uses: ./.github/workflows/lint.yml
@@ -63,34 +64,34 @@ jobs:
       fail-fast: true
       matrix:
         python-version:
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
+        - "3.8"
+        - "3.9"
+        - "3.10"
+        - "3.11"
         experimental: [false]
         include:
-          - python-version: "~3.12.0-0"
-            experimental: true
+        - python-version: "~3.12.0-0"
+          experimental: true
     steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: |
-            setup.cfg
-            requirements-dev.txt
-      - name: Install dependencies
-        run: |
-          pip install -U -r requirements-dev.txt
-      - name: Run tests
-        run: python -m pytest --cov=aiomonitor -v tests
-      - name: Upload coverage data
-        uses: codecov/codecov-action@v3
+    - name: Checkout the source code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: |
+          setup.cfg
+          requirements-dev.txt
+    - name: Install dependencies
+      run: |
+        pip install -U -r requirements-dev.txt
+    - name: Run tests
+      run: python -m pytest --cov=aiomonitor -v tests
+    - name: Upload coverage data
+      uses: codecov/codecov-action@v3
 
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
@@ -110,12 +111,12 @@ jobs:
     environment: pypi
     if: github.event_name == 'release' && github.event.action == 'created'
     steps:
-      - name: Download the sdist artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.sdist-artifact }}
-          path: dist
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Download the sdist artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.sdist-artifact }}
+        path: dist
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
