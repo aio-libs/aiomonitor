@@ -29,13 +29,14 @@
 # needs_sphinx = '1.0'
 
 import pathlib
-from importlib.metadata import version
+from importlib.metadata import version as get_version
+from typing import Mapping
 
 _docs_path = pathlib.Path(__file__).parent
 
 
 try:
-    _version_info = version("aiomonitor")
+    _version_info = get_version("aiomonitor")
 except IndexError:
     raise RuntimeError("Unable to determine version.")
 
@@ -130,7 +131,7 @@ htmlhelp_basename = "aiomonitordoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = {
+latex_elements: Mapping[str, str] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
