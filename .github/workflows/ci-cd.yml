@@ -108,15 +108,40 @@ jobs:
     name: 📦 Publish to PyPI
     runs-on: ubuntu-latest
     needs: check
-    environment: pypi
     if: github.event_name == 'release' && github.event.action == 'created'
+
+    permissions:
+      contents: write  # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write  # IMPORTANT: mandatory for trusted publishing & sigstore
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/aiomonitor
+
     steps:
     - name: Download the sdist artifact
       uses: actions/download-artifact@v3
       with:
         name: ${{ env.sdist-artifact }}
         path: dist
-    - name: Publish package to PyPI
+
+    - name: >-
+        Publish 🐍📦 to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+
+    - name: Sign the dists with Sigstore
+      uses: sigstore/gh-action-sigstore-python@v1.2.3
       with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        inputs: >-
+          ./dist/*.tar.gz
+          ./dist/*.whl
+
+    - name: Upload artifact signatures to GitHub Release
+      # Confusingly, this action also supports updating releases, not
+      # just creating them. This is what we want here, since we've manually
+      # created the release above.
+      uses: softprops/action-gh-release@v1
+      with:
+        # dist/ contains the built packages, which smoketest-artifacts/
+        # contains the signatures and certificates.
+        files: dist/**
