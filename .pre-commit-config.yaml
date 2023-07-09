@@ -4,7 +4,7 @@ ci:
   autoupdate_schedule: quarterly
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.3.0
+  rev: v4.4.0
   hooks:
   - id: check-yaml
   - id: end-of-file-fixer
@@ -22,13 +22,13 @@ repos:
   hooks:
   - id: isort
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.2.0
+  rev: v1.4.1
   hooks:
   - id: mypy
     additional_dependencies:
     - types-requests
 - repo: https://github.com/adrienverge/yamllint.git
-  rev: v1.30.0
+  rev: v1.32.0
   hooks:
   - id: yamllint
     types:
