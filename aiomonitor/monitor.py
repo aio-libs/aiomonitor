@@ -65,7 +65,7 @@ from .utils import (
     get_default_args,
     task_by_id,
 )
-from .webui import init_webui
+from .webui.app import init_webui
 
 __all__ = (
     "Monitor",
@@ -81,6 +81,7 @@ command_done: ContextVar[asyncio.Event] = ContextVar("command_done")
 MONITOR_HOST: Final = "127.0.0.1"
 MONITOR_PORT: Final = 50101
 CONSOLE_PORT: Final = 50102
+MONITOR_WEBUI_PORT: Final = 50201
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -212,7 +213,7 @@ class Monitor:
         *,
         host: str = MONITOR_HOST,
         port: int = MONITOR_PORT,
-        webui_port: int = MONITOR_PORT + 100,
+        webui_port: int = MONITOR_WEBUI_PORT,
         console_port: int = CONSOLE_PORT,
         console_enabled: bool = True,
         hook_task_factory: bool = False,

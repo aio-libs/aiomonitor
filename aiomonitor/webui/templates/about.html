@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block content %}
+<ul>
+  <li>Version: <span hx-get="/fragment/version" hx-trigger="load" hx-swap="innerHTML">(loading)</span></li>
+</ul>
+{% endblock %}

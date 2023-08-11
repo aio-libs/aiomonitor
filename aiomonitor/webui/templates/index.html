@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block content %}
+<div>
+    <p>The number of running tasks: <span hx-get="/fragment/task-count" hx-trigger="load,every 2s" hx-swap="innerHTML">0</span></p>
+</div>
+{% endblock %}

@@ -26,3 +26,8 @@ trim_trailing_whitespace = false
 max_line_length = 0
 indent_style = space
 indent_size = 3
+
+[*.html]
+max_line_length = 0
+indent_style = space
+indent_size = 2
