@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from importlib.metadata import version
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Dict, Mapping, Tuple
 
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -20,27 +20,36 @@ class WebUIContext:
     jenv: Environment
 
 
-def get_navigation_info(route: str):
-    nav_menus: dict[str, dict[str, Any]] = {
-        "/": {
-            "title": "Dashboard",
-            "template": "index.html",
-            "current": False,
-        },
-        "/about": {
-            "title": "About",
-            "template": "about.html",
-            "current": False,
-        },
-    }
-    nav_items = {}
+@dataclasses.dataclass
+class NavigationItem:
+    title: str
+    template: str
+    current: bool
+
+
+nav_menus: Mapping[str, NavigationItem] = {
+    "/": NavigationItem(
+        title="Dashboard",
+        template="index.html",
+        current=False,
+    ),
+    "/about": NavigationItem(
+        title="About",
+        template="about.html",
+        current=False,
+    ),
+}
+
+
+def get_navigation_info(
+    route: str,
+) -> Tuple[NavigationItem, Mapping[str, NavigationItem]]:
+    nav_items: Dict[str, NavigationItem] = {}
     current_item = None
     for path, item in nav_menus.items():
-        nav_items[path] = {
-            **item,
-        }
-        if path == route:
-            nav_items[path]["current"] = True
+        is_current = path == route
+        nav_items[path] = NavigationItem(item.title, item.template, is_current)
+        if is_current:
             current_item = item
     if current_item is None:
         raise web.HTTPNotFound
@@ -50,7 +59,7 @@ def get_navigation_info(route: str):
 async def root_page(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     nav_info, nav_items = get_navigation_info(request.path)
-    template = ctx.jenv.get_template(nav_info["template"])
+    template = ctx.jenv.get_template(nav_info.template)
     output = template.render(
         navigation=nav_items,
         num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
