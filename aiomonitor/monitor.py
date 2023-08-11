@@ -35,6 +35,7 @@ from typing import (
 
 import click
 import janus
+from aiohttp import web
 from click.parser import split_arg_string
 from click.shell_completion import CompletionItem, _resolve_context, _resolve_incomplete
 from prompt_toolkit import PromptSession
@@ -64,6 +65,7 @@ from .utils import (
     get_default_args,
     task_by_id,
 )
+from .webui import init_webui
 
 __all__ = (
     "Monitor",
@@ -210,6 +212,7 @@ class Monitor:
         *,
         host: str = MONITOR_HOST,
         port: int = MONITOR_PORT,
+        webui_port: int = MONITOR_PORT + 100,
         console_port: int = CONSOLE_PORT,
         console_enabled: bool = True,
         hook_task_factory: bool = False,
@@ -219,6 +222,7 @@ class Monitor:
         self._monitored_loop = loop or asyncio.get_running_loop()
         self._host = host
         self._port = port
+        self._webui_port = webui_port
         self._console_port = console_port
         self._console_enabled = console_enabled
         if locals is None:
@@ -364,6 +368,16 @@ class Monitor:
         telnet_server = TelnetServer(
             interact=self._interact, host=self._host, port=self._port
         )
+        webui_app = await init_webui(self)
+        webui_runner = web.AppRunner(webui_app)
+        await webui_runner.setup()
+        webui_site = web.TCPSite(
+            webui_runner,
+            str(self._host),
+            self._webui_port,
+            reuse_port=True,
+        )
+        await webui_site.start()
         telnet_server.start()
         await asyncio.sleep(0)
         self._ui_started.set()
@@ -381,6 +395,7 @@ class Monitor:
             await self._ui_termination_handler_task
             await self._ui_cancellation_handler_task
             await telnet_server.stop()
+            await webui_runner.cleanup()
 
     async def _ui_handle_termination_updates(self) -> None:
         while True:
