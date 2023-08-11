@@ -26,6 +26,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     TextIO,
     Tuple,
     Type,
@@ -49,7 +50,7 @@ from terminaltables import AsciiTable
 
 from . import console
 from .task import TracedTask, persistent_coro
-from .types import CancellationChain, TerminatedTaskInfo
+from .types import CancellationChain, LiveTaskInfo, TerminatedTaskInfo
 from .utils import (
     AliasGroupMixin,
     _extract_stack_from_exception,
@@ -310,6 +311,56 @@ class Monitor:
             self._ui_thread.join()
             self._monitored_loop.set_task_factory(self._original_task_factory)
             self._closed = True
+
+    def get_live_task_list(
+        self, filter_: str, persistent: bool
+    ) -> Sequence[LiveTaskInfo]:
+        all_running_tasks = all_tasks(loop=self._monitored_loop)
+        tasks = []
+        for task in sorted(all_running_tasks, key=id):
+            taskid = str(id(task))
+            if isinstance(task, TracedTask):
+                coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
+                if persistent and task._orig_coro not in persistent_coro:
+                    continue
+            else:
+                coro_repr = _format_coroutine(task.get_coro()).partition(" ")[0]
+                if persistent:
+                    # untracked tasks should be skipped when showing persistent ones only
+                    continue
+            if filter_ and (
+                filter_ not in coro_repr and filter_ not in task.get_name()
+            ):
+                continue
+            creation_stack = self._created_tracebacks.get(task)
+            # Some values are masked as "-" when they are unavailable
+            # if it's the root task/coro or if the task factory is not applied.
+            if not creation_stack:
+                created_location = "-"
+            else:
+                creation_stack = _filter_stack(creation_stack)
+                fn = _format_filename(creation_stack[-1].filename)
+                lineno = creation_stack[-1].lineno
+                created_location = f"{fn}:{lineno}"
+            if isinstance(task, TracedTask):
+                running_since = _format_timedelta(
+                    timedelta(
+                        seconds=(time.perf_counter() - task._started_at),
+                    )
+                )
+            else:
+                running_since = "-"
+            tasks.append(
+                LiveTaskInfo(
+                    taskid,
+                    task._state,
+                    task.get_name(),
+                    coro_repr,
+                    created_location,
+                    running_since,
+                )
+            )
+        return tasks
 
     async def _coro_wrapper(self, coro: Awaitable[T_co]) -> T_co:
         myself = asyncio.current_task()
@@ -701,47 +752,16 @@ def do_ps(
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
-    all_running_tasks = all_tasks(loop=self._monitored_loop)
-
-    for task in sorted(all_running_tasks, key=id):
-        taskid = str(id(task))
-        if isinstance(task, TracedTask):
-            coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
-            if persistent and task._orig_coro not in persistent_coro:
-                continue
-        else:
-            coro_repr = _format_coroutine(task.get_coro()).partition(" ")[0]
-            if persistent:
-                # untracked tasks should be skipped when showing persistent ones only
-                continue
-        if filter_ and (filter_ not in coro_repr and filter_ not in task.get_name()):
-            continue
-        creation_stack = self._created_tracebacks.get(task)
-        # Some values are masked as "-" when they are unavailable
-        # if it's the root task/coro or if the task factory is not applied.
-        if not creation_stack:
-            created_location = "-"
-        else:
-            creation_stack = _filter_stack(creation_stack)
-            fn = _format_filename(creation_stack[-1].filename)
-            lineno = creation_stack[-1].lineno
-            created_location = f"{fn}:{lineno}"
-        if isinstance(task, TracedTask):
-            running_since = _format_timedelta(
-                timedelta(
-                    seconds=(time.perf_counter() - task._started_at),
-                )
-            )
-        else:
-            running_since = "-"
+    tasks = self.get_live_task_list(filter_, persistent)
+    for task in tasks:
         table_data.append(
             (
-                taskid,
-                task._state,
-                task.get_name(),
-                coro_repr,
-                created_location,
-                running_since,
+                task.task_id,
+                task.state,
+                task.name,
+                task.coro,
+                task.created_location,
+                task.since,
             )
         )
     table = AsciiTable(table_data)
@@ -749,11 +769,10 @@ def do_ps(
     table.inner_column_border = False
     if filter_ or persistent:
         stdout.write(
-            f"{len(all_running_tasks)} tasks running "
-            f"(showing {len(table_data) - 1} tasks)\n"
+            f"{len(tasks)} tasks running " f"(showing {len(table_data) - 1} tasks)\n"
         )
     else:
-        stdout.write(f"{len(all_running_tasks)} tasks running\n")
+        stdout.write(f"{len(tasks)} tasks running\n")
     stdout.write(table.table)
     stdout.write("\n")
     stdout.flush()

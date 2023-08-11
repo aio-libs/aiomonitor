@@ -4,6 +4,16 @@ from typing import List, Optional
 
 
 @dataclass
+class LiveTaskInfo:
+    task_id: str
+    state: str
+    name: str
+    coro: str
+    created_location: str
+    since: str
+
+
+@dataclass
 class TerminatedTaskInfo:
     id: str
     name: str

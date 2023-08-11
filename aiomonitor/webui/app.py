@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, Mapping, Tuple
 
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
+from jinja2_fragments import render_block
 
 from ..utils import all_tasks
 
@@ -80,6 +81,13 @@ async def get_task_count(request: web.Request) -> web.Response:
     return web.Response(body=output, content_type="text/html")
 
 
+async def get_live_task_list(request: web.Request) -> web.Response:
+    ctx: WebUIContext = request.app["ctx"]
+    tasks = ctx.monitor.get_live_task_list("", False)
+    output = render_block(ctx.jenv, "index.html", "live_task_list", tasks=tasks)
+    return web.Response(body=output, content_type="text/html")
+
+
 async def init_webui(monitor: Monitor) -> web.Application:
     jenv = Environment(
         loader=PackageLoader("aiomonitor.webui"), autoescape=select_autoescape()
@@ -92,6 +100,7 @@ async def init_webui(monitor: Monitor) -> web.Application:
     app.router.add_route("GET", "/", root_page)
     app.router.add_route("GET", "/about", root_page)
     app.router.add_route("GET", "/fragment/version", get_version)
-    app.router.add_route("GET", "/fragment/task-count", get_task_count)
+    app.router.add_route("POST", "/fragment/task-count", get_task_count)
+    app.router.add_route("POST", "/fragment/live-tasks", get_live_task_list)
     app.router.add_static("/static", Path(__file__).parent / "static")
     return app
