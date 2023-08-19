@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Dict, Mapping, Tuple
 
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
-from jinja2_fragments import render_block
 
 from ..utils import all_tasks
 
@@ -69,23 +68,41 @@ async def root_page(request: web.Request) -> web.Response:
 
 
 async def get_version(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
-    output = ctx.jenv.from_string("{{ v }}").render(v=version("aiomonitor"))
-    return web.Response(body=output, content_type="text/html")
+    return web.json_response(
+        data={
+            "value": version("aiomonitor"),
+        }
+    )
 
 
 async def get_task_count(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     num_monitored_tasks = len(all_tasks(ctx.monitor._monitored_loop))
-    output = ctx.jenv.from_string("{{ v }}").render(v=num_monitored_tasks)
-    return web.Response(body=output, content_type="text/html")
+    return web.json_response(
+        data={
+            "value": num_monitored_tasks,
+        }
+    )
 
 
 async def get_live_task_list(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     tasks = ctx.monitor.get_live_task_list("", False)
-    output = render_block(ctx.jenv, "index.html", "live_task_list", tasks=tasks)
-    return web.Response(body=output, content_type="text/html")
+    return web.json_response(
+        data={
+            "tasks": [
+                {
+                    "task_id": t.task_id,
+                    "state": t.state,
+                    "name": t.name,
+                    "coro": t.coro,
+                    "created_location": t.created_location,
+                    "since": t.since,
+                }
+                for t in tasks
+            ]
+        }
+    )
 
 
 async def init_webui(monitor: Monitor) -> web.Application:
@@ -99,8 +116,8 @@ async def init_webui(monitor: Monitor) -> web.Application:
     )
     app.router.add_route("GET", "/", root_page)
     app.router.add_route("GET", "/about", root_page)
-    app.router.add_route("GET", "/fragment/version", get_version)
-    app.router.add_route("POST", "/fragment/task-count", get_task_count)
-    app.router.add_route("POST", "/fragment/live-tasks", get_live_task_list)
+    app.router.add_route("GET", "/api/version", get_version)
+    app.router.add_route("POST", "/api/task-count", get_task_count)
+    app.router.add_route("POST", "/api/live-tasks", get_live_task_list)
     app.router.add_static("/static", Path(__file__).parent / "static")
     return app

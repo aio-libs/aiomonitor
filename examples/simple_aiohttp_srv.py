@@ -11,15 +11,16 @@ async def inner2() -> None:
     await asyncio.sleep(100)
 
 
-async def inner1() -> None:
-    t = asyncio.create_task(inner2())
+async def inner1(tg: asyncio.TaskGroup) -> None:
+    t = tg.create_task(inner2())
     await t
 
 
 async def simple(request: web.Request) -> web.Response:
     print("Start sleeping")
-    t = asyncio.create_task(inner1())
-    await t
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(inner1(tg))
+    print("Finished sleeping")
     return web.Response(text="Simple answer")
 
 

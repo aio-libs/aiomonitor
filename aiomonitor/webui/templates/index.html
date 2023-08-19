@@ -1,7 +1,13 @@
 {% extends "layout.html" %}
 {% block content %}
 <div>
-    <p>The number of running tasks: <span hx-post="/fragment/task-count" hx-trigger="load,every 2s" hx-swap="innerHTML">0</span></p>
+    <p>The number of running tasks:
+      <span hx-post="/api/task-count"
+        hx-trigger="load,every 2s"
+        hx-swap="innerHTML"
+        mustache-template="scalar-value"
+      >0</span>
+    </p>
 </div>
 <div class="px-4 sm:px-6 lg:px-8">
   <div class="mt-8 flow-root">
@@ -21,27 +27,35 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200" hx-trigger="load,every 2s" hx-post="/fragment/live-tasks" hx-swap="innerHTML">
-            {% block live_task_list %}
-            {% for item in tasks %}
-            <tr>
-              <td class="whitespace-nowrap px-1 py-2 text-sm font-medium text-gray-900">{{ item.task_id }}</td>
-              <td class="whitespace-nowrap px-1 py-2 text-sm text-gray-500">{{ item.state }}</td>
-              <td class="whitespace-nowrap px-1 py-2 text-sm text-gray-500">{{ item.name }}</td>
-              <td class="whitespace-nowrap px-1 py-2 font-mono text-xs text-gray-500">{{ item.coro }}</td>
-              <td class="break-all px-1 py-2 font-mono text-xs text-gray-500">{{ item.created_location }}</td>
-              <td class="whitespace-nowrap px-1 py-2 font-mono text-sm text-gray-500">{{ item.since }}</td>
-              <td class="relative whitespace-nowrap px-1 py-2 text-right text-sm font-medium sm:pr-0">
-                <button type="button" class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600">Cancel</button>
-                <button type="button" class="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Trace</button>
-              </td>
-            </tr>
-            {% endfor %}
-            {% endblock %}
+          <tbody class="divide-y divide-gray-200"
+            hx-trigger="load,every 2s"
+            hx-post="/api/live-tasks"
+            hx-swap="innerHTML"
+            mustache-template="live-task-list"
+          >
           </tbody>
         </table>
       </div>
     </div>
   </div>
 </div>
+
+{% raw %}
+<template id="live-task-list">
+{{# tasks}}
+<tr>
+  <td class="whitespace-nowrap px-1 py-2 text-sm font-medium text-gray-900">{{ task_id }}</td>
+  <td class="whitespace-nowrap px-1 py-2 text-sm text-gray-500">{{ state }}</td>
+  <td class="whitespace-nowrap px-1 py-2 text-sm text-gray-500">{{ name }}</td>
+  <td class="whitespace-nowrap px-1 py-2 font-mono text-xs text-gray-500">{{ coro }}</td>
+  <td class="break-all px-1 py-2 font-mono text-xs text-gray-500">{{ created_location }}</td>
+  <td class="whitespace-nowrap px-1 py-2 font-mono text-sm text-gray-500">{{ since }}</td>
+  <td class="relative whitespace-nowrap px-1 py-2 text-right text-sm font-medium sm:pr-0">
+    <button type="button" class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600">Cancel</button>
+    <button type="button" class="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Trace</button>
+  </td>
+</tr>
+{{/ tasks}}
+</template>
+{% endraw %}
 {% endblock %}

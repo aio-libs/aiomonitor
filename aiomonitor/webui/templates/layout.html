@@ -1,11 +1,15 @@
 <!doctype html>
 <html class="h-full bg-gray-100">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
   <title>aiomonitor - {{ title }}</title>
   <script src="/static/htmx.js"></script>
+  <script src="/static/mustache.js"></script>
+  <script src="/static/client-side-templates.js"></script>
   <script src="/static/tailwind.js"></script>
 </head>
-<body class="h-full">
+<body class="h-full" hx-ext="client-side-templates">
 <div class="min-h-full">
   <nav class="bg-gray-800">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -40,5 +44,8 @@
     </div>
   </main>
 </div>
+{% raw %}
+<template id="scalar-value">{{ value }}</template>
+{% endraw %}
 </body>
 </html>
