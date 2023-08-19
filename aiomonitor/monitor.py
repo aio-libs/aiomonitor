@@ -50,7 +50,12 @@ from terminaltables import AsciiTable
 
 from . import console
 from .task import TracedTask, persistent_coro
-from .types import CancellationChain, LiveTaskInfo, TerminatedTaskInfo
+from .types import (
+    CancellationChain,
+    FormattedLiveTaskInfo,
+    FormattedTerminatedTaskInfo,
+    TerminatedTaskInfo,
+)
 from .utils import (
     AliasGroupMixin,
     _extract_stack_from_exception,
@@ -312,9 +317,9 @@ class Monitor:
             self._monitored_loop.set_task_factory(self._original_task_factory)
             self._closed = True
 
-    def get_live_task_list(
+    def format_live_task_list(
         self, filter_: str, persistent: bool
-    ) -> Sequence[LiveTaskInfo]:
+    ) -> Sequence[FormattedLiveTaskInfo]:
         all_running_tasks = all_tasks(loop=self._monitored_loop)
         tasks = []
         for task in sorted(all_running_tasks, key=id):
@@ -351,7 +356,7 @@ class Monitor:
             else:
                 running_since = "-"
             tasks.append(
-                LiveTaskInfo(
+                FormattedLiveTaskInfo(
                     taskid,
                     task._state,
                     task.get_name(),
@@ -361,6 +366,51 @@ class Monitor:
                 )
             )
         return tasks
+
+    def format_terminated_task_list(
+        self, filter_: str, persistent: bool
+    ) -> Sequence[FormattedTerminatedTaskInfo]:
+        terminated_tasks = self._terminated_tasks.values()
+        tasks = []
+        for item in sorted(
+            terminated_tasks,
+            key=lambda info: info.terminated_at,
+            reverse=True,
+        ):
+            if persistent and not item.persistent:
+                continue
+            if filter_ and (filter_ not in item.coro and filter_ not in item.name):
+                continue
+            started_since = _format_timedelta(
+                timedelta(seconds=time.perf_counter() - item.started_at)
+            )
+            terminated_since = _format_timedelta(
+                timedelta(seconds=time.perf_counter() - item.terminated_at)
+            )
+            tasks.append(
+                FormattedTerminatedTaskInfo(
+                    str(item.id),
+                    item.name,
+                    item.coro,
+                    started_since,
+                    terminated_since,
+                )
+            )
+        return tasks
+
+    async def cancel_monitored_task(self, task_id: str | int) -> None:
+        task_id_ = int(task_id)
+        task = task_by_id(task_id_, self._monitored_loop)
+        if task:
+            if self._monitored_loop == asyncio.get_running_loop():
+                await asyncio.create_task(cancel_task(task))
+            else:
+                fut = asyncio.run_coroutine_threadsafe(
+                    cancel_task(task), loop=self._monitored_loop
+                )
+                fut.result(timeout=3)
+        else:
+            raise ValueError("Invalid or non-existent task ID", task_id)
 
     async def _coro_wrapper(self, coro: Awaitable[T_co]) -> T_co:
         myself = asyncio.current_task()
@@ -662,23 +712,15 @@ def do_stacktrace(ctx: click.Context) -> None:
 @monitor_cli.command(name="cancel", aliases=["ca"])
 @click.argument("taskid", shell_complete=complete_task_id)
 @custom_help_option
-@auto_command_done
-def do_cancel(ctx: click.Context, taskid: str) -> None:
+@auto_async_command_done
+async def do_cancel(ctx: click.Context, taskid: str) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
-    task_id = int(taskid)
-    task = task_by_id(task_id, self._monitored_loop)
-    if task:
-        if self._monitored_loop == asyncio.get_running_loop():
-            asyncio.create_task(cancel_task(task))
-        else:
-            fut = asyncio.run_coroutine_threadsafe(
-                cancel_task(task), loop=self._monitored_loop
-            )
-            fut.result(timeout=3)
-        self.print_ok(f"Cancelled task {task_id}")
-    else:
-        self.print_fail(f"No task {task_id}")
+    try:
+        await self.cancel_monitored_task(taskid)
+        self.print_ok(f"Cancelled task {taskid}")
+    except ValueError as e:
+        self.print_fail(repr(e))
 
 
 @monitor_cli.command(name="exit", aliases=["q", "quit"])
@@ -752,7 +794,7 @@ def do_ps(
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
-    tasks = self.get_live_task_list(filter_, persistent)
+    tasks = self.format_live_task_list(filter_, persistent)
     for task in tasks:
         table_data.append(
             (
@@ -769,7 +811,7 @@ def do_ps(
     table.inner_column_border = False
     if filter_ or persistent:
         stdout.write(
-            f"{len(tasks)} tasks running " f"(showing {len(table_data) - 1} tasks)\n"
+            f"{len(tasks)} tasks running (showing {len(table_data) - 1} tasks)\n"
         )
     else:
         stdout.write(f"{len(tasks)} tasks running\n")
@@ -799,29 +841,15 @@ def do_ps_terminated(
     self: Monitor = ctx.obj
     stdout = _get_current_stdout()
     table_data: List[Tuple[str, str, str, str, str]] = [headers]
-    terminated_tasks = self._terminated_tasks.values()
-    for item in sorted(
-        terminated_tasks,
-        key=lambda info: info.terminated_at,
-        reverse=True,
-    ):
-        if persistent and not item.persistent:
-            continue
-        if filter_ and (filter_ not in item.coro and filter_ not in item.name):
-            continue
-        run_since = _format_timedelta(
-            timedelta(seconds=time.perf_counter() - item.started_at)
-        )
-        cancelled_since = _format_timedelta(
-            timedelta(seconds=time.perf_counter() - item.terminated_at)
-        )
+    tasks = self.format_terminated_task_list(filter_, persistent)
+    for task in tasks:
         table_data.append(
             (
-                str(item.id),
-                item.name,
-                item.coro,
-                run_since,
-                cancelled_since,
+                task.task_id,
+                task.name,
+                task.coro,
+                task.started_since,
+                task.terminated_since,
             )
         )
     table = AsciiTable(table_data)
@@ -829,13 +857,10 @@ def do_ps_terminated(
     table.inner_column_border = False
     if filter_ or persistent:
         stdout.write(
-            f"{len(terminated_tasks)} tasks terminated "
-            f"(showing {len(table_data) - 1} tasks)\n"
+            f"{len(tasks)} tasks terminated " f"(showing {len(table_data) - 1} tasks)\n"
         )
     else:
-        stdout.write(
-            f"{len(terminated_tasks)} tasks terminated (old ones may be stripped)\n"
-        )
+        stdout.write(f"{len(tasks)} tasks terminated (old ones may be stripped)\n")
     stdout.write(table.table)
     stdout.write("\n")
     stdout.flush()

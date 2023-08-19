@@ -4,13 +4,22 @@ from typing import List, Optional
 
 
 @dataclass
-class LiveTaskInfo:
+class FormattedLiveTaskInfo:
     task_id: str
     state: str
     name: str
     coro: str
     created_location: str
     since: str
+
+
+@dataclass
+class FormattedTerminatedTaskInfo:
+    task_id: str
+    name: str
+    coro: str
+    started_since: str
+    terminated_since: str
 
 
 @dataclass

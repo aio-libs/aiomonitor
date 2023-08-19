@@ -3,12 +3,22 @@ from __future__ import annotations
 import dataclasses
 from importlib.metadata import version
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Mapping, Tuple
+from typing import (
+    TYPE_CHECKING,
+    AsyncContextManager,
+    Dict,
+    Mapping,
+    Tuple,
+    TypedDict,
+    cast,
+)
 
+import trafaret as t
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from ..utils import all_tasks
+from .utils import check_params
 
 if TYPE_CHECKING:
     from ..monitor import Monitor
@@ -85,24 +95,104 @@ async def get_task_count(request: web.Request) -> web.Response:
     )
 
 
+class ListFilterParams(TypedDict):
+    filter: str
+    persistent: bool
+
+
+list_filter_params_check = t.Dict(
+    {
+        t.Key("filter", default=""): t.String(allow_blank=True),
+        t.Key("persistent", default=False): t.ToBool,
+    }
+)
+
+
 async def get_live_task_list(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
-    tasks = ctx.monitor.get_live_task_list("", False)
-    return web.json_response(
-        data={
-            "tasks": [
+    async with cast(
+        AsyncContextManager[ListFilterParams],
+        check_params(
+            request,
+            list_filter_params_check,
+        ),
+    ) as params:
+        tasks = ctx.monitor.format_live_task_list(
+            params["filter"],
+            params["persistent"],
+        )
+        return web.json_response(
+            data={
+                "tasks": [
+                    {
+                        "task_id": t.task_id,
+                        "state": t.state,
+                        "name": t.name,
+                        "coro": t.coro,
+                        "created_location": t.created_location,
+                        "since": t.since,
+                    }
+                    for t in tasks
+                ]
+            }
+        )
+
+
+async def get_terminated_task_list(request: web.Request) -> web.Response:
+    ctx: WebUIContext = request.app["ctx"]
+    async with cast(
+        AsyncContextManager[ListFilterParams],
+        check_params(
+            request,
+            list_filter_params_check,
+        ),
+    ) as params:
+        tasks = ctx.monitor.format_terminated_task_list(
+            params["filter"],
+            params["persistent"],
+        )
+        return web.json_response(
+            data={
+                "tasks": [
+                    {
+                        "task_id": t.task_id,
+                        "name": t.name,
+                        "coro": t.coro,
+                        "started_since": t.started_since,
+                        "terminated_since": t.terminated_since,
+                    }
+                    for t in tasks
+                ]
+            }
+        )
+
+
+async def cancel_task(request: web.Request) -> web.Response:
+    class Params(TypedDict):
+        task_id: str
+
+    ctx: WebUIContext = request.app["ctx"]
+    async with cast(
+        AsyncContextManager[Params],
+        check_params(
+            request,
+            t.Dict(
                 {
-                    "task_id": t.task_id,
-                    "state": t.state,
-                    "name": t.name,
-                    "coro": t.coro,
-                    "created_location": t.created_location,
-                    "since": t.since,
+                    t.Key("task_id"): t.String,
                 }
-                for t in tasks
-            ]
-        }
-    )
+            ),
+        ),
+    ) as params:
+        try:
+            await ctx.monitor.cancel_monitored_task(params["task_id"])
+            return web.json_response(
+                data={"msg": "ok"},
+            )
+        except ValueError as e:
+            return web.json_response(
+                status=404,
+                data={"msg": repr(e)},
+            )
 
 
 async def init_webui(monitor: Monitor) -> web.Application:
@@ -119,5 +209,6 @@ async def init_webui(monitor: Monitor) -> web.Application:
     app.router.add_route("GET", "/api/version", get_version)
     app.router.add_route("POST", "/api/task-count", get_task_count)
     app.router.add_route("POST", "/api/live-tasks", get_live_task_list)
+    app.router.add_route("DELETE", "/api/task", cancel_task)
     app.router.add_static("/static", Path(__file__).parent / "static")
     return app
