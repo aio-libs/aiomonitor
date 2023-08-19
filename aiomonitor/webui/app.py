@@ -131,6 +131,7 @@ async def get_live_task_list(request: web.Request) -> web.Response:
                         "coro": t.coro,
                         "created_location": t.created_location,
                         "since": t.since,
+                        "isRoot": t.created_location == "-",
                     }
                     for t in tasks
                 ]
