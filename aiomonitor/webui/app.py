@@ -186,7 +186,7 @@ async def cancel_task(request: web.Request) -> web.Response:
         try:
             await ctx.monitor.cancel_monitored_task(params["task_id"])
             return web.json_response(
-                data={"msg": "ok"},
+                data={"msg": f"Successfully cancelled {params['task_id']}"},
             )
         except ValueError as e:
             return web.json_response(
