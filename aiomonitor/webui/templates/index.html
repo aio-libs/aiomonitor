@@ -1,5 +1,21 @@
 {% extends "layout.html" %}
+{% block head_content %}
+<div class="border-b border-gray-200" x-data="{ current_id: '{{ current_list_type }}'}">
+  <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+    {% for item in list_types %}
+    <a href="?list_type={{ item.id }}"
+       class="whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium"
+       x-bind:class="current_id == '{{ item.id }}'
+         ? 'border-indigo-500 text-indigo-600'
+         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+        aria-current="page"
+    >{{ item.title }}</a>
+    {% endfor %}
+  </nav>
+</div>
+{% endblock %}
 {% block content %}
+{% if current_list_type == "running" %}
 <div>
     <p>The number of running tasks:
       <span hx-post="/api/task-count"
@@ -73,4 +89,69 @@
 {{/ tasks}}
 </template>
 {% endraw %}
+
+{% elif current_list_type == "terminated" %}
+
+<!-- div>
+    <p>The number of terminated tasks (up to XXXX):
+      <span hx-post="/api/terminated-task-count"
+        hx-trigger="load,every 2s"
+        hx-swap="innerHTML"
+        mustache-template="scalar-value"
+      >0</span>
+    </p>
+</div -->
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="mt-8 flow-root">
+    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+      <div class="inline-block min-w-full px-0 py-2 align-middle">
+        <table class="min-w-full divide-y divide-gray-300">
+          <thead>
+            <tr>
+              <th scope="col" class="py-2.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Task ID</th>
+              <th scope="col" class="px-1 py-2.5 text-left text-sm font-semibold text-gray-900">Name</th>
+              <th scope="col" class="px-1 py-2.5 text-left text-sm font-semibold text-gray-900">Coroutine</th>
+              <th scope="col" class="px-1 py-2.5 text-left text-sm font-semibold text-gray-900">Since Started</th>
+              <th scope="col" class="px-1 py-2.5 text-left text-sm font-semibold text-gray-900">Since Terminated</th>
+              <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                <span class="sr-only">Action</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200"
+            hx-trigger="load,every 2s"
+            hx-post="/api/terminated-tasks"
+            hx-swap="innerHTML"
+            mustache-template="terminated-task-list"
+          >
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% raw %}
+<template id="terminated-task-list">
+{{# tasks}}
+<tr>
+  <td class="whitespace-nowrap px-1 py-2 text-sm font-medium text-gray-900">{{ task_id }}</td>
+  <td class="whitespace-nowrap px-1 py-2 text-sm text-gray-500">{{ name }}</td>
+  <td class="whitespace-nowrap px-1 py-2 font-mono text-xs text-gray-500">{{ coro }}</td>
+  <td class="whitespace-nowrap px-1 py-2 font-mono text-sm text-gray-500">{{ started_since }}</td>
+  <td class="whitespace-nowrap px-1 py-2 font-mono text-sm text-gray-500">{{ terminated_since }}</td>
+  <td class="relative whitespace-nowrap px-1 py-2 text-right text-sm font-medium sm:pr-0">
+    <button
+      type="button"
+      class="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+      hx-get="/api/terminated-task?task_id={{ task_id }}"
+      hx-swap="none"
+      hx-sync="closest tbody:drop"
+    >Trace</button>
+  </td>
+</tr>
+{{/ tasks}}
+</template>
+{% endraw %}
+{% endif %}
 {% endblock %}

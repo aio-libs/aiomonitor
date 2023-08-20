@@ -1,3 +1,4 @@
+import json
 from contextlib import asynccontextmanager as actxmgr
 from typing import Any, AsyncIterator
 
@@ -16,5 +17,5 @@ async def check_params(
     except t.DataError as e:
         raise web.HTTPBadRequest(
             content_type="application/json",
-            body={"msg": "Invalid parameters", "data": e.as_dict()},
+            body=json.dumps({"msg": "Invalid parameters", "data": e.as_dict()}),
         )

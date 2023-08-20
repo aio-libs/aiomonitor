@@ -66,12 +66,50 @@ def get_navigation_info(
     return current_item, nav_items
 
 
-async def root_page(request: web.Request) -> web.Response:
+async def show_list_page(request: web.Request) -> web.Response:
+    class Params(TypedDict):
+        list_type: str
+
+    ctx: WebUIContext = request.app["ctx"]
+    nav_info, nav_items = get_navigation_info(request.path)
+    template = ctx.jenv.get_template(nav_info.template)
+    async with cast(
+        AsyncContextManager[Params],
+        check_params(
+            request,
+            t.Dict(
+                {
+                    t.Key("list_type", default="running"): t.Enum(
+                        "running", "terminated"
+                    ),
+                }
+            ),
+        ),
+    ) as params:
+        output = template.render(
+            navigation=nav_items,
+            page={
+                "title": nav_info.title,
+            },
+            current_list_type=params["list_type"],
+            list_types=[
+                {"id": "running", "title": "Running"},
+                {"id": "terminated", "title": "Terminated"},
+            ],
+            num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
+        )
+        return web.Response(body=output, content_type="text/html")
+
+
+async def show_about_page(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     nav_info, nav_items = get_navigation_info(request.path)
     template = ctx.jenv.get_template(nav_info.template)
     output = template.render(
         navigation=nav_items,
+        page={
+            "title": nav_info.title,
+        },
         num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
     )
     return web.Response(body=output, content_type="text/html")
@@ -205,11 +243,12 @@ async def init_webui(monitor: Monitor) -> web.Application:
         monitor=monitor,
         jenv=jenv,
     )
-    app.router.add_route("GET", "/", root_page)
-    app.router.add_route("GET", "/about", root_page)
+    app.router.add_route("GET", "/", show_list_page)
+    app.router.add_route("GET", "/about", show_about_page)
     app.router.add_route("GET", "/api/version", get_version)
     app.router.add_route("POST", "/api/task-count", get_task_count)
     app.router.add_route("POST", "/api/live-tasks", get_live_task_list)
+    app.router.add_route("POST", "/api/terminated-tasks", get_terminated_task_list)
     app.router.add_route("DELETE", "/api/task", cancel_task)
     app.router.add_static("/static", Path(__file__).parent / "static")
     return app
