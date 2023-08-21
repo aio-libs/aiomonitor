@@ -16,14 +16,36 @@
 {% endblock %}
 {% block content %}
 {% if current_list_type == "running" %}
-<div>
-    <p>The number of running tasks:
-      <span hx-post="/api/task-count"
-        hx-trigger="load,every 2s"
-        hx-swap="innerHTML"
-        mustache-template="scalar-value"
-      >0</span>
-    </p>
+<div class="flex space-x-4 rounded-md bg-white px-4 py-1 shadow">
+  <div class="flex items-center gap-x-3 my-2">
+    Show persistent tasks only:
+    <button type="button"
+      x-data="{ on: false }"
+      class="bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
+      x-bind:class="on ? 'bg-indigo-600' : 'bg-gray-200'"
+      x-bind:aria-checked="on"
+      @click="on = ! on;
+              const el = document.getElementById('list-body');
+              el.setAttribute('hx-post', '/api/live-tasks?persistent=' + on);
+              htmx.process(el); htmx.trigger(el, 'refresh', {});"
+      role="switch"
+    >
+      <span class="sr-only">Toggle the persistent task filter</span>
+      <span aria-hidden="true"
+        class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+        x-bind:class="on ? 'translate-x-5' : 'translate-x-0'"
+      ></span>
+    </button>
+  </div>
+  <div class="flex items-center gap-x-3 my-2">
+      <p>The number of running tasks:
+        <span hx-post="/api/task-count"
+          hx-trigger="load,every 2s"
+          hx-swap="innerHTML"
+          mustache-template="scalar-value"
+        >0</span>
+      </p>
+  </div>
 </div>
 <div class="px-4 sm:px-6 lg:px-8">
   <div class="mt-8 flow-root">
@@ -43,8 +65,8 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200"
-            hx-trigger="load,every 2s"
+          <tbody id="list-body" class="divide-y divide-gray-200"
+            hx-trigger="load,every 2s,refresh from:body"
             hx-post="/api/live-tasks"
             hx-swap="innerHTML"
             mustache-template="live-task-list"
@@ -101,6 +123,28 @@
       >0</span>
     </p>
 </div -->
+<div class="flex space-x-4 rounded-md bg-white px-4 py-1 shadow">
+  <div class="flex items-center gap-x-3 my-2">
+    Show persistent tasks only:
+    <button type="button"
+      x-data="{ on: false }"
+      class="bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
+      x-bind:class="on ? 'bg-indigo-600' : 'bg-gray-200'"
+      x-bind:aria-checked="on"
+      @click="on = ! on;
+              const el = document.getElementById('list-body');
+              el.setAttribute('hx-post', '/api/terminated-tasks?persistent=' + on);
+              htmx.process(el); htmx.trigger(el, 'refresh', {});"
+      role="switch"
+    >
+      <span class="sr-only">Toggle the persistent task filter</span>
+      <span aria-hidden="true"
+        class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+        x-bind:class="on ? 'translate-x-5' : 'translate-x-0'"
+      ></span>
+    </button>
+  </div>
+</div>
 <div class="px-4 sm:px-6 lg:px-8">
   <div class="mt-8 flow-root">
     <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -118,8 +162,8 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200"
-            hx-trigger="load,every 2s"
+          <tbody id="list-body" class="divide-y divide-gray-200"
+            hx-trigger="load,every 2s,refresh from:body"
             hx-post="/api/terminated-tasks"
             hx-swap="innerHTML"
             mustache-template="terminated-task-list"
