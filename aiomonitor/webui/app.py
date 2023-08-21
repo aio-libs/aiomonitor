@@ -142,10 +142,8 @@ async def get_task_count(request: web.Request) -> web.Response:
     ) as params:
         ctx: WebUIContext = request.app["ctx"]
         if params["task_type"] == "running":
-            print("running count")
             count = len(all_tasks(ctx.monitor._monitored_loop))
         elif params["task_type"] == "terminated":
-            print("terminated count")
             count = len(ctx.monitor._terminated_history)
         return web.json_response(
             data={
