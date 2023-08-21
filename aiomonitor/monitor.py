@@ -406,10 +406,10 @@ class Monitor:
             )
         return tasks
 
-    async def cancel_monitored_task(self, task_id: str | int) -> None:
+    async def cancel_monitored_task(self, task_id: str | int) -> str:
         task_id_ = int(task_id)
         task = task_by_id(task_id_, self._monitored_loop)
-        if task:
+        if task is not None:
             if self._monitored_loop == asyncio.get_running_loop():
                 await asyncio.create_task(cancel_task(task))
             else:
@@ -417,6 +417,11 @@ class Monitor:
                     cancel_task(task), loop=self._monitored_loop
                 )
                 fut.result(timeout=3)
+            if isinstance(task, TracedTask):
+                coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
+            else:
+                coro_repr = _format_coroutine(task.get_coro()).partition(" ")[0]
+            return coro_repr
         else:
             raise ValueError("Invalid or non-existent task ID", task_id)
 

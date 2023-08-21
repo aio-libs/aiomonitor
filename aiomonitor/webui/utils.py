@@ -36,7 +36,17 @@ async def check_params(
             params = checker.check(body)
         yield params
     except t.DataError as e:
+        error_data = e.as_dict()
+        if isinstance(error_data, str):
+            detail = error_data
+        else:
+            detail = "\n".join(v for v in error_data.values())
         raise web.HTTPBadRequest(
             content_type="application/json",
-            body=json.dumps({"msg": "Invalid parameters", "data": e.as_dict()}),
+            body=json.dumps({"msg": "Invalid parameters", "detail": detail}),
+        )
+    except Exception as e:
+        raise web.HTTPInternalServerError(
+            content_type="application/json",
+            body=json.dumps({"msg": "Internal server error", "detail": repr(e)}),
         )

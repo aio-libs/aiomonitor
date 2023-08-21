@@ -32,7 +32,6 @@
             aiomonitor
           </div>
           <div class="ml-10 flex items-baseline space-x-4">
-            <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
             {% for path, item in navigation.items() %}
               {% if item.current %}
                 <a href="{{ path }}" class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium" aria-current="page">{{ item.title }}</a>
@@ -63,7 +62,7 @@
 <template id="notification-success">
   <div aria-live="assertive" class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6">
     <div class="flex w-full flex-col items-center space-y-4 sm:items-end">
-      <div class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5"
+      <div class="pointer-events-auto w-full max-w-md overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5"
         x-show="open"
         x-transition:enter="transition transform ease-out duration-500"
         x-transition:enter-start="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
@@ -74,13 +73,14 @@
       >
         <div class="p-4">
           <div class="flex items-start">
-            <div class="flex-shrink-0 mr-2">
+            <div class="flex-shrink-0">
               <svg class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div class="flex w-0 flex-1 justify-between">
-              <p class="w-0 flex-1 text-sm font-medium text-gray-900">{{ msg }}</p>
+            <div class="ml-2 flex-1 pt-0.5">
+              <p class="text-sm font-medium text-gray-900">{{ msg }}</p>
+              {{# detail }}<pre class="mt-1 font-mono text-xs text-gray-500">{{ detail }}</pre>{{/ detail }}
             </div>
             <div class="ml-4 flex flex-shrink-0">
               <button type="button" class="action-dismiss inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -101,7 +101,7 @@
 <template id="notification-failure">
   <div aria-live="assertive" class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6">
     <div class="flex w-full flex-col items-center space-y-4 sm:items-end">
-      <div class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5"
+      <div class="pointer-events-auto w-full max-w-md overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5"
         x-show="open"
         x-transition:enter="transition transform ease-out duration-500"
         x-transition:enter-start="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
@@ -112,13 +112,14 @@
       >
         <div class="p-4">
           <div class="flex items-start">
-            <div class="flex-shrink-0 mr-2">
+            <div class="flex-shrink-0">
               <svg class="h-6 w-6 text-red-400"  fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
-            <div class="flex w-0 flex-1 justify-between">
-              <p class="w-0 flex-1 text-sm font-medium text-gray-900">{{ msg }}</p>
+            <div class="ml-2 flex-1 pt-0.5">
+              <p class="text-sm font-medium text-gray-900">{{ msg }}</p>
+              {{# detail }}<pre class="mt-1 font-mono text-xs text-gray-500">{{ detail }}</pre>{{/ detail }}
             </div>
             <div class="ml-4 flex flex-shrink-0">
               <button type="button" class="action-dismiss inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -139,16 +140,13 @@
 {% endraw %}
 
 <script type="text/javascript">
-document.addEventListener("htmx:afterRequest", function(ev) {
-  if (!ev.detail.elt.classList.contains("notify-result"))
-    return;
+function showNotification(success, data) {
   var tpl;
-  if (ev.detail.failed) {
-    tpl = document.getElementById('notification-failure');
-  } else {
+  if (success) {
     tpl = document.getElementById('notification-success');
+  } else {
+    tpl = document.getElementById('notification-failure');
   }
-  const data = JSON.parse(ev.detail.xhr.responseText);
   var outContainer = document.getElementById("notification");
   const renderedContent = Mustache.render(tpl.innerHTML, data);
   if (outContainer === null) {
@@ -159,6 +157,12 @@ document.addEventListener("htmx:afterRequest", function(ev) {
   outContainer.setAttribute("x-data", "{ open: false }");
   outContainer.setAttribute("x-init", "$nextTick(() => open = true); setTimeout(() => open = false, 4200)");
   outContainer.innerHTML = renderedContent;
+}
+
+document.addEventListener("htmx:afterRequest", function(ev) {
+  if (!ev.detail.elt.classList.contains("notify-result"))
+    return;
+  showNotification(!ev.detail.failed, JSON.parse(ev.detail.xhr.responseText));
 });
 </script>
 </body>

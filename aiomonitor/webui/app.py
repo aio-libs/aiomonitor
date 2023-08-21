@@ -188,7 +188,7 @@ async def get_live_task_list(request: web.Request) -> web.Response:
                         "coro": t.coro,
                         "created_location": t.created_location,
                         "since": t.since,
-                        "isRoot": t.created_location == "-",
+                        "is_root": t.created_location == "-",
                     }
                     for t in tasks
                 ]
@@ -223,9 +223,12 @@ async def cancel_task(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     async with check_params(request, TaskIdParams) as params:
         try:
-            await ctx.monitor.cancel_monitored_task(params.task_id)
+            coro_repr = await ctx.monitor.cancel_monitored_task(params.task_id)
             return web.json_response(
-                data={"msg": f"Successfully cancelled {params.task_id}"},
+                data={
+                    "msg": f"Successfully cancelled {params.task_id}",
+                    "detail": coro_repr,
+                },
             )
         except ValueError as e:
             return web.json_response(
