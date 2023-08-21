@@ -3,7 +3,7 @@
 <div class="border-b border-gray-200" x-data="{ current_id: '{{ current_list_type }}'}">
   <nav class="-mb-px flex space-x-8" aria-label="Tabs">
     {% for item in list_types %}
-    <a href="?list_type={{ item.id }}"
+    <a href="?task_type={{ item.id }}"
        class="whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium"
        x-bind:class="current_id == '{{ item.id }}'
          ? 'border-indigo-500 text-indigo-600'
