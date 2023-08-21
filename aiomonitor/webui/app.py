@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import dataclasses
-import enum
+import sys
 from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Mapping, Tuple
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from backports.strenum import StrEnum
 
 import trafaret as t
 from aiohttp import web
@@ -23,7 +28,7 @@ class WebUIContext:
     jenv: Environment
 
 
-class TaskTypes(enum.StrEnum):
+class TaskTypes(StrEnum):
     RUNNING = "running"
     TERMINATED = "terminated"
 
