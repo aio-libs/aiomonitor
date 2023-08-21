@@ -9,18 +9,28 @@
          ? 'border-indigo-500 text-indigo-600'
          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
         aria-current="page"
-    >{{ item.title }}</a>
+    >
+      {{ item.title }}
+      <span class="inline-flex items-center rounded-full ml-1 px-1.5 py-0.5 text-xs font-medium"
+        x-bind:class="'{{item.id}}' == 'running' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'"
+        hx-post="/api/task-count"
+        hx-vals='{"task_type": "{{ item.id }}"}'
+        hx-trigger="load,every 2s"
+        hx-swap="innerHTML"
+        mustache-template="scalar-value"
+      ></span>
+    </a>
     {% endfor %}
   </nav>
 </div>
 {% endblock %}
 {% block content %}
 {% if current_list_type == "running" %}
-<div class="flex space-x-2 rounded-md bg-white px-2 border divide-x divide-gray-200">
+<div class="flex space-x-2 divide-x divide-gray-200">
   <div class="py-2 px-2">
-    <div class="relative rounded-md shadow-sm">
+    <div class="relative">
       <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </div>
@@ -54,15 +64,6 @@
         x-bind:class="$store.filters.persistent ? 'translate-x-5' : 'translate-x-0'"
       ></span>
     </button>
-  </div>
-  <div class="flex items-center gap-x-3 py-2 px-2">
-      <p>The number of running tasks:
-        <span hx-post="/api/task-count"
-          hx-trigger="load,every 2s"
-          hx-swap="innerHTML"
-          mustache-template="scalar-value"
-        >0</span>
-      </p>
   </div>
 </div>
 <div class="px-4 sm:px-6 lg:px-8">
@@ -136,20 +137,11 @@
 
 {% elif current_list_type == "terminated" %}
 
-<!-- div>
-    <p>The number of terminated tasks (up to XXXX):
-      <span hx-post="/api/terminated-task-count"
-        hx-trigger="load,every 2s"
-        hx-swap="innerHTML"
-        mustache-template="scalar-value"
-      >0</span>
-    </p>
-</div -->
-<div class="flex space-x-2 rounded-md bg-white px-2 border divide-x divide-gray-200">
+<div class="flex space-x-2 divide-x divide-gray-200">
   <div class="py-2 px-2">
-    <div class="relative rounded-md shadow-sm">
+    <div class="relative">
       <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </div>

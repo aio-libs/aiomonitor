@@ -124,13 +124,34 @@ async def get_version(request: web.Request) -> web.Response:
 
 
 async def get_task_count(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
-    num_monitored_tasks = len(all_tasks(ctx.monitor._monitored_loop))
-    return web.json_response(
-        data={
-            "value": num_monitored_tasks,
-        }
-    )
+    class Params(TypedDict):
+        task_type: str
+
+    async with cast(
+        AsyncContextManager[Params],
+        check_params(
+            request,
+            t.Dict(
+                {
+                    t.Key("task_type", default="running"): t.Enum(
+                        "running", "terminated"
+                    ),
+                }
+            ),
+        ),
+    ) as params:
+        ctx: WebUIContext = request.app["ctx"]
+        if params["task_type"] == "running":
+            print("running count")
+            count = len(all_tasks(ctx.monitor._monitored_loop))
+        elif params["task_type"] == "terminated":
+            print("terminated count")
+            count = len(ctx.monitor._terminated_history)
+        return web.json_response(
+            data={
+                "value": count,
+            }
+        )
 
 
 class ListFilterParams(TypedDict):
