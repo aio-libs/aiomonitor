@@ -238,8 +238,16 @@ class Monitor:
             self.console_locals = locals
 
         self.prompt = "monitor >>> "
-
-        log.info("Starting aiomonitor at %s:%d", host, port)
+        log.info(
+            "Starting aiomonitor at "
+            "telnet://%(host)s:%(port)d (telnet) and "
+            "http://%(host)s:%(wport)d (web)",
+            {
+                "host": host,
+                "port": port,
+                "wport": webui_port,
+            },
+        )
 
         self._closed = False
         self._started = False
