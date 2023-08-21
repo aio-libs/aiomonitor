@@ -16,28 +16,46 @@
 {% endblock %}
 {% block content %}
 {% if current_list_type == "running" %}
-<div class="flex space-x-4 rounded-md bg-white px-4 py-1 shadow">
-  <div class="flex items-center gap-x-3 my-2">
-    Show persistent tasks only:
-    <button type="button"
-      x-data="{ on: false }"
+<div class="flex space-x-2 rounded-md bg-white px-2 border divide-x divide-gray-200">
+  <div class="py-2 px-2">
+    <div class="relative rounded-md shadow-sm">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </div>
+      <input type="text" id="filter-keyword" placeholder="Coro/name filter"
+        class="inline-flex w-60 rounded-md border-0 py-1 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+        hx-trigger="keyup changed delay:300ms"
+        hx-target="#list-body"
+        hx-post="/api/live-tasks"
+        hx-swap="innerHTML"
+        hx-vals="js:{
+          persistent: Alpine.store('filters').persistent,
+          filter: document.getElementById('filter-keyword').value,
+        }"
+        mustache-template="live-task-list"
+      >
+    </div>
+  </div>
+  <div class="flex items-center gap-x-3 py-2 px-2">
+    <label for="filter-persistent" class="block text-sm font-medium leading-6 text-gray-900">Show persistent tasks only</label>
+    <button type="button" id="filter-persistent"
+      x-data
       class="bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-      x-bind:class="on ? 'bg-indigo-600' : 'bg-gray-200'"
-      x-bind:aria-checked="on"
-      @click="on = ! on;
-              const el = document.getElementById('list-body');
-              el.setAttribute('hx-post', '/api/live-tasks?persistent=' + on);
-              htmx.process(el); htmx.trigger(el, 'refresh', {});"
+      x-bind:class="$store.filters.persistent ? 'bg-indigo-600' : 'bg-gray-200'"
+      x-bind:aria-checked="$store.filters.persistent"
+      @click="$store.filters.persistent = ! $store.filters.persistent; htmx.trigger(document.getElementById('list-body'), 'refresh', {});"
       role="switch"
     >
       <span class="sr-only">Toggle the persistent task filter</span>
       <span aria-hidden="true"
         class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-        x-bind:class="on ? 'translate-x-5' : 'translate-x-0'"
+        x-bind:class="$store.filters.persistent ? 'translate-x-5' : 'translate-x-0'"
       ></span>
     </button>
   </div>
-  <div class="flex items-center gap-x-3 my-2">
+  <div class="flex items-center gap-x-3 py-2 px-2">
       <p>The number of running tasks:
         <span hx-post="/api/task-count"
           hx-trigger="load,every 2s"
@@ -69,6 +87,10 @@
             hx-trigger="load,every 2s,refresh from:body"
             hx-post="/api/live-tasks"
             hx-swap="innerHTML"
+            hx-vals="js:{
+              persistent: Alpine.store('filters').persistent,
+              filter: document.getElementById('filter-keyword').value,
+            }"
             mustache-template="live-task-list"
           >
           </tbody>
@@ -123,24 +145,42 @@
       >0</span>
     </p>
 </div -->
-<div class="flex space-x-4 rounded-md bg-white px-4 py-1 shadow">
-  <div class="flex items-center gap-x-3 my-2">
-    Show persistent tasks only:
-    <button type="button"
-      x-data="{ on: false }"
+<div class="flex space-x-2 rounded-md bg-white px-2 border divide-x divide-gray-200">
+  <div class="py-2 px-2">
+    <div class="relative rounded-md shadow-sm">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.0" stroke="currentColor" class="w-5 h-5 text-gray-400">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </div>
+      <input type="text" id="filter-keyword" placeholder="Coro/name filter"
+        class="inline-flex w-60 rounded-md border-0 py-1 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+        hx-trigger="keyup changed delay:300ms"
+        hx-target="#list-body"
+        hx-post="/api/terminated-tasks"
+        hx-swap="innerHTML"
+        hx-vals="js:{
+          persistent: Alpine.store('filters').persistent,
+          filter: document.getElementById('filter-keyword').value,
+        }"
+        mustache-template="terminated-task-list"
+      >
+    </div>
+  </div>
+  <div class="flex items-center gap-x-3 py-2 px-2">
+    <label for="filter-persistent" class="block text-sm font-medium leading-6 text-gray-900">Show persistent tasks only</label>
+    <button type="button" id="filter-persistent"
+      x-data
       class="bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-      x-bind:class="on ? 'bg-indigo-600' : 'bg-gray-200'"
-      x-bind:aria-checked="on"
-      @click="on = ! on;
-              const el = document.getElementById('list-body');
-              el.setAttribute('hx-post', '/api/terminated-tasks?persistent=' + on);
-              htmx.process(el); htmx.trigger(el, 'refresh', {});"
+      x-bind:class="$store.filters.persistent ? 'bg-indigo-600' : 'bg-gray-200'"
+      x-bind:aria-checked="$store.filters.persistent"
+      @click="$store.filters.persistent = ! $store.filters.persistent; htmx.trigger(document.getElementById('list-body'), 'refresh', {});"
       role="switch"
     >
       <span class="sr-only">Toggle the persistent task filter</span>
       <span aria-hidden="true"
         class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-        x-bind:class="on ? 'translate-x-5' : 'translate-x-0'"
+        x-bind:class="$store.filters.persistent ? 'translate-x-5' : 'translate-x-0'"
       ></span>
     </button>
   </div>
@@ -166,6 +206,10 @@
             hx-trigger="load,every 2s,refresh from:body"
             hx-post="/api/terminated-tasks"
             hx-swap="innerHTML"
+            hx-vals="js:{
+              persistent: Alpine.store('filters').persistent,
+              filter: document.getElementById('filter-keyword').value,
+            }"
             mustache-template="terminated-task-list"
           >
           </tbody>
@@ -198,4 +242,12 @@
 </template>
 {% endraw %}
 {% endif %}
+<script type="text/javascript">
+  document.addEventListener("alpine:init", () => {
+    Alpine.store("filters", {
+      persistent: false,
+    });
+    console.log("init filters")
+  });
+</script>
 {% endblock %}

@@ -12,7 +12,11 @@ async def check_params(
     checker: t.Trafaret,
 ) -> AsyncIterator[Any]:
     try:
-        params = checker.check(request.query)
+        if request.method == "GET":
+            params = checker.check(request.query)
+        else:
+            body = await request.post()
+            params = checker.check(body)
         yield params
     except t.DataError as e:
         raise web.HTTPBadRequest(
