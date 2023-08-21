@@ -12,7 +12,7 @@ async def check_params(
     checker: t.Trafaret,
 ) -> AsyncIterator[Any]:
     try:
-        if request.method == "GET":
+        if request.method in ("GET", "DELETE"):
             params = checker.check(request.query)
         else:
             body = await request.post()
