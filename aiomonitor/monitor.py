@@ -239,9 +239,7 @@ class Monitor:
 
         self.prompt = "monitor >>> "
         log.info(
-            "Starting aiomonitor at "
-            "telnet://%(host)s:%(port)d (telnet) and "
-            "http://%(host)s:%(wport)d (web)",
+            "Starting aiomonitor at telnet://%(host)s:%(port)d and http://%(host)s:%(wport)d",
             {
                 "host": host,
                 "port": port,
