@@ -116,7 +116,8 @@
     <button
       type="button"
       class="notify-result rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:opacity-50"
-      hx-delete="/api/task?task_id={{ task_id }}"
+      hx-delete="/api/task"
+      hx-vals='{"task_id": "{{ task_id }}"'
       hx-swap="none"
       hx-sync="closest tbody:drop"
       onclick="this.disabled=true"
