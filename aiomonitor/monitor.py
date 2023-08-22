@@ -560,10 +560,10 @@ class Monitor:
         except asyncio.CancelledError:
             pass
         finally:
-            console_tasks = {*self._termui_tasks}
-            for console_task in console_tasks:
+            termui_tasks = {*self._termui_tasks}
+            for console_task in termui_tasks:
                 console_task.cancel()
-            await asyncio.gather(*console_tasks, return_exceptions=True)
+            await asyncio.gather(*termui_tasks, return_exceptions=True)
             self._ui_termination_handler_task.cancel()
             self._ui_cancellation_handler_task.cancel()
             await self._ui_termination_handler_task
