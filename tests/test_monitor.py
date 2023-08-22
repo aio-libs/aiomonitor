@@ -15,15 +15,15 @@ from prompt_toolkit.output import DummyOutput
 from prompt_toolkit.shortcuts import print_formatted_text
 
 from aiomonitor import Monitor, start_monitor
-from aiomonitor.monitor import (
+from aiomonitor.termui.commands import (
     auto_command_done,
     command_done,
     current_monitor,
     current_stdout,
     custom_help_option,
     monitor_cli,
+    print_ok,
 )
-from aiomonitor.utils import all_tasks
 
 
 @contextlib.contextmanager
@@ -45,7 +45,7 @@ async def monitor(request, event_loop):
 
 
 def get_task_ids(event_loop):
-    return [id(t) for t in all_tasks(loop=event_loop)]
+    return [id(t) for t in asyncio.all_tasks(loop=event_loop)]
 
 
 class BufferedOutput(DummyOutput):
@@ -254,8 +254,7 @@ async def test_custom_monitor_command(monitor: Monitor):
     @custom_help_option
     @auto_command_done
     def do_something(ctx: click.Context, arg: str) -> None:
-        self: Monitor = ctx.obj
-        self.print_ok(f"doing something with {arg}")
+        print_ok(f"doing something with {arg}")
 
     resp = await invoke_command(monitor, ["something", "someargument"])
     assert "doing something with someargument" in resp

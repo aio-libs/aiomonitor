@@ -24,7 +24,6 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Set,
     Type,
     TypeVar,
     cast,
@@ -77,7 +76,7 @@ T_co = TypeVar("T_co", covariant=True)
 def task_by_id(
     taskid: int, loop: asyncio.AbstractEventLoop
 ) -> "Optional[asyncio.Task[Any]]":
-    tasks = all_tasks(loop=loop)
+    tasks = asyncio.all_tasks(loop=loop)
     return next(filter(lambda t: id(t) == taskid, tasks), None)
 
 
@@ -85,14 +84,6 @@ async def cancel_task(task: "asyncio.Task[Any]") -> None:
     with contextlib.suppress(asyncio.CancelledError):
         task.cancel()
         await task
-
-
-def all_tasks(loop: asyncio.AbstractEventLoop) -> "Set[asyncio.Task[Any]]":
-    if sys.version_info >= (3, 7):
-        tasks = asyncio.all_tasks(loop=loop)
-    else:
-        tasks = asyncio.Task.all_tasks(loop=loop)
-    return tasks
 
 
 class Monitor:
@@ -223,7 +214,7 @@ class Monitor:
     def format_running_task_list(
         self, filter_: str, persistent: bool
     ) -> Sequence[FormattedLiveTaskInfo]:
-        all_running_tasks = all_tasks(loop=self._monitored_loop)
+        all_running_tasks = asyncio.all_tasks(loop=self._monitored_loop)
         tasks = []
         for task in sorted(all_running_tasks, key=id):
             taskid = str(id(task))
