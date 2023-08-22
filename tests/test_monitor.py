@@ -68,7 +68,7 @@ async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
     command_done_event = asyncio.Event()
     command_done_token = command_done.set(command_done_event)
     with unittest.mock.patch(
-        "aiomonitor.monitor.print_formatted_text",
+        "aiomonitor.termui.commands.print_formatted_text",
         functools.partial(print_formatted_text, file=dummy_stdout),
     ):
         try:
