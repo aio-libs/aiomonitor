@@ -80,19 +80,16 @@ class ListFilterParams(APIParams):
 @dataclasses.dataclass
 class NavigationItem:
     title: str
-    template: str
     current: bool
 
 
 nav_menus: Mapping[str, NavigationItem] = {
     "/": NavigationItem(
         title="Dashboard",
-        template="index.html",
         current=False,
     ),
     "/about": NavigationItem(
         title="About",
-        template="about.html",
         current=False,
     ),
 }
@@ -105,7 +102,7 @@ def get_navigation_info(
     current_item = None
     for path, item in nav_menus.items():
         is_current = path == route
-        nav_items[path] = NavigationItem(item.title, item.template, is_current)
+        nav_items[path] = NavigationItem(item.title, is_current)
         if is_current:
             current_item = item
     if current_item is None:
@@ -116,7 +113,7 @@ def get_navigation_info(
 async def show_list_page(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     nav_info, nav_items = get_navigation_info(request.path)
-    template = ctx.jenv.get_template(nav_info.template)
+    template = ctx.jenv.get_template("index.html")
     async with check_params(request, TaskTypeParams) as params:
         output = template.render(
             navigation=nav_items,
@@ -136,7 +133,7 @@ async def show_list_page(request: web.Request) -> web.Response:
 async def show_about_page(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     nav_info, nav_items = get_navigation_info(request.path)
-    template = ctx.jenv.get_template(nav_info.template)
+    template = ctx.jenv.get_template("about.html")
     output = template.render(
         navigation=nav_items,
         page={
@@ -145,6 +142,20 @@ async def show_about_page(request: web.Request) -> web.Response:
         num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
     )
     return web.Response(body=output, content_type="text/html")
+
+
+async def show_trace_page(request: web.Request) -> web.Response:
+    ctx: WebUIContext = request.app["ctx"]
+    template = ctx.jenv.get_template("trace.html")
+    async with check_params(request, TaskIdParams) as params:
+        output = template.render(
+            navigation=nav_menus,
+            page={
+                "title": f"Task trace for {params.task_id}",
+            },
+            num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
+        )
+        return web.Response(body=output, content_type="text/html")
 
 
 async def get_version(request: web.Request) -> web.Response:
@@ -248,6 +259,8 @@ async def init_webui(monitor: Monitor) -> web.Application:
     )
     app.router.add_route("GET", "/", show_list_page)
     app.router.add_route("GET", "/about", show_about_page)
+    app.router.add_route("GET", "/trace-running", show_trace_page)
+    app.router.add_route("GET", "/trace-terminated", show_trace_page)
     app.router.add_route("GET", "/api/version", get_version)
     app.router.add_route("POST", "/api/task-count", get_task_count)
     app.router.add_route("POST", "/api/live-tasks", get_live_task_list)
