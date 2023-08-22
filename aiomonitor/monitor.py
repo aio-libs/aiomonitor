@@ -39,7 +39,9 @@ from .task import TracedTask, persistent_coro
 from .termui.commands import interact
 from .types import (
     CancellationChain,
+    FormatItemTypes,
     FormattedLiveTaskInfo,
+    FormattedStackItem,
     FormattedTerminatedTaskInfo,
     TerminatedTaskInfo,
 )
@@ -318,7 +320,10 @@ class Monitor:
         else:
             raise ValueError("Invalid or non-existent task ID", task_id)
 
-    def format_running_task_stack(self, task_id: str | int):
+    def format_running_task_stack(
+        self,
+        task_id: str | int,
+    ) -> Sequence[FormattedStackItem]:
         depth = 0
         task_id_ = int(task_id)
         task = task_by_id(task_id_, self._monitored_loop)
@@ -334,8 +339,8 @@ class Monitor:
         for task in reversed(task_chain):
             if depth == 0:
                 formatted_stack_list.append(
-                    (
-                        "header",
+                    FormattedStackItem(
+                        FormatItemTypes.HEADER,
                         (
                             "Stack of the root task or coroutine scheduled "
                             "in the event loop (most recent call last)"
@@ -345,8 +350,8 @@ class Monitor:
             elif depth > 0:
                 assert prev_task is not None
                 formatted_stack_list.append(
-                    (
-                        "header",
+                    FormattedStackItem(
+                        FormatItemTypes.HEADER,
                         (
                             "Stack of %s when creating the next task "
                             "(most recent call last)" % _format_task(prev_task)
@@ -356,8 +361,8 @@ class Monitor:
             stack = self._created_tracebacks.get(task)
             if stack is None:
                 formatted_stack_list.append(
-                    (
-                        "content",
+                    FormattedStackItem(
+                        FormatItemTypes.CONTENT,
                         (
                             "No stack available (maybe it is a native code, "
                             "a synchronous callback function, "
@@ -368,8 +373,8 @@ class Monitor:
             else:
                 stack = _filter_stack(stack)
                 formatted_stack_list.append(
-                    (
-                        "content",
+                    FormattedStackItem(
+                        FormatItemTypes.CONTENT,
                         textwrap.dedent("".join(traceback.format_list(stack))),
                     )
                 )
@@ -377,29 +382,32 @@ class Monitor:
             depth += 1
         task = task_chain[0]
         formatted_stack_list.append(
-            (
-                "header",
+            FormattedStackItem(
+                FormatItemTypes.HEADER,
                 "Stack of %s (most recent call last)" % _format_task(task),
             )
         )
         stack = _extract_stack_from_task(task)
         if not stack:
             formatted_stack_list.append(
-                (
-                    "content",
+                FormattedStackItem(
+                    FormatItemTypes.CONTENT,
                     "No stack available for %s" % _format_task(task),
                 )
             )
         else:
             formatted_stack_list.append(
-                (
-                    "content",
+                FormattedStackItem(
+                    FormatItemTypes.CONTENT,
                     textwrap.dedent("".join(traceback.format_list(stack))),
                 )
             )
         return formatted_stack_list
 
-    def format_terminated_task_stack(self, trace_id: str):
+    def format_terminated_task_stack(
+        self,
+        trace_id: str,
+    ) -> Sequence[FormattedStackItem]:
         depth = 0
         tinfo_chain: List[TerminatedTaskInfo] = []
         while trace_id is not None:
@@ -410,8 +418,8 @@ class Monitor:
         for tinfo in reversed(tinfo_chain):
             if depth == 0:
                 formatted_stack_list.append(
-                    (
-                        "header",
+                    FormattedStackItem(
+                        FormatItemTypes.HEADER,
                         (
                             "Stack of the root task or coroutine "
                             "scheduled in the event loop"
@@ -422,8 +430,8 @@ class Monitor:
             elif depth > 0:
                 assert prev_tinfo is not None
                 formatted_stack_list.append(
-                    (
-                        "header",
+                    FormattedStackItem(
+                        FormatItemTypes.HEADER,
                         (
                             "Stack of %s when creating the next task "
                             "(most recent call last)"
@@ -434,8 +442,8 @@ class Monitor:
             stack = tinfo.canceller_stack
             if stack is None:
                 formatted_stack_list.append(
-                    (
-                        "content",
+                    FormattedStackItem(
+                        FormatItemTypes.CONTENT,
                         (
                             "No stack available "
                             "(maybe it is a self-raised cancellation or exception)"
@@ -445,8 +453,8 @@ class Monitor:
             else:
                 stack = _filter_stack(stack)
                 formatted_stack_list.append(
-                    (
-                        "content",
+                    FormattedStackItem(
+                        FormatItemTypes.CONTENT,
                         textwrap.dedent("".join(traceback.format_list(stack))),
                     )
                 )
@@ -454,19 +462,16 @@ class Monitor:
             depth += 1
         tinfo = tinfo_chain[0]
         formatted_stack_list.append(
-            (
-                "header",
-                (
-                    "Stack of %s (most recent call last)"
-                    % _format_terminated_task(tinfo)
-                ),
+            FormattedStackItem(
+                FormatItemTypes.HEADER,
+                "Stack of %s (most recent call last)" % _format_terminated_task(tinfo),
             )
         )
         stack = tinfo.termination_stack
         if not stack:
             formatted_stack_list.append(
-                (
-                    "content",
+                FormattedStackItem(
+                    FormatItemTypes.CONTENT,
                     (
                         "No stack available for %s (the task has run to completion)"
                         % _format_terminated_task(tinfo)
@@ -475,8 +480,8 @@ class Monitor:
             )
         else:
             formatted_stack_list.append(
-                (
-                    "content",
+                FormattedStackItem(
+                    FormatItemTypes.CONTENT,
                     textwrap.dedent("".join(traceback.format_list(stack))),
                 )
             )
