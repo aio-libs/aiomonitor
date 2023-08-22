@@ -30,10 +30,12 @@ from .monitor import (
     Monitor,
     start_monitor,
 )
+from .termui.commands import monitor_cli
 
 __all__ = (
     "Monitor",
     "start_monitor",
+    "monitor_cli",
     "MONITOR_HOST",
     "MONITOR_PORT",
     "MONITOR_TERMUI_PORT",

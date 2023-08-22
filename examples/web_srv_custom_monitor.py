@@ -7,7 +7,11 @@ import uvloop
 from aiohttp import web
 
 import aiomonitor
-from aiomonitor.monitor import auto_command_done, custom_help_option, monitor_cli
+from aiomonitor.termui.commands import (
+    auto_command_done,
+    custom_help_option,
+    monitor_cli,
+)
 
 
 async def simple(request: web.Request) -> web.Response:
