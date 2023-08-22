@@ -97,7 +97,7 @@ class Monitor:
     _event_loop_thread_id: Optional[int] = None
 
     console_locals: Dict[str, Any]
-    _console_tasks: weakref.WeakSet[asyncio.Task[Any]]
+    _termui_tasks: weakref.WeakSet[asyncio.Task[Any]]
 
     _created_traceback_chains: weakref.WeakKeyDictionary[
         asyncio.Task[Any],
@@ -149,7 +149,7 @@ class Monitor:
 
         self._closed = False
         self._started = False
-        self._console_tasks = weakref.WeakSet()
+        self._termui_tasks = weakref.WeakSet()
 
         self._hook_task_factory = hook_task_factory
         self._created_traceback_chains = weakref.WeakKeyDictionary()
@@ -304,7 +304,7 @@ class Monitor:
         task = task_by_id(task_id_, self._monitored_loop)
         if task is not None:
             if self._monitored_loop == asyncio.get_running_loop():
-                await asyncio.create_task(cancel_task(task))
+                await cancel_task(task)
             else:
                 fut = asyncio.run_coroutine_threadsafe(
                     cancel_task(task), loop=self._monitored_loop
@@ -379,7 +379,7 @@ class Monitor:
         formatted_stack_list.append(
             (
                 "header",
-                "Stack of %s (most recent call last):\n\n" % _format_task(task),
+                "Stack of %s (most recent call last)" % _format_task(task),
             )
         )
         stack = _extract_stack_from_task(task)
@@ -560,7 +560,7 @@ class Monitor:
         except asyncio.CancelledError:
             pass
         finally:
-            console_tasks = {*self._console_tasks}
+            console_tasks = {*self._termui_tasks}
             for console_task in console_tasks:
                 console_task.cancel()
             await asyncio.gather(*console_tasks, return_exceptions=True)

@@ -96,7 +96,6 @@ async def interact(self: Monitor, connection: TelnetConnection) -> None:
     # to let them use the correct stdout handler.
     click.utils._default_text_stdout = _get_current_stdout
     click.utils._default_text_stderr = _get_current_stderr
-
     current_monitor_token = current_monitor.set(self)
     current_stdout_token = current_stdout.set(connection.stdout)
     # NOTE: prompt_toolkit's all internal console output automatically uses
@@ -329,15 +328,20 @@ def do_stacktrace(ctx: click.Context) -> None:
 @monitor_cli.command(name="cancel", aliases=["ca"])
 @click.argument("taskid", shell_complete=complete_task_id)
 @custom_help_option
-@auto_async_command_done
-async def do_cancel(ctx: click.Context, taskid: str) -> None:
+def do_cancel(ctx: click.Context, taskid: str) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
-    try:
-        await self.cancel_monitored_task(taskid)
-        print_ok(f"Cancelled task {taskid}")
-    except ValueError as e:
-        print_fail(repr(e))
+
+    @auto_async_command_done
+    async def _do_cancel(ctx: click.Context) -> None:
+        try:
+            await self.cancel_monitored_task(taskid)
+            print_ok(f"Cancelled task {taskid}")
+        except ValueError as e:
+            print_fail(repr(e))
+
+    task = asyncio.create_task(_do_cancel(ctx))
+    self._termui_tasks.add(task)
 
 
 @monitor_cli.command(name="exit", aliases=["q", "quit"])
@@ -386,7 +390,7 @@ def do_console(ctx: click.Context) -> None:
     # spawn the async command function as a new task and let it
     # set `command_done_event` internally.
     task = asyncio.create_task(_console(ctx))
-    self._console_tasks.add(task)
+    self._termui_tasks.add(task)
 
 
 @monitor_cli.command(name="ps", aliases=["p"])
@@ -506,10 +510,9 @@ def do_where(ctx: click.Context, taskid: str) -> None:
                     ]
                 )
             )
-            stdout.write("\n")
         else:
-            stdout.write(textwrap.indent(item_text, "  "))
-        stdout.write("\n")
+            stdout.write(textwrap.indent(item_text.strip("\n"), "  "))
+            stdout.write("\n")
 
 
 @monitor_cli.command(name="where-terminated", aliases=["wt"])
@@ -535,7 +538,6 @@ def do_where_terminated(ctx: click.Context, trace_id: str) -> None:
                     ]
                 )
             )
-            stdout.write("\n")
         else:
-            stdout.write(textwrap.indent(item_text, "  "))
-        stdout.write("\n")
+            stdout.write(textwrap.indent(item_text.strip("\n"), "  "))
+            stdout.write("\n")
