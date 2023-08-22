@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 
-from .monitor import MONITOR_HOST, MONITOR_PORT
+from .monitor import MONITOR_HOST, MONITOR_TERMUI_PORT
 from .telnet import TelnetClient
 
 
@@ -31,7 +31,7 @@ def main() -> None:
         "-p",
         "--port",
         dest="monitor_port",
-        default=MONITOR_PORT,
+        default=MONITOR_TERMUI_PORT,
         type=int,
         help="monitor port number",
     )

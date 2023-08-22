@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import sys
 from importlib.metadata import version
@@ -15,7 +16,6 @@ import trafaret as t
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from ..utils import all_tasks
 from .utils import APIParams, check_params
 
 if TYPE_CHECKING:
@@ -125,7 +125,6 @@ async def show_list_page(request: web.Request) -> web.Response:
                 {"id": TaskTypes.RUNNING, "title": "Running"},
                 {"id": TaskTypes.TERMINATED, "title": "Terminated"},
             ],
-            num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
         )
         return web.Response(body=output, content_type="text/html")
 
@@ -139,7 +138,6 @@ async def show_about_page(request: web.Request) -> web.Response:
         page={
             "title": nav_info.title,
         },
-        num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
     )
     return web.Response(body=output, content_type="text/html")
 
@@ -148,12 +146,18 @@ async def show_trace_page(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     template = ctx.jenv.get_template("trace.html")
     async with check_params(request, TaskIdParams) as params:
+        if request.path.startswith("/trace-running"):
+            trace_data = ctx.monitor.format_running_task_stack(params.task_id)
+        elif request.path.startswith("/trace-terminated"):
+            trace_data = ctx.monitor.format_terminated_task_stack(params.task_id)
+        else:
+            raise RuntimeError("should not reach here")
         output = template.render(
             navigation=nav_menus,
             page={
                 "title": f"Task trace for {params.task_id}",
             },
-            num_monitored_tasks=len(all_tasks(ctx.monitor._monitored_loop)),
+            trace_data=trace_data,
         )
         return web.Response(body=output, content_type="text/html")
 
@@ -170,7 +174,7 @@ async def get_task_count(request: web.Request) -> web.Response:
     async with check_params(request, TaskTypeParams) as params:
         ctx: WebUIContext = request.app["ctx"]
         if params.task_type == TaskTypes.RUNNING:
-            count = len(all_tasks(ctx.monitor._monitored_loop))
+            count = len(asyncio.all_tasks(ctx.monitor._monitored_loop))
         elif params.task_type == TaskTypes.TERMINATED:
             count = len(ctx.monitor._terminated_history)
         else:
@@ -185,7 +189,7 @@ async def get_task_count(request: web.Request) -> web.Response:
 async def get_live_task_list(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app["ctx"]
     async with check_params(request, ListFilterParams) as params:
-        tasks = ctx.monitor.format_live_task_list(
+        tasks = ctx.monitor.format_running_task_list(
             params.filter,
             params.persistent,
         )
