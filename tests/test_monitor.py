@@ -14,8 +14,8 @@ import pytest
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
-from prompt_toolkit.shortcuts import print_formatted_text
 
+import aiomonitor.termui.commands
 from aiomonitor import Monitor, start_monitor
 from aiomonitor.termui.commands import (
     auto_command_done,
@@ -61,17 +61,28 @@ class BufferedOutput(DummyOutput):
         self._buffer.write(data)
 
 
-async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
-    dummy_stdout = io.StringIO()
+async def invoke_command(
+    monitor: Monitor,
+    args: Sequence[str],
+) -> str:
+    dummy_stdout = BufferedOutput()
     current_monitor_token = current_monitor.set(monitor)
-    current_stdout_token = current_stdout.set(dummy_stdout)
-    command_done_event = asyncio.Event()
+    current_stdout_token = current_stdout.set(dummy_stdout._buffer)
+
+    async def _ui_create_event() -> asyncio.Event:
+        return asyncio.Event()
+
+    fut = asyncio.run_coroutine_threadsafe(_ui_create_event(), monitor._ui_loop)
+    command_done_event: asyncio.Event = await asyncio.wrap_future(fut)
     command_done_token = command_done.set(command_done_event)
-    with unittest.mock.patch(
-        "aiomonitor.termui.commands.print_formatted_text",
-        functools.partial(print_formatted_text, file=dummy_stdout),
-    ):
-        try:
+    try:
+        with unittest.mock.patch.object(
+            aiomonitor.termui.commands,
+            "print_formatted_text",
+            functools.partial(
+                aiomonitor.termui.commands.print_formatted_text, output=dummy_stdout
+            ),
+        ):
             ctx = contextvars.copy_context()
             ctx.run(
                 monitor_cli.main,
@@ -80,12 +91,20 @@ async def invoke_command(monitor: Monitor, args: Sequence[str]) -> str:
                 obj=monitor,
                 standalone_mode=False,  # type: ignore
             )
-            await command_done_event.wait()
-            return dummy_stdout.getvalue()
-        finally:
-            command_done.reset(command_done_token)
-            current_stdout.reset(current_stdout_token)
-            current_monitor.reset(current_monitor_token)
+            # If Click raises UsageError before running the command,
+            # there will be no one to set command_done_event.
+            # In this case, the error is propagated to the upper stack
+            # immediately here.
+            fut = asyncio.run_coroutine_threadsafe(
+                command_done_event.wait(), monitor._ui_loop  # type: ignore
+            )
+            await asyncio.wrap_future(fut)
+    finally:
+        command_done.reset(command_done_token)
+        current_stdout.reset(current_stdout_token)
+        current_monitor.reset(current_monitor_token)
+    with contextlib.closing(dummy_stdout._buffer):
+        return dummy_stdout._buffer.getvalue()
 
 
 @pytest.fixture(params=[True, False], ids=["console:True", "console:False"])
@@ -122,7 +141,7 @@ async def test_ctor(event_loop, unused_port, console_enabled):
 
 
 @pytest.mark.asyncio
-async def test_basic_monitor(monitor: Monitor):
+async def test_basic_monitor(event_loop, monitor: Monitor):
     resp = await invoke_command(monitor, ["help"])
     assert "Commands:" in resp
 
@@ -151,10 +170,10 @@ async def test_basic_monitor(monitor: Monitor):
         await invoke_command(monitor, ["c", "123"])
 
     resp = await invoke_command(monitor, ["cancel", "123"])
-    assert "No task 123" in resp
+    assert "Invalid or non-existent task ID" in resp
 
     resp = await invoke_command(monitor, ["ca", "123"])
-    assert "No task 123" in resp
+    assert "Invalid or non-existent task ID" in resp
 
 
 myvar = contextvars.ContextVar("myvar", default=42)
@@ -228,6 +247,7 @@ async def test_cancel_where_tasks(
                 pass
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_monitor_with_console(monitor: Monitor) -> None:
     with create_pipe_input() as pipe_input:

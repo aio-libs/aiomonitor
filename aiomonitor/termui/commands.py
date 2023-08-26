@@ -57,6 +57,10 @@ def _get_current_stderr() -> TextIO:
         return stdout
 
 
+click.utils._default_text_stdout = _get_current_stdout
+click.utils._default_text_stderr = _get_current_stderr
+
+
 def print_ok(msg: str) -> None:
     print_formatted_text(
         FormattedText(
@@ -94,8 +98,6 @@ async def interact(self: Monitor, connection: TelnetConnection) -> None:
 
     # Override the Click's stdout/stderr reference cache functions
     # to let them use the correct stdout handler.
-    click.utils._default_text_stdout = _get_current_stdout
-    click.utils._default_text_stderr = _get_current_stderr
     current_monitor_token = current_monitor.set(self)
     current_stdout_token = current_stdout.set(connection.stdout)
     # NOTE: prompt_toolkit's all internal console output automatically uses
@@ -255,6 +257,7 @@ def auto_async_command_done(cmdfunc):
     @functools.wraps(cmdfunc)
     async def _inner(ctx: click.Context, *args, **kwargs):
         command_done_event = command_done.get()
+        command_done_event.clear()
         try:
             return await cmdfunc(ctx, *args, **kwargs)
         finally:
@@ -340,7 +343,7 @@ def do_cancel(ctx: click.Context, taskid: str) -> None:
         except ValueError as e:
             print_fail(repr(e))
 
-    task = asyncio.create_task(_do_cancel(ctx))
+    task = self._ui_loop.create_task(_do_cancel(ctx))
     self._termui_tasks.add(task)
 
 
@@ -389,7 +392,7 @@ def do_console(ctx: click.Context) -> None:
     # Since we are already inside the UI's event loop,
     # spawn the async command function as a new task and let it
     # set `command_done_event` internally.
-    task = asyncio.create_task(_console(ctx))
+    task = self._ui_loop.create_task(_console(ctx))
     self._termui_tasks.add(task)
 
 
