@@ -1,2 +1,2 @@
 -e .
-sphinx<7.0.0
+sphinx~=7.2
