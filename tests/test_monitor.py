@@ -34,8 +34,9 @@ def monitor_common():
         return "baz"
 
     locals_ = {"foo": "bar", "make_baz": make_baz}
-    event_loop = asyncio.get_running_loop()
-    mon = Monitor(event_loop, locals=locals_)
+    # In tests, we reuse the pytest's event loop as the monitored loop.
+    test_loop = asyncio.get_running_loop()
+    mon = Monitor(test_loop, locals=locals_)
     with mon:
         yield mon
 
@@ -220,50 +221,46 @@ async def test_monitor_task_factory_with_context():
 @pytest.mark.asyncio
 async def test_cancel_where_tasks(
     monitor: Monitor,
-    event_loop: asyncio.AbstractEventLoop,
 ) -> None:
     async def sleeper():
         await asyncio.sleep(100)  # xxx
 
-    t = asyncio.create_task(sleeper())
+    test_loop = monitor._monitored_loop
+    t = test_loop.create_task(sleeper())
     t_id = id(t)
     await asyncio.sleep(0.1)
 
-    try:
-        task_ids = get_task_ids(event_loop)
-        assert len(task_ids) > 0
-        assert t_id in task_ids
-        resp = await invoke_command(monitor, ["where", str(t_id)])
-        assert "Task" in resp
-        resp = await invoke_command(monitor, ["cancel", str(t_id)])
-        assert "Cancelled task" in resp
-        await asyncio.sleep(0.1)
-    finally:
-        if not t.done():
-            t.cancel()
-            try:
-                await t
-            except asyncio.CancelledError:
-                pass
+    task_ids = get_task_ids(test_loop)
+    assert len(task_ids) > 0
+    assert t_id in task_ids
+    resp = await invoke_command(monitor, ["where", str(t_id)])
+    assert "Task" in resp
+    resp = await invoke_command(monitor, ["cancel", str(t_id)])
+    assert "Cancelled task" in resp
+    assert t.done()
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_monitor_with_console(monitor: Monitor) -> None:
     with create_pipe_input() as pipe_input:
         stdout_buf = BufferedOutput()
         with create_app_session(input=pipe_input, output=stdout_buf):
+
+            async def _interact():
+                await asyncio.sleep(0.2)
+                pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
+                pipe_input.send_text("foo\r\n")
+                await asyncio.sleep(0.5)
+                resp = stdout_buf._buffer.getvalue()
+                assert "This console is running in an asyncio event loop." in resp
+                assert "333" in resp
+                assert "bar" in resp
+                pipe_input.send_text("exit()\r\n")
+
+            t = asyncio.create_task(_interact())
             await invoke_command(monitor, ["console"])
-            await asyncio.sleep(0.2)
-            pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
-            pipe_input.send_text("foo\r\n")
-            await asyncio.sleep(0.5)
-            resp = stdout_buf._buffer.getvalue()
-            assert "This console is running in an asyncio event loop." in resp
-            assert "333" in resp
-            assert "bar" in resp
-            pipe_input.send_text("exit()\r\n")
-            await asyncio.sleep(0.2)
+            assert t.done()
+            await t
     # Check if we are back to the original shell.
     resp = await invoke_command(monitor, ["help"])
     assert "Commands" in resp

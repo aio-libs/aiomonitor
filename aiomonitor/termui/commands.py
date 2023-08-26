@@ -366,8 +366,7 @@ def do_console(ctx: click.Context) -> None:
 
     @auto_async_command_done
     async def _console(ctx: click.Context) -> None:
-        h, p = self._host, self._console_port
-        log.info("Starting aioconsole at %s:%d", h, p)
+        log.info("Starting aioconsole at %s:%d", self._host, self._console_port)
         app_session = get_app_session()
         server = await console.start(
             self._host,
@@ -383,10 +382,10 @@ def do_console(ctx: click.Context) -> None:
                 self._console_port,
             )
         except asyncio.CancelledError:
-            return
+            raise
         finally:
             await console.close(server, self._monitored_loop)
-            log.info("Terminated aioconsole at %s:%d", h, p)
+            log.info("Terminated aioconsole at %s:%d", self._host, self._console_port)
             print_ok("The console session is closed.")
 
     # Since we are already inside the UI's event loop,

@@ -207,8 +207,8 @@ class Monitor:
             self._ui_loop.call_soon_threadsafe(
                 self._ui_forever_future.cancel,
             )
-            self._ui_thread.join()
             self._monitored_loop.set_task_factory(self._original_task_factory)
+            self._ui_thread.join()
             self._closed = True
 
     def format_running_task_list(
@@ -299,10 +299,12 @@ class Monitor:
             if self._monitored_loop == asyncio.get_running_loop():
                 await cancel_task(task)
             else:
-                fut = asyncio.run_coroutine_threadsafe(
-                    cancel_task(task), loop=self._monitored_loop
+                fut = asyncio.wrap_future(
+                    asyncio.run_coroutine_threadsafe(
+                        cancel_task(task), loop=self._monitored_loop
+                    )
                 )
-                fut.result(timeout=3)
+                await fut
             if isinstance(task, TracedTask):
                 coro_repr = _format_coroutine(task._orig_coro).partition(" ")[0]
             else:
@@ -527,10 +529,10 @@ class Monitor:
         self._cancellation_chain_queue = janus.Queue()
         self._ui_loop = loop
         self._ui_forever_future = loop.create_future()
-        self._ui_termination_handler_task = asyncio.create_task(
+        self._ui_termination_handler_task = loop.create_task(
             self._ui_handle_termination_updates()
         )
-        self._ui_cancellation_handler_task = asyncio.create_task(
+        self._ui_cancellation_handler_task = loop.create_task(
             self._ui_handle_cancellation_updates()
         )
         telnet_server = TelnetServer(
@@ -557,13 +559,15 @@ class Monitor:
             pass
         finally:
             termui_tasks = {*self._termui_tasks}
-            for console_task in termui_tasks:
-                console_task.cancel()
+            for termui_task in termui_tasks:
+                termui_task.cancel()
             await asyncio.gather(*termui_tasks, return_exceptions=True)
             self._ui_termination_handler_task.cancel()
             self._ui_cancellation_handler_task.cancel()
-            await self._ui_termination_handler_task
-            await self._ui_cancellation_handler_task
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._ui_termination_handler_task
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._ui_cancellation_handler_task
             await telnet_server.stop()
             await webui_runner.cleanup()
 
