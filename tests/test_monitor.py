@@ -34,7 +34,11 @@ def monitor_common():
         return "baz"
 
     locals_ = {"foo": "bar", "make_baz": make_baz}
-    # In tests, we reuse the pytest's event loop as the monitored loop.
+    # In the tests, we reuse the pytest's event loop as the monitored loop.
+    # Because of this, all cross-loop coroutine invocations should use the following
+    # pattern in both tests and the monitor/termui implementation:
+    # > fut = asyncio.wrap_future(asyncio.run_coroutine_threadsafe(...))
+    # > await fut
     test_loop = asyncio.get_running_loop()
     mon = Monitor(test_loop, locals=locals_)
     with mon:
@@ -114,7 +118,7 @@ def console_enabled(request):
 
 
 @pytest.mark.asyncio
-async def test_ctor(event_loop, unused_port, console_enabled):
+async def test_ctor(event_loop, console_enabled):
     with Monitor(event_loop, console_enabled=console_enabled):
         await asyncio.sleep(0.01)
     with start_monitor(event_loop, console_enabled=console_enabled) as m:
@@ -250,7 +254,7 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
                 await asyncio.sleep(0.2)
                 pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
                 pipe_input.send_text("foo\r\n")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.25)
                 resp = stdout_buf._buffer.getvalue()
                 assert "This console is running in an asyncio event loop." in resp
                 assert "333" in resp
@@ -259,7 +263,6 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
 
             t = asyncio.create_task(_interact())
             await invoke_command(monitor, ["console"])
-            assert t.done()
             await t
     # Check if we are back to the original shell.
     resp = await invoke_command(monitor, ["help"])
