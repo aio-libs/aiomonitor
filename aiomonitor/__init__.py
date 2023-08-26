@@ -22,21 +22,24 @@ Alternatively you can use more verbose try/finally approach::
 
 from importlib.metadata import version
 
+from .monitor import MONITOR_TERMUI_PORT  # for backward compatibility
 from .monitor import (
     CONSOLE_PORT,
     MONITOR_HOST,
-    MONITOR_PORT,
+    MONITOR_WEBUI_PORT,
     Monitor,
-    monitor_cli,
     start_monitor,
 )
+from .termui.commands import monitor_cli
 
 __all__ = (
     "Monitor",
-    "monitor_cli",
     "start_monitor",
+    "monitor_cli",
     "MONITOR_HOST",
     "MONITOR_PORT",
+    "MONITOR_TERMUI_PORT",
+    "MONITOR_WEBUI_PORT",
     "CONSOLE_PORT",
 )
 __version__ = version("aiomonitor")

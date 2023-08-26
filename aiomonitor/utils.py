@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import inspect
 import linecache
 import sys
@@ -10,9 +9,7 @@ from asyncio.coroutines import _format_coroutine  # type: ignore
 from datetime import timedelta
 from pathlib import Path
 from types import FrameType
-from typing import Any, List, Optional, Set
-
-import click
+from typing import Any, List, Set
 
 from .types import TerminatedTaskInfo
 
@@ -157,95 +154,3 @@ def get_default_args(func):
         for k, v in signature.parameters.items()
         if v.default is not inspect.Parameter.empty
     }
-
-
-class AliasGroupMixin(click.Group):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._commands = {}
-        self._aliases = {}
-
-    def command(self, *args, **kwargs):
-        aliases = kwargs.pop("aliases", [])
-        decorator = super().command(*args, **kwargs)
-
-        def _decorator(f):
-            cmd = decorator(click.pass_context(f))
-            if aliases:
-                self._commands[cmd.name] = aliases
-                for alias in aliases:
-                    self._aliases[alias] = cmd.name
-            return cmd
-
-        return _decorator
-
-    def group(self, *args, **kwargs):
-        aliases = kwargs.pop("aliases", [])
-        # keep the same class type
-        kwargs["cls"] = type(self)
-        decorator = super().group(*args, **kwargs)
-        if not aliases:
-            return decorator
-
-        def _decorator(f):
-            cmd = decorator(f)
-            if aliases:
-                self._commands[cmd.name] = aliases
-                for alias in aliases:
-                    self._aliases[alias] = cmd.name
-            return cmd
-
-        return _decorator
-
-    def get_command(self, ctx, cmd_name):
-        if cmd_name in self._aliases:
-            cmd_name = self._aliases[cmd_name]
-        command = super().get_command(ctx, cmd_name)
-        if command:
-            return command
-
-    def format_commands(self, ctx, formatter):
-        commands = []
-        for subcommand in self.list_commands(ctx):
-            cmd = self.get_command(ctx, subcommand)
-            # What is this, the tool lied about a command. Ignore it
-            if cmd is None:
-                continue
-            if cmd.hidden:
-                continue
-            if subcommand in self._commands:
-                aliases = ",".join(sorted(self._commands[subcommand]))
-                subcommand = "{0} ({1})".format(subcommand, aliases)
-            commands.append((subcommand, cmd))
-
-        # allow for 3 times the default spacing
-        if len(commands):
-            limit = formatter.width - 6 - max(len(cmd[0]) for cmd in commands)
-            rows = []
-            for subcommand, cmd in commands:
-                help = cmd.get_short_help_str(limit)
-                rows.append((subcommand, help))
-            if rows:
-                with formatter.section("Commands"):
-                    formatter.write_dl(rows)
-
-
-def task_by_id(
-    taskid: int, loop: asyncio.AbstractEventLoop
-) -> "Optional[asyncio.Task[Any]]":
-    tasks = all_tasks(loop=loop)
-    return next(filter(lambda t: id(t) == taskid, tasks), None)
-
-
-async def cancel_task(task: "asyncio.Task[Any]") -> None:
-    with contextlib.suppress(asyncio.CancelledError):
-        task.cancel()
-        await task
-
-
-def all_tasks(loop: asyncio.AbstractEventLoop) -> "Set[asyncio.Task[Any]]":
-    if sys.version_info >= (3, 7):
-        tasks = asyncio.all_tasks(loop=loop)
-    else:
-        tasks = asyncio.Task.all_tasks(loop=loop)
-    return tasks

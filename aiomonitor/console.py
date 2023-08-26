@@ -10,6 +10,8 @@ from prompt_toolkit.output.base import Output
 
 
 class ConsoleProxy:
+    # Runs inside the monitored event loop
+
     def __init__(
         self,
         stdin: Input,
@@ -49,7 +51,8 @@ class ConsoleProxy:
             await self._closed.wait()
         finally:
             self._closed.set()
-            self._conn_writer.write_eof()
+            if not self._conn_writer.is_closing():
+                self._conn_writer.write_eof()
 
     async def _handle_user_input(self) -> None:
         prompt_session: PromptSession[str] = PromptSession(
@@ -81,7 +84,7 @@ class ConsoleProxy:
                     return
                 self._stdout.write_raw(buf.decode("utf8"))
                 self._stdout.flush()
-        except asyncio.CancelledError:
+        except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
             self._closed.set()
@@ -93,65 +96,49 @@ async def start(
     locals: Optional[Dict[str, Any]],
     monitor_loop: asyncio.AbstractEventLoop,
 ) -> asyncio.AbstractServer:
-    ui_loop = asyncio.get_running_loop()
-    done = asyncio.Event()
-
-    async def _start(done: asyncio.Event) -> asyncio.AbstractServer:
+    async def _start() -> asyncio.AbstractServer:
+        # Runs inside the monitored event loop
         def _factory(streams: Any = None) -> aioconsole.AsynchronousConsole:
             return aioconsole.AsynchronousConsole(
                 locals=locals, streams=streams, loop=monitor_loop
             )
 
-        try:
-            server = await aioconsole.start_interactive_server(
-                host=host,
-                port=port,
-                factory=_factory,
-                loop=monitor_loop,
-            )
-        finally:
-            ui_loop.call_soon_threadsafe(done.set)
+        server = await aioconsole.start_interactive_server(
+            host=host,
+            port=port,
+            factory=_factory,
+            loop=monitor_loop,
+        )
         return server
 
-    console_future = asyncio.run_coroutine_threadsafe(
-        _start(done),
-        loop=monitor_loop,
+    console_future = asyncio.wrap_future(
+        asyncio.run_coroutine_threadsafe(
+            _start(),
+            loop=monitor_loop,
+        )
     )
-    try:
-        await done.wait()
-    finally:
-        server = console_future.result()
-    return server
+    return await console_future
 
 
 async def close(
     server: asyncio.AbstractServer,
     monitor_loop: asyncio.AbstractEventLoop,
 ) -> None:
-    ui_loop = asyncio.get_running_loop()
-    done = asyncio.Event()
-
-    async def _close(done: asyncio.Event) -> None:
+    async def _close() -> None:
+        # Runs inside the monitored event loop
         try:
             server.close()
             await server.wait_closed()
         except NotImplementedError:
             pass
-        finally:
-            ui_loop.call_soon_threadsafe(done.set)
 
-    close_future = asyncio.run_coroutine_threadsafe(
-        _close(done),
-        loop=monitor_loop,
+    close_future = asyncio.wrap_future(
+        asyncio.run_coroutine_threadsafe(
+            _close(),
+            loop=monitor_loop,
+        )
     )
-    try:
-        # NOTE: If the monitor is interrupted before the aioconsole session is closed,
-        #       run_coroutine_threadsafe() seems to get deadlocked.
-        #       In that case, you may need to send SIGINT multiple times to the
-        #       aiomonitor-running process.
-        await done.wait()
-    finally:
-        close_future.result()
+    await close_future
 
 
 async def proxy(sin: Input, sout: Output, host: str, port: int) -> None:

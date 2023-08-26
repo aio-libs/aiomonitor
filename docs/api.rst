@@ -51,16 +51,16 @@ Reference
 
     Specifies the default port for asynchronous python REPL
 
-.. function:: start_monitor(loop, monitor=Monitor, host=None, port=MONITOR_PORT,
-                            console_port=CONSOLE_PORT, console_enabled=True,
-                            locals=None)
+.. function:: start_monitor(loop, monitor=Monitor, host=None, port=MONITOR_TERMUI_PORT, webui_port=MONITOR_WEBUI_PORT, console_port=CONSOLE_PORT, console_enabled=True, locals=None)
+    :single-line-parameter-list:
 
     Factory function, creates instance of :class:`Monitor` and starts
     monitoring thread.
 
     :param Type[Monitor] monitor: Monitor class to use
     :param str host: hostname to serve monitor telnet server
-    :param int port: monitor port, by default 50101
+    :param int port: monitor port (terminal UI), by default 50101
+    :param int webui_port: monitor port (web UI), by default 50201
     :param int console_port: python REPL port, by default 50102
     :param bool console_enabled: flag indicates if python REPL is requred
         to start with instance of monitor.

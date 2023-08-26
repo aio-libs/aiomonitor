@@ -3,7 +3,12 @@ import asyncio
 import click
 
 import aiomonitor
-from aiomonitor.monitor import auto_async_command_done, auto_command_done
+from aiomonitor.termui.commands import (
+    auto_async_command_done,
+    auto_command_done,
+    print_fail,
+    print_ok,
+)
 
 
 @aiomonitor.monitor_cli.command(name="hello")
@@ -19,7 +24,7 @@ def do_hello(ctx: click.Context) -> None:
 
     # or:
 
-    from aiomonitor.monitor import current_stdout
+    from aiomonitor.termui.commands import current_stdout
 
     stdout = current_stdout.get()
     print("Hello, world, again!", file=stdout)
@@ -41,9 +46,8 @@ def do_hello(ctx: click.Context) -> None:
 
     # or:
 
-    monitor: aiomonitor.Monitor = ctx.obj
-    monitor.print_ok("Hello, world, success!")
-    monitor.print_fail("Hello, world, failure!")
+    print_ok("Hello, world, success!")
+    print_fail("Hello, world, failure!")
 
 
 @aiomonitor.monitor_cli.command(name="hello-async")
