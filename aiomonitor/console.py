@@ -51,7 +51,8 @@ class ConsoleProxy:
             await self._closed.wait()
         finally:
             self._closed.set()
-            self._conn_writer.write_eof()
+            if not self._conn_writer.is_closing():
+                self._conn_writer.write_eof()
 
     async def _handle_user_input(self) -> None:
         prompt_session: PromptSession[str] = PromptSession(
@@ -83,7 +84,7 @@ class ConsoleProxy:
                     return
                 self._stdout.write_raw(buf.decode("utf8"))
                 self._stdout.flush()
-        except asyncio.CancelledError:
+        except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
             self._closed.set()

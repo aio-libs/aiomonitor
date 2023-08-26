@@ -252,14 +252,16 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
 
             async def _interact():
                 await asyncio.sleep(0.2)
-                pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
-                pipe_input.send_text("foo\r\n")
-                await asyncio.sleep(0.25)
-                resp = stdout_buf._buffer.getvalue()
-                assert "This console is running in an asyncio event loop." in resp
-                assert "333" in resp
-                assert "bar" in resp
-                pipe_input.send_text("exit()\r\n")
+                try:
+                    pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
+                    pipe_input.send_text("foo\r\n")
+                    await asyncio.sleep(0.25)
+                    resp = stdout_buf._buffer.getvalue()
+                    assert "This console is running in an asyncio event loop." in resp
+                    assert "333" in resp
+                    assert "bar" in resp
+                finally:
+                    pipe_input.send_text("exit()\r\n")
 
             t = asyncio.create_task(_interact())
             await invoke_command(monitor, ["console"])
