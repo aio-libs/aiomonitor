@@ -6,39 +6,39 @@ CHANGES
 0.5.0 (2023-07-21)
 ------------------
 
-* Fix a regression in Python 3.10 due to #10 `#11 <https://github.com/aio-libs/aiomonitor/issues/11>_`
+* Fix a regression in Python 3.10 due to #10 (`#11 <https://github.com/aio-libs/aiomonitor/issues/11>`_)
 
-* Support Python 3.11 properly by allowing the optional `name` and `context` kwargs passed to `asyncio.create_task()` in the hooked task factory function `#10 <https://github.com/aio-libs/aiomonitor/issues/10>_`
+* Support Python 3.11 properly by allowing the optional (`name` and `context` kwargs passed to `asyncio.create_task()` in the hooked task factory function `#10 <https://github.com/aio-libs/aiomonitor/issues/10>`_)
 
 * Update development dependencies
 
-* Selective persistent termination logs `#9 <https://github.com/aio-libs/aiomonitor/issues/9>_`
+* Selective persistent termination logs (`#9 <https://github.com/aio-libs/aiomonitor/issues/9>`_)
 
-* Implement cancellation chain tracker `#8 <https://github.com/aio-libs/aiomonitor/issues/8>_`
+* Implement cancellation chain tracker (`#8 <https://github.com/aio-libs/aiomonitor/issues/8>`_)
 
 * Trigger auto-completion only when Tab is pressed
 
-* Support auto-completion of commands and arguments `#7 <https://github.com/aio-libs/aiomonitor/issues/7>_`
+* Support auto-completion of commands and arguments (`#7 <https://github.com/aio-libs/aiomonitor/issues/7>`_)
 
 * Add missing explicit dependency to Click
 
 * Promote `console_locals` as public attr
 
-* Reimplement console command `#6 <https://github.com/aio-libs/aiomonitor/issues/6>_`
+* Reimplement console command (`#6 <https://github.com/aio-libs/aiomonitor/issues/6>`_)
 
-* Migrate to Click-based command line interface `#5 <https://github.com/aio-libs/aiomonitor/issues/5>_`
+* Migrate to Click-based command line interface (`#5 <https://github.com/aio-libs/aiomonitor/issues/5>`_)
 
-* Adopt `prompt_toolkit` and support concurrent clients `#4 <https://github.com/aio-libs/aiomonitor/issues/4>_`
+* Adopt (`prompt_toolkit` and support concurrent clients `#4 <https://github.com/aio-libs/aiomonitor/issues/4>`_)
 
-* Show the total number of tasks when executing `ps` `#3 <https://github.com/aio-libs/aiomonitor/issues/3>_`
+* Show the total number of tasks when executing (`ps` `#3 <https://github.com/aio-libs/aiomonitor/issues/3>`_)
 
 * Apply black, isort, mypy, flake8 and automate CI workflows using GitHub Actions
 
 * Fix the task creation location in the 'ps' command output
 
-* Remove loop=loop from all asynchronous calls to support newer Python versions `#329 <https://github.com/aio-libs/aiomonitor/issues/329>_`
+* Remove loop=loop from all asynchronous calls to support newer Python versions (`#329 <https://github.com/aio-libs/aiomonitor/issues/329>`_)
 
-* Added the task creation stack chain display to the 'where' command by setting a custom task factory `#1 <https://github.com/aio-libs/aiomonitor/issues/1>_`
+* Added the task creation stack chain display to the 'where' command by setting a custom task factory (`#1 <https://github.com/aio-libs/aiomonitor/issues/1>`_)
 
 These are the backported changes from [aiomonitor-ng](https://github.com/achimnol/aiomonitor-ng).
 As the version bumps have gone far away in the fork, all those extra releases are squashed into the v0.5.0 release.
