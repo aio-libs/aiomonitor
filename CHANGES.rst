@@ -3,6 +3,20 @@ CHANGES
 
 .. towncrier release notes start
 
+0.5.1.dev23+g8c57ac8.d20230821 (2023-08-27)
+-------------------------------------------
+
+- Add the web-based monitoring user interface to list, inspect, and cancel running/terminated tasks, with refactoring the monitor business logic and presentation layers (`termui` and `webui`)
+  (`#84 <https://github.com/aio-libs/aiomonitor/issues/84>`_)
+
+- Replace the default port numbers for the terminal UI, the web UI, and the console access (50101, 50201, 50102 -> 20101, 20102, 20103 respectively)
+  (`#374 <https://github.com/aio-libs/aiomonitor/issues/374>`_)
+
+
+
+- (`#375 <https://github.com/aio-libs/aiomonitor/issues/375>`_)
+
+
 0.5.0 (2023-07-21)
 ------------------
 
