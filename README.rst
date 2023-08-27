@@ -62,7 +62,7 @@ Monitor has context manager interface:
 
 Now from separate terminal it is possible to connect to the application::
 
-    $ telnet localhost 50101
+    $ telnet localhost 20101
 
 or the included python client::
 
@@ -113,7 +113,7 @@ Let's save this code in file ``simple_srv.py``, so we can run it with the follow
 And now one can connect to a running application from a separate terminal, with
 the ``telnet`` command, and ``aiomonitor`` will immediately respond with prompt::
 
-    $ telnet localhost 50101
+    $ telnet localhost 20101
     Asyncio Monitor: 1 tasks running
     Type help for commands
     monitor >>>

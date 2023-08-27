@@ -12,7 +12,7 @@ simple as opening a file.
 
     loop = asyncio.get_event_loop()
     with aiomonitor.start_monitor(loop):
-        print("Now you can connect with: nc localhost 50101")
+        print("Now you can connect with: nc localhost 20101")
         loop.run_forever()
 
 Alternatively you can use more verbose try/finally approach but do not forget
@@ -40,14 +40,22 @@ Reference
 
 .. data:: MONITOR_HOST = '127.0.0.1'
 
-    Specifies the default host for monitor, by default monitor binded to
-    ``localhost``.
+    Specifies the default host to bind the services for the monitor
 
-.. data:: MONITOR_PORT = 50101
+    .. warning::
 
-    Specifies the default port for monitor, you can connect using telnet client
+       Since aiomonitor exposes the internal states of the traced process, never bind it to
+       publicly accessible address to prevent potential security breaches and denial of services!
 
-.. data:: CONSOLE_PORT = 50102
+.. data:: MONITOR_TERMUI_PORT = 20101
+
+    Specifies the default telnet port for teh monitor where you can connect using a telnet client
+
+.. data:: MONITOR_WEBUI_PORT = 20102
+
+    Specifies the default HTTP port for the monitor where you can connect using a web browser
+
+.. data:: CONSOLE_PORT = 20103
 
     Specifies the default port for asynchronous python REPL
 
@@ -59,9 +67,9 @@ Reference
 
     :param Type[Monitor] monitor: Monitor class to use
     :param str host: hostname to serve monitor telnet server
-    :param int port: monitor port (terminal UI), by default 50101
-    :param int webui_port: monitor port (web UI), by default 50201
-    :param int console_port: python REPL port, by default 50102
+    :param int port: monitor port (terminal UI), by default 20101
+    :param int webui_port: monitor port (web UI), by default 20102
+    :param int console_port: python REPL port, by default 20103
     :param bool console_enabled: flag indicates if python REPL is requred
         to start with instance of monitor.
     :param dict locals: dictionary with variables exposed in python console
