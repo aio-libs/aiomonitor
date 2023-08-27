@@ -65,9 +65,9 @@ __all__ = (
 log = logging.getLogger(__name__)
 
 MONITOR_HOST: Final = "127.0.0.1"
-MONITOR_TERMUI_PORT: Final = 50101
-CONSOLE_PORT: Final = 50102
-MONITOR_WEBUI_PORT: Final = 50201
+MONITOR_TERMUI_PORT: Final = 20101
+MONITOR_WEBUI_PORT: Final = 20102
+CONSOLE_PORT: Final = 20103
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)

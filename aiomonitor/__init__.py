@@ -7,7 +7,7 @@ To enable the monitor, just use context manager protocol with start function::
 
     loop = asyncio.get_event_loop()
     with aiomonitor.start_monitor():
-        print("Now you can connect with: nc localhost 50101")
+        print("Now you can connect with: nc localhost 20101")
         loop.run_forever()
 
 Alternatively you can use more verbose try/finally approach::
@@ -22,15 +22,17 @@ Alternatively you can use more verbose try/finally approach::
 
 from importlib.metadata import version
 
-from .monitor import MONITOR_TERMUI_PORT  # for backward compatibility
 from .monitor import (
     CONSOLE_PORT,
     MONITOR_HOST,
+    MONITOR_TERMUI_PORT,
     MONITOR_WEBUI_PORT,
     Monitor,
     start_monitor,
 )
 from .termui.commands import monitor_cli
+
+MONITOR_PORT = MONITOR_TERMUI_PORT  # for backward compatibility
 
 __all__ = (
     "Monitor",

@@ -45,7 +45,7 @@ And now it is possible to connect to the running application from separate
 terminal, by execution ``nc`` command, immediately ``aiomonitor`` will
 respond with prompt::
 
-    $ nc localhost 50101
+    $ telnet localhost 20101
     Asyncio Monitor: 1 tasks running
     Type help for commands
     monitor >>>

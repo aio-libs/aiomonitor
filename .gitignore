@@ -73,6 +73,7 @@ Pipfile.lock
 
 .pytest_cache
 .python-version
+.*rc
 
 .DS_Store
 ._.DS_Store
