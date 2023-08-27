@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+.. towncrier release notes start
+
 0.5.0 (undefined)
 -----------------
 
