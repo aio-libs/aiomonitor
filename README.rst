@@ -84,8 +84,6 @@ be integrated with it.
 
     # Simple handler that returns response after 100s
     async def simple(request):
-        loop = request.app.loop
-
         print('Start sleeping')
         await asyncio.sleep(100)
         return web.Response(text="Simple answer")
@@ -102,7 +100,7 @@ be integrated with it.
     # init monitor just before run_app
     with aiomonitor.start_monitor(loop=loop, locals=locals_):
         # run application with built-in aiohttp run_app function
-        web.run_app(app, port=port, host=host)
+        web.run_app(app, port=port, host=host, loop=loop)
 
 Let's save this code in file ``simple_srv.py``, so we can run it with the following command::
 
