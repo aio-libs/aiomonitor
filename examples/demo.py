@@ -39,9 +39,10 @@ async def timer_loop() -> None:
     scope: weakref.WeakSet[asyncio.Task] = weakref.WeakSet()
     try:
         while True:
-            await asyncio.sleep(3.0)
-            t = asyncio.create_task(interval_work(), name="interval-worker")
-            scope.add(t)
+            await asyncio.sleep(1.0)
+            if len(scope) < 10:
+                t = asyncio.create_task(interval_work(), name="interval-worker")
+                scope.add(t)
     except asyncio.CancelledError:
         for t in {*scope}:
             with contextlib.suppress(asyncio.CancelledError):
