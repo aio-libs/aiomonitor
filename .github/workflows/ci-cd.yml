@@ -2,6 +2,7 @@
 name: CI
 
 on:  # yamllint disable-line rule:truthy
+  merge_group:
   push:
     branches: ["main"]
   pull_request:
