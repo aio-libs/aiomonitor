@@ -110,14 +110,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--history-limit",
         type=int,
+        metavar="COUNT",
         default=10,
         help="Set the maximum number of task termination history [default: 10]",
     )
     parser.add_argument(
         "--num-timers",
         type=int,
+        metavar="COUNT",
         default=5,
-        help="Set the number of timer loop tasks to demonstrate persistent termination logs",
+        help="Set the number of timer loop tasks to demonstrate persistent termination logs [default: 5]",
     )
     args = parser.parse_args()
     match args.loop:
