@@ -101,7 +101,8 @@ async def invoke_command(
             # In this case, the error is propagated to the upper stack
             # immediately here.
             fut = asyncio.run_coroutine_threadsafe(
-                command_done_event.wait(), monitor._ui_loop  # type: ignore
+                command_done_event.wait(),  # type: ignore
+                monitor._ui_loop,
             )
             await asyncio.wrap_future(fut)
     finally:
@@ -254,8 +255,9 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
                 await asyncio.sleep(0.2)
                 try:
                     pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
+                    await asyncio.sleep(0.1)
                     pipe_input.send_text("foo\r\n")
-                    await asyncio.sleep(0.25)
+                    await asyncio.sleep(0.4)
                     resp = stdout_buf._buffer.getvalue()
                     assert "This console is running in an asyncio event loop." in resp
                     assert "333" in resp
