@@ -255,8 +255,10 @@ async def test_monitor_with_console(monitor: Monitor) -> None:
                 await asyncio.sleep(0.2)
                 try:
                     pipe_input.send_text("await asyncio.sleep(0.1, result=333)\r\n")
+                    pipe_input.flush()
                     await asyncio.sleep(0.1)
                     pipe_input.send_text("foo\r\n")
+                    pipe_input.flush()
                     await asyncio.sleep(0.4)
                     resp = stdout_buf._buffer.getvalue()
                     assert "This console is running in an asyncio event loop." in resp
