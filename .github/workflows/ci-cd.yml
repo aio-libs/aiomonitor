@@ -17,7 +17,7 @@ env:
   FORCE_COLOR: "1"  # Make tools pretty.
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_PYTHON_VERSION_WARNING: "1"
-  PYTHON_LATEST: "3.11"
+  PYTHON_LATEST: "3.12"
 
   # For re-actors/checkout-python-sdist
   sdist-artifact: python-package-distributions
@@ -69,10 +69,11 @@ jobs:
         - "3.9"
         - "3.10"
         - "3.11"
+        - "3.12"
         experimental: [false]
-        include:
-        - python-version: "~3.12.0-0"
-          experimental: true
+        # include:
+        # - python-version: "~3.12.0-0"
+        #   experimental: true
     steps:
     - name: Checkout the source code
       uses: actions/checkout@v4
