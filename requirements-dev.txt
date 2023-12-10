@@ -19,5 +19,5 @@ pytest==7.4.0
 terminaltables==3.1.10
 towncrier==23.6.0
 types-requests
-uvloop==0.17.0
+uvloop==0.19.0
 build==0.10.0
