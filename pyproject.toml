@@ -16,7 +16,7 @@ select = [
     "B",  # flake8-bugbear
     "Q",  # flake8-quotes
 ]
-ignore = ["E203", "E731", "E501", "W503", "W504", "Q000"]
+ignore = ["E203", "E731", "E501", "Q000"]
 
 [tool.ruff.isort]
 known-first-party = ["aiomonitor"]
