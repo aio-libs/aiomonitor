@@ -14,32 +14,8 @@ env:
 
 jobs:
 
-  lint-flake8:
-    name: Lint with Flake8
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        cache: pip
-        cache-dependency-path: |
-          setup.cfg
-          requirements-dev.txt
-    - name: Install dependencies
-      run: |
-        pip install -U -r requirements-dev.txt
-    - name: Lint with flake8
-      run: |
-        echo "::add-matcher::.github/workflows/flake8-matcher.json"
-        python -m flake8 aiomonitor/ examples/ tests/
-
-  lint-isort:
-    name: Lint with isort
+  lint-ruff:
+    name: Lint with Ruff
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the source code
@@ -58,33 +34,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U -r requirements-dev.txt
-    - name: Lint with isort
+    - name: Lint with Ruff
       run: |
-        python -m isort --check aiomonitor/ examples/ tests/
-
-  lint-black:
-    name: Lint with Black
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_LATEST }}
-        check-latest: true
-        cache: pip
-        cache-dependency-path: |
-          setup.cfg
-          requirements-dev.txt
-    - name: Install dependencies
-      run: |
-        pip install -U -r requirements-dev.txt
-    - name: Lint with black
-      run: |
-        python -m black --check aiomonitor/ examples/ tests/
+        python -m ruff check
 
   typecheck-mypy:
     name: Check typing and annotations
