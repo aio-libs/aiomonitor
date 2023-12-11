@@ -5,12 +5,21 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 # enables setuptools_scm to provide the dynamic version
 
-[tool.black]
+[tool.ruff]
 line-length = 88
+src = ["aiomonitor", "tests", "examples"]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "Q",  # flake8-quotes
+]
+ignore = ["E203", "E731", "E501"]
 
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff.isort]
+split-on-trailing-comma = true
 
 [tool.mypy]
 ignore_missing_imports = true
