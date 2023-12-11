@@ -179,7 +179,8 @@ commands access to anything they might need to do their jobs.
 Modify the basic behaviour of the command loop
 ----------------------------------------------
 
-Like the standard library's cmd_ module, you can customise how the behaviour of the
+Like the standard library's :mod:`cmd` module, you can customise how the behaviour of the
 Monitor in various ways, see :ref:`api_reference`.
 
-.. _aiohttp: https://github.com/KeepSafe/aiohttp
+
+.. _aiohttp: https://github.com/aio-libs/aiohttp
