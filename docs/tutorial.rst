@@ -27,7 +27,7 @@ Basic aiohttp server
 
        # init monitor just before run_app
        loop = asyncio.get_running_loop()
-       with aiomonitor.start_monitor(loop):
+       with aiomonitor.start_monitor(loop, hook_task_factory=True):
            await web._run_app(app, port=8090, host="localhost")
 
     if __name__ == "__main__":
@@ -143,6 +143,17 @@ As result variable ``foo`` available in console::
     bar
     >>> exit()
     monitor >>>
+
+
+Web-absed Inspector
+-------------------
+
+You may also open your web browser and navigate to http://localhost:20102 .
+This will show a web-based UI to inspect the currently running tasks and terminated tasks,
+includign their recursive stack traces.  You can also cancel specific tasks there.
+
+To see the recursive task creation and termination history, you should pass
+``hook_task_factory=True`` to the ``start_monitor()`` function.
 
 
 .. _cust-commands:
