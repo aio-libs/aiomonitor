@@ -11,12 +11,17 @@ Terminal UI
 
 .. seealso:: Check out the tutorial :ref:`cust-commands` about adding custom commands.
 
+.. _monitor-cli:
+
 ``aiomonitor.termui.commands``
 ------------------------------
 
 .. automodule:: aiomonitor.termui.commands
    :members:
    :undoc-members:
+
+.. click:: aiomonitor.termui.commands:monitor_cli
+   :prog: monitor_cli
 
 ``aiomonitor.termui.completion``
 --------------------------------

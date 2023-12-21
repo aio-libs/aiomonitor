@@ -78,7 +78,7 @@ Once connection established, one can type commands, for instance ``help``::
       where (w)               Show stack frames and the task creation chain of a task
       where-terminated (wt)   Show stack frames and the termination/cancellation chain of a task
 
-Additional commands can be added by defining a Click command function injected into :func:`aiomonitor.termui.commands.monitor_cli`, see below :ref:`cust-commands`.
+Additional commands can be added by defining a Click command function injected into :ref:`the monitor CLI <monitor-cli>`, see below :ref:`cust-commands`.
 
 .. versionchanged:: 0.5.0
 
@@ -150,11 +150,21 @@ As result variable ``foo`` available in console::
 Adding custom commands
 ----------------------
 
-By defining a new :func:`Click command <click.command>` on ``monitor_cli``, we can add our own commands to the
+By defining a new :func:`Click command <click.command>` on :ref:`the monitor CLI <monitor-cli>`, we can add our own commands to the
 telnet REPL.  Use the standard :func:`click.echo()` to print something in the telnet console.
 You may also add additional arguments and options just like a normal Click application.
 
 .. code:: python
+
+    import aiohttp
+    import click
+    import requests
+    from aiomonitor.termui.commands import (
+        auto_async_command_done,
+        auto_command_done,
+        custom_help_option,
+        monitor_cli,
+    )
 
     @monitor_cli.command(name="hello")
     @click.argument("name", optional=True)

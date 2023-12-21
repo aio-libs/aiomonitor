@@ -7,7 +7,7 @@ aiomonitor's documentation!
 ===========================
 
 **aiomonitor** is Python 3.8+ module that adds monitor and cli capabilities
-for asyncio_ application. Idea and code borrowed from curio_ project.
+for :mod:`asyncio` application. Idea and code borrowed from curio_ project.
 Task monitor that runs concurrently to the :mod:`asyncio` loop (or fast drop in
 replacement uvloop_) in a separate thread. This can inspect the loop and
 provide debugging capabilities.
