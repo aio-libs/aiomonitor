@@ -15,9 +15,9 @@ provide debugging capabilities.
 Library provides an python console using aioconsole_ library, it is possible
 to execute asynchronous command inside your running application.
 
-+--------------------+
-| .. image:: tty.gif |
-+--------------------+
++----------------------------+
+| .. image:: webui-demo1.gif |
++----------------------------+
 
 
 Features
