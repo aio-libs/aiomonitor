@@ -28,7 +28,7 @@ Basic aiohttp server
        # init monitor just before run_app
        loop = asyncio.get_running_loop()
        with aiomonitor.start_monitor(loop):
-           await web._run_app(app, port=20101, host="localhost")
+           await web._run_app(app, port=8090, host="localhost")
 
     if __name__ == "__main__":
         asyncio.run(main())
@@ -36,7 +36,7 @@ Basic aiohttp server
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
 
     $ python simple_srv.py
-    ======== Running on http://localhost:20101 ========
+    ======== Running on http://localhost:8090 ========
     (Press CTRL+C to quit)
 
 Connection over telnet
