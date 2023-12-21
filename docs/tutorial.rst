@@ -4,6 +4,7 @@ Tutorial
 Lets create simple aiohttp_ application, and see how ``aiomonitor`` can
 integrate with it.
 
+
 Basic aiohttp server
 --------------------
 
@@ -27,8 +28,8 @@ Basic aiohttp server
 
        # init monitor just before run_app
        loop = asyncio.get_running_loop()
-       with aiomonitor.start_monitor(loop):
-           await web._run_app(app, port=20101, host="localhost")
+       with aiomonitor.start_monitor(loop, hook_task_factory=True):
+           await web._run_app(app, port=8090, host="localhost")
 
     if __name__ == "__main__":
         asyncio.run(main())
@@ -36,8 +37,9 @@ Basic aiohttp server
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
 
     $ python simple_srv.py
-    ======== Running on http://localhost:20101 ========
+    ======== Running on http://localhost:8090 ========
     (Press CTRL+C to quit)
+
 
 Connection over telnet
 ----------------------
@@ -143,6 +145,17 @@ As result variable ``foo`` available in console::
     bar
     >>> exit()
     monitor >>>
+
+
+Web-based Inspector
+-------------------
+
+You may also open your web browser and navigate to http://localhost:20102 .
+This will show a web-based UI to inspect the currently running tasks and terminated tasks,
+including their recursive stack traces.  You can also cancel specific tasks there.
+
+To see the recursive task creation and termination history, you should pass
+``hook_task_factory=True`` to the ``start_monitor()`` function.
 
 
 .. _cust-commands:
