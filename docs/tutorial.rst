@@ -4,6 +4,7 @@ Tutorial
 Lets create simple aiohttp_ application, and see how ``aiomonitor`` can
 integrate with it.
 
+
 Basic aiohttp server
 --------------------
 
@@ -38,6 +39,7 @@ Lets save this code in file ``simple_srv.py``, so we can run it with command::
     $ python simple_srv.py
     ======== Running on http://localhost:8090 ========
     (Press CTRL+C to quit)
+
 
 Connection over telnet
 ----------------------
@@ -145,7 +147,7 @@ As result variable ``foo`` available in console::
     monitor >>>
 
 
-Web-absed Inspector
+Web-based Inspector
 -------------------
 
 You may also open your web browser and navigate to http://localhost:20102 .
