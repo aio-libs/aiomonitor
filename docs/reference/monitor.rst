@@ -1,6 +1,9 @@
 The Monitor
 ===========
 
+``aiomonitor.monitor``
+----------------------
+
 .. module:: aiomonitor.monitor
 .. currentmodule:: aiomonitor.monitor
 

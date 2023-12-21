@@ -29,11 +29,13 @@
 # needs_sphinx = '1.0'
 
 import pathlib
+import sys
 from importlib.metadata import version as get_version
 from typing import Mapping
 
 _docs_path = pathlib.Path(__file__).parent
 
+sys.path.insert(0, str(_docs_path.parent))
 
 try:
     _version_info = get_version("aiomonitor")
@@ -66,7 +68,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "aiomonitor"
-copyright = "2016, Nikolay Novik"
+copyright = "Nikolay Novik (2016-), Joongi Kim (2022-) and contributors"
 author = "Nikolay Novik"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -189,4 +191,5 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "click": ("https://click.palletsprojects.com/en/8.1.x/", None),
 }

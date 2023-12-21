@@ -40,7 +40,7 @@ def do_hello(ctx: click.Context, name: Optional[str] = None) -> None:
     """Using the /hello GET interface
 
     There is one optional argument, "name".  This name argument must be
-    provided with proper URL excape codes, like %20 for spaces.
+    provided with proper URL escape codes, like %20 for spaces.
     """
     name = "" if name is None else "/" + name
     r = requests.get("http://localhost:8090/hello" + name)
