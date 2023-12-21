@@ -38,6 +38,9 @@ log = logging.getLogger(__name__)
 __all__ = (
     "interact",
     "monitor_cli",
+    "auto_command_done",
+    "auto_async_command_done",
+    "custom_help_option",
 )
 
 

@@ -14,28 +14,29 @@ Basic aiohttp server
     import aiomonitor
     from aiohttp import web
 
-    # Simple handler that returns response after 100s
+    # A simple handler that returns response after 100s
     async def simple(request):
-        loop = request.app.loop
-
-        print('Start sleeping')
+        print("Start sleeping")
         await asyncio.sleep(100)
         return web.Response(text="Simple answer")
 
-    loop = asyncio.get_event_loop()
-    # create application and register route create route
-    app = web.Application(loop=loop)
-    app.router.add_get('/simple', simple)
+    async def main():
+       # create application and register route create route
+       app = web.Application()
+       app.router.add_get("/simple", simple)
 
-    # init monitor just before run_app
-    with aiomonitor.start_monitor(loop):
-        # run application with built in aoihttp run_app function
-        web.run_app(app, port=8090, host='localhost')
+       # init monitor just before run_app
+       loop = asyncio.get_running_loop()
+       with aiomonitor.start_monitor(loop):
+           await web._run_app(app, port=20101, host="localhost")
+
+    if __name__ == "__main__":
+        asyncio.run(main())
 
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
 
     $ python simple_srv.py
-    ======== Running on http://localhost:8090 ========
+    ======== Running on http://localhost:20101 ========
     (Press CTRL+C to quit)
 
 Connection over telnet
@@ -51,7 +52,7 @@ respond with prompt::
     monitor >>>
 
 *aiomonitor* packaged with own telnet client, just in case you do not have
-``nc`` or other related utility::
+``telnet`` client in the host::
 
     $ python -m aiomonitor.cli
     Asyncio Monitor: 1 tasks running
@@ -61,26 +62,30 @@ respond with prompt::
 Once connection established, one can type commands, for instance ``help``::
 
     monitor >>> help
-    Available Commands are:
-                 cancel taskid: Cancel an indicated task
-                 console: Switch to async Python REPL
-                 ps: Show task table
-                 quit: Leave the monitor
-                 signal signame: Send a Unix signal
-                 stacktrace: Print a stack trace from the event loop thread
-                 where taskid: Show stack frames for a task
+    Usage: help [OPTIONS] COMMAND [ARGS]...
 
-Library will respond with list of supported commands:
+      To see the usage of each command, run them with "--help" option.
 
-* *ps* -- shows table of alive tasks with their id and state
-* *where* -- prints stack frame for the task, taskid must be supplied
-* *cancel* -- command cancels task, taskid must be supplied
-* *signal* -- command sends unix signal to the app process
-* *stacktrace* -- prints a stack trace from the event loop thread
-* *console* -- switch to python REPL
-* *quit* -- stops telnet session
+    Commands:
+      cancel (ca)             Cancel an indicated task
+      console                 Switch to async Python REPL
+      exit (q,quit)           Leave the monitor client session
+      help (?,h)              Show the list of commands
+      ps (p)                  Show task table
+      ps-terminated (pst,pt)  List recently terminated/cancelled tasks
+      signal                  Send a Unix signal
+      stacktrace (st,stack)   Print a stack trace from the event loop thread
+      where (w)               Show stack frames and the task creation chain of a task
+      where-terminated (wt)   Show stack frames and the termination/cancellation chain of a task
 
-Additional commands can be added by subclassing ``Monitor``, see below :ref:`<cust-commands>`.
+Additional commands can be added by defining a Click command function injected into :ref:`the monitor CLI <monitor-cli>`, see below :ref:`cust-commands`.
+
+.. versionchanged:: 0.5.0
+
+   As of 0.5.0, you must use a telnet client that implements the actual telnet
+   protocol. Previously a simple socket-to-console redirector like ``nc``
+   worked, but now it requires explicit negotiation of the terminal type to
+   provide advanced terminal features including auto-completion of commands.
 
 
 Python REPL
@@ -90,8 +95,7 @@ Python REPL
 so you can explore state of your application::
 
     monitor >>> console
-    Python 3.5.2 (default, Oct 11 2016, 05:05:28)
-    [GCC 4.2.1 Compatible Apple LLVM 8.0.0 (clang-800.0.38)] on darwin
+    Python 3.11.7 (main, Dec  9 2023, 21:41:50) [GCC 11.4.0] on linux
     Type "help", "copyright", "credits" or "license" for more information.
     ---
     This console is running in an asyncio event loop.
@@ -128,15 +132,15 @@ Local variables can be exposed in Python REPL by passing additional
 .. code:: python
 
     locals = {"foo": "bar"}
-    with aiomonitor.start_monitor(loop):
-        web.run_app(app, port=8090, host='localhost')
+    with aiomonitor.start_monitor(loop, locals=locals):
+        web.run_app(app, port=20101, host='127.0.0.1')
 
 
 As result variable ``foo`` available in console::
 
     monitor >>> console
     >>> foo
-    >>> bar
+    bar
     >>> exit()
     monitor >>>
 
@@ -146,40 +150,56 @@ As result variable ``foo`` available in console::
 Adding custom commands
 ----------------------
 
-By employing a custom ``Monitor`` subclass, we can add our own commands to the
-telnet REPL. These are simply methods with names starting with `do_`. These methods
-can use the in- and outgoing REPL sockets `self._sin` and `self._sout` for IO,
-like `self._sout.write(string)` to print to the REPL.
-
-Any parameters to the method will receive their value as a string, if they are meant
-to be used as e.g. numbers, manual casting is needed.
+By defining a new :func:`Click command <click.command>` on :ref:`the monitor CLI <monitor-cli>`, we can add our own commands to the
+telnet REPL.  Use the standard :func:`click.echo()` to print something in the telnet console.
+You may also add additional arguments and options just like a normal Click application.
 
 .. code:: python
 
-    class MyMon(Monitor):
-        @alt_names('moc own')
-        def do_my_own_command(self, some_argument):
-            """This is a short description
+    import aiohttp
+    import click
+    import requests
+    from aiomonitor.termui.commands import (
+        auto_async_command_done,
+        auto_command_done,
+        custom_help_option,
+        monitor_cli,
+    )
 
-            The first line of the doc will be shown in the help overview, this rest
-            will only show up in the "help my_own_command" output.
-            This command will have aliases "moc" and "own", just like "help" has "h"
-            and "?".
-            """
-            results = self._do_stuff(self._locals['my_app_instance'])
-            self._sout.write('The results are: {}\n'.format(results))
+    @monitor_cli.command(name="hello")
+    @click.argument("name", optional=True)
+    @custom_help_option
+    @auto_command_done  # sync version
+    def do_hello(ctx: click.Context, name: Optional[str] = None) -> None:
+        """An example command to say hello to another HTTP server."""
+        name = "unknown" if name is None else name
+        r = requests.get("http://example.com/hello/" + name)
+        click.echo(r.text + "\n")
+
+    @monitor_cli.command(name="hello-async")
+    @click.argument("name", optional=True)
+    @custom_help_option
+    @auto_async_command_done  # async version
+    async def do_async_hello(ctx: click.Context, name: Optional[str] = None) -> None:
+        """An example command to asynchronously say hello to another HTTP server."""
+        name = "unknown" if name is None else name
+        async with aiohttp.ClientSession() as sess:
+            async with sess.get("http://example.com/hello/" + name) as resp:
+                click.echo(await resp.text())
 
 This custom command will be able to do anything you could do in the python REPL,
 so you can add custom shortcuts here, that would be tedious to do manually in
 the console.
 
+``auto_command_done`` or ``auto_async_command_done`` is requried to ensure that
+the command function notifies its completion to the telnet's main loop coroutine.
+
+``custom_help_option`` is required to provide a ``--help`` option to your command
+that is compatible with completion notification like above.
+
 By using the "locals" argument to ``start_monitor`` you can give any of your
-commands access to anything they might need to do their jobs.
+commands access to anything they might need to do their jobs by accessing
+them via ``ctx.obj.console_locals`` in the command function.
 
-Modify the basic behaviour of the command loop
-----------------------------------------------
 
-Like the standard library's cmd_ module, you can customise how the behaviour of the
-Monitor in various ways, see :ref:`api_reference`.
-
-.. _aiohttp: https://github.com/KeepSafe/aiohttp
+.. _aiohttp: https://github.com/aio-libs/aiohttp

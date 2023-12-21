@@ -87,6 +87,11 @@ async def cancel_task(task: "asyncio.Task[Any]") -> None:
 
 
 class Monitor:
+    prompt: str
+    """
+    The string that prompts you to enter a command, defaults to ``"monitor >>> "``
+    """
+
     _event_loop_thread_id: Optional[int] = None
 
     console_locals: Dict[str, Any]
@@ -158,10 +163,16 @@ class Monitor:
 
     @property
     def host(self) -> str:
+        """
+        The current hostname to bind the monitor server.
+        """
         return self._host
 
     @property
     def port(self) -> int:
+        """
+        The port number to bind the monitor server.
+        """
         return self._termui_port
 
     def __repr__(self) -> str:
@@ -171,6 +182,9 @@ class Monitor:
         )
 
     def start(self) -> None:
+        """
+        Starts monitoring thread, where telnet server is executed.
+        """
         assert not self._closed
         assert not self._started
         self._started = True
@@ -183,6 +197,11 @@ class Monitor:
 
     @property
     def closed(self) -> bool:
+        """
+        A flag indicates if monitor was closed, currntly instance of
+        :class:`Monitor` can not be reused. For new monitor, new instance
+        should be created.
+        """
         return self._closed
 
     def __enter__(self) -> Monitor:
@@ -202,6 +221,9 @@ class Monitor:
         self.close()
 
     def close(self) -> None:
+        """
+        Joins background thread, and cleans up resources.
+        """
         assert self._started, "The monitor must have been started to close it."
         if not self._closed:
             self._ui_loop.call_soon_threadsafe(
@@ -616,6 +638,20 @@ def start_monitor(
     max_termination_history: Optional[int] = None,
     locals: Optional[Dict[str, Any]] = None,
 ) -> Monitor:
+    """
+    Factory function, creates instance of :class:`Monitor` and starts
+    monitoring thread.
+
+    :param Type[Monitor] monitor: Monitor class to use
+    :param str host: hostname to serve monitor telnet server
+    :param int port: monitor port (terminal UI), by default 20101
+    :param int webui_port: monitor port (web UI), by default 20102
+    :param int console_port: python REPL port, by default 20103
+    :param bool console_enabled: flag indicates if python REPL is requred
+        to start with instance of monitor.
+    :param dict locals: dictionary with variables exposed in python console
+        environment
+    """
     m = monitor_cls(
         loop,
         host=host,
