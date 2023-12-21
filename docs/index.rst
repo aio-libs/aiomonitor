@@ -12,8 +12,10 @@ Task monitor that runs concurrently to the :mod:`asyncio` loop (or fast drop in
 replacement uvloop_) in a separate thread. This can inspect the loop and
 provide debugging capabilities.
 
-Library provides an python console using aioconsole_ library, it is possible
+aiomonitor provides an python console using aioconsole_ library, it is possible
 to execute asynchronous command inside your running application.
+
+As of 0.6.0, it also provides a GUI to inspect and cancel asyncio tasks like below:
 
 +----------------------------+
 | .. image:: webui-demo1.gif |
