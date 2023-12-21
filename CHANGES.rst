@@ -3,6 +3,25 @@ CHANGES
 
 .. towncrier release notes start
 
+0.7.0 (2023-12-21)
+---------------------------------
+
+- Overhauled the documentation
+  (`#393 <https://github.com/aio-libs/aiomonitor/issues/393>`_)
+
+- Adopted ruff to replace black, flake8 and isort
+  (`#391 <https://github.com/aio-libs/aiomonitor/issues/391>`_)
+
+- Added a new demo example to show various features of aiomonitor, especially using the GUI (also for PyCon APAC 2023 talk)
+  (`#385 <https://github.com/aio-libs/aiomonitor/issues/385>`_)
+
+- Relaxed our direct dependnecy version range of aiohttp ("3.8.5 only" to "3.8.5 and higher") to enable installation on Python 3.12
+  (`#389 <https://github.com/aio-libs/aiomonitor/issues/389>`_)
+
+- Updated the README example to conform with the latest API and convention
+  (`#383 <https://github.com/aio-libs/aiomonitor/issues/383>`_)
+
+
 0.6.0 (2023-08-27)
 ------------------
 

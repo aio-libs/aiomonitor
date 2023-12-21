@@ -1,1 +1,0 @@
-Updated the README example to conform with the latest API and convention
