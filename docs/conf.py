@@ -38,7 +38,7 @@ _docs_path = pathlib.Path(__file__).parent
 try:
     _version_info = get_version("aiomonitor")
 except IndexError:
-    raise RuntimeError("Unable to determine version.")
+    raise RuntimeError("Unable to determine version.") from None
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom

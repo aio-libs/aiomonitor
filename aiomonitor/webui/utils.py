@@ -44,9 +44,9 @@ async def check_params(
         raise web.HTTPBadRequest(
             content_type="application/json",
             body=json.dumps({"msg": "Invalid parameters", "detail": detail}),
-        )
+        ) from None
     except Exception as e:
         raise web.HTTPInternalServerError(
             content_type="application/json",
             body=json.dumps({"msg": "Internal server error", "detail": repr(e)}),
-        )
+        ) from e

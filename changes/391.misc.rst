@@ -1,0 +1,1 @@
+Replace black, flake8, and isort with ruff to simplify and speed up CI and pre-commit checks

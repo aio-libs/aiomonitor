@@ -97,7 +97,7 @@ class TracedTask(asyncio.Task):
 
 
 def preserve_termination_log(
-    corofunc: Callable[P, Coroutine[Any, None, T]]
+    corofunc: Callable[P, Coroutine[Any, None, T]],
 ) -> Callable[P, Coroutine[Any, None, T]]:
     """
     Guard the given coroutine function from being stripped out due to the max history
