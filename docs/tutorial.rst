@@ -30,6 +30,9 @@ Basic aiohttp server
        with aiomonitor.start_monitor(loop):
            await web._run_app(app, port=20101, host="localhost")
 
+    if __name__ == "__main__":
+        asyncio.run(main())
+
 Lets save this code in file ``simple_srv.py``, so we can run it with command::
 
     $ python simple_srv.py
