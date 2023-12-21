@@ -1,0 +1,1 @@
+Added a new demo example to show various features of aiomonitor, especially using the GUI (also for PyCon APAC 2023 talk)

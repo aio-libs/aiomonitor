@@ -662,7 +662,8 @@ def start_monitor(
         hook_task_factory=hook_task_factory,
         max_termination_history=(
             max_termination_history
-            or get_default_args(monitor_cls.__init__)["max_termination_history"]
+            if max_termination_history is not None
+            else get_default_args(monitor_cls.__init__)["max_termination_history"]
         ),
         locals=locals,
     )
