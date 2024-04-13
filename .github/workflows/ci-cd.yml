@@ -93,7 +93,7 @@ jobs:
     - name: Run tests
       run: python -m pytest --cov=aiomonitor -v tests
     - name: Upload coverage data
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
 
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
@@ -142,7 +142,7 @@ jobs:
       # Confusingly, this action also supports updating releases, not
       # just creating them. This is what we want here, since we've manually
       # created the release above.
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         # dist/ contains the built packages, which smoketest-artifacts/
         # contains the signatures and certificates.
