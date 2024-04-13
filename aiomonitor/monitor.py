@@ -16,7 +16,9 @@ from datetime import timedelta
 from types import TracebackType
 from typing import (
     Any,
+    AsyncIterator,
     Awaitable,
+    Callable,
     Coroutine,
     Dict,
     Final,
@@ -35,6 +37,7 @@ from prompt_toolkit.contrib.telnet.server import TelnetServer
 
 from .exceptions import MissingTask
 from .task import TracedTask, persistent_coro
+from .telemetry.app import init_telemetry
 from .termui.commands import interact
 from .types import (
     CancellationChain,
@@ -68,6 +71,7 @@ MONITOR_HOST: Final = "127.0.0.1"
 MONITOR_TERMUI_PORT: Final = 20101
 MONITOR_WEBUI_PORT: Final = 20102
 CONSOLE_PORT: Final = 20103
+TELEMETRY_PORT: Final = 20104
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -120,6 +124,8 @@ class Monitor:
         webui_port: int = MONITOR_WEBUI_PORT,
         console_port: int = CONSOLE_PORT,
         console_enabled: bool = True,
+        telemetry_port: int = TELEMETRY_PORT,
+        telemetry_enabled: bool = True,
         hook_task_factory: bool = False,
         max_termination_history: int = 1000,
         locals: Optional[Dict[str, Any]] = None,
@@ -134,6 +140,8 @@ class Monitor:
             self.console_locals = {"__name__": "__console__", "__doc__": None}
         else:
             self.console_locals = locals
+        self._telemetry_port = telemetry_port
+        self._telemetry_enabled = telemetry_enabled
 
         self.prompt = "monitor >>> "
         log.info(
@@ -545,6 +553,26 @@ class Monitor:
     def _ui_main(self) -> None:
         asyncio.run(self._ui_main_async())
 
+    @contextlib.asynccontextmanager
+    async def _webapp_ctx(
+        self,
+        app_factory: Callable[[], Awaitable[web.Application]],
+        port: int,
+    ) -> AsyncIterator[None]:
+        runner = web.AppRunner(await app_factory())
+        await runner.setup()
+        site = web.TCPSite(
+            runner,
+            str(self._host),
+            port,
+            reuse_port=True,
+        )
+        await site.start()
+        try:
+            yield
+        finally:
+            await runner.cleanup()
+
     async def _ui_main_async(self) -> None:
         loop = asyncio.get_running_loop()
         self._termination_info_queue = janus.Queue()
@@ -562,36 +590,29 @@ class Monitor:
             host=self._host,
             port=self._termui_port,
         )
-        webui_app = await init_webui(self)
-        webui_runner = web.AppRunner(webui_app)
-        await webui_runner.setup()
-        webui_site = web.TCPSite(
-            webui_runner,
-            str(self._host),
-            self._webui_port,
-            reuse_port=True,
-        )
-        await webui_site.start()
         telnet_server.start()
-        await asyncio.sleep(0)
-        self._ui_started.set()
-        try:
-            await self._ui_forever_future
-        except asyncio.CancelledError:
-            pass
-        finally:
-            termui_tasks = {*self._termui_tasks}
-            for termui_task in termui_tasks:
-                termui_task.cancel()
-            await asyncio.gather(*termui_tasks, return_exceptions=True)
-            self._ui_termination_handler_task.cancel()
-            self._ui_cancellation_handler_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._ui_termination_handler_task
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._ui_cancellation_handler_task
-            await telnet_server.stop()
-            await webui_runner.cleanup()
+        async with (
+            self._webapp_ctx(lambda: init_webui(self), self._webui_port),
+            self._webapp_ctx(lambda: init_telemetry(self), self._telemetry_port),
+        ):
+            await asyncio.sleep(0)
+            self._ui_started.set()
+            try:
+                await self._ui_forever_future
+            except asyncio.CancelledError:
+                pass
+            finally:
+                termui_tasks = {*self._termui_tasks}
+                for termui_task in termui_tasks:
+                    termui_task.cancel()
+                await asyncio.gather(*termui_tasks, return_exceptions=True)
+                self._ui_termination_handler_task.cancel()
+                self._ui_cancellation_handler_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._ui_termination_handler_task
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._ui_cancellation_handler_task
+                await telnet_server.stop()
 
     async def _ui_handle_termination_updates(self) -> None:
         while True:
@@ -633,7 +654,9 @@ def start_monitor(
     port: int = MONITOR_TERMUI_PORT,  # kept the name for backward compatibility
     console_port: int = CONSOLE_PORT,
     webui_port: int = MONITOR_WEBUI_PORT,
+    telemetry_port: int = TELEMETRY_PORT,
     console_enabled: bool = True,
+    telemetry_enabled: bool = True,
     hook_task_factory: bool = False,
     max_termination_history: Optional[int] = None,
     locals: Optional[Dict[str, Any]] = None,
@@ -659,6 +682,8 @@ def start_monitor(
         webui_port=webui_port,
         console_port=console_port,
         console_enabled=console_enabled,
+        telemetry_port=telemetry_port,
+        telemetry_enabled=telemetry_enabled,
         hook_task_factory=hook_task_factory,
         max_termination_history=(
             max_termination_history
