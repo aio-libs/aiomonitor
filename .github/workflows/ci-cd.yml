@@ -93,7 +93,7 @@ jobs:
     - name: Run tests
       run: python -m pytest --cov=aiomonitor -v tests
     - name: Upload coverage data
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
 
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
