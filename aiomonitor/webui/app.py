@@ -39,14 +39,12 @@ class TaskTypeParams(APIParams):
 
     @classmethod
     def get_checker(cls):
-        return t.Dict(
-            {
-                t.Key("task_type", default=TaskTypes.RUNNING): t.Enum(
-                    TaskTypes.RUNNING,
-                    TaskTypes.TERMINATED,
-                ),
-            }
-        )
+        return t.Dict({
+            t.Key("task_type", default=TaskTypes.RUNNING): t.Enum(
+                TaskTypes.RUNNING,
+                TaskTypes.TERMINATED,
+            ),
+        })
 
 
 @dataclasses.dataclass
@@ -55,11 +53,9 @@ class TaskIdParams(APIParams):
 
     @classmethod
     def get_checker(cls) -> t.Trafaret:
-        return t.Dict(
-            {
-                t.Key("task_id"): t.String,
-            }
-        )
+        return t.Dict({
+            t.Key("task_id"): t.String,
+        })
 
 
 @dataclasses.dataclass
@@ -69,12 +65,10 @@ class ListFilterParams(APIParams):
 
     @classmethod
     def get_checker(cls) -> t.Trafaret:
-        return t.Dict(
-            {
-                t.Key("filter", default=""): t.String(allow_blank=True),
-                t.Key("persistent", default=False): t.ToBool,
-            }
-        )
+        return t.Dict({
+            t.Key("filter", default=""): t.String(allow_blank=True),
+            t.Key("persistent", default=False): t.ToBool,
+        })
 
 
 @dataclasses.dataclass

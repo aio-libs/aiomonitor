@@ -50,12 +50,10 @@ class TracedTask(asyncio.Task):
         self._persistent = persistent
 
     def get_trace_id(self) -> str:
-        h = hash(
-            (
-                id(self),
-                self.get_name(),
-            )
-        )
+        h = hash((
+            id(self),
+            self.get_name(),
+        ))
         b = struct.pack("P", h)
         return base64.b32encode(b).rstrip(b"=").decode()
 

@@ -66,23 +66,19 @@ click.utils._default_text_stderr = _get_current_stderr
 
 def print_ok(msg: str) -> None:
     print_formatted_text(
-        FormattedText(
-            [
-                ("ansibrightgreen", "✓ "),
-                ("", msg),
-            ]
-        )
+        FormattedText([
+            ("ansibrightgreen", "✓ "),
+            ("", msg),
+        ])
     )
 
 
 def print_fail(msg: str) -> None:
     print_formatted_text(
-        FormattedText(
-            [
-                ("ansibrightred", "✗ "),
-                ("", msg),
-            ]
-        )
+        FormattedText([
+            ("ansibrightred", "✗ "),
+            ("", msg),
+        ])
     )
 
 
@@ -117,11 +113,9 @@ async def interact(self: Monitor, connection: TelnetConnection) -> None:
             try:
                 user_input = (
                     await prompt_session.prompt_async(
-                        FormattedText(
-                            [
-                                (style_prompt, self.prompt),
-                            ]
-                        )
+                        FormattedText([
+                            (style_prompt, self.prompt),
+                        ])
                     )
                 ).strip()
             except KeyboardInterrupt:
@@ -422,16 +416,14 @@ def do_ps(
     table_data: List[Tuple[str, str, str, str, str, str]] = [headers]
     tasks = self.format_running_task_list(filter_, persistent)
     for task in tasks:
-        table_data.append(
-            (
-                task.task_id,
-                task.state,
-                task.name,
-                task.coro,
-                task.created_location,
-                task.since,
-            )
-        )
+        table_data.append((
+            task.task_id,
+            task.state,
+            task.name,
+            task.coro,
+            task.created_location,
+            task.since,
+        ))
     table = AsciiTable(table_data)
     table.inner_row_border = False
     table.inner_column_border = False
@@ -469,15 +461,13 @@ def do_ps_terminated(
     table_data: List[Tuple[str, str, str, str, str]] = [headers]
     tasks = self.format_terminated_task_list(filter_, persistent)
     for task in tasks:
-        table_data.append(
-            (
-                task.task_id,
-                task.name,
-                task.coro,
-                task.started_since,
-                task.terminated_since,
-            )
-        )
+        table_data.append((
+            task.task_id,
+            task.name,
+            task.coro,
+            task.started_since,
+            task.terminated_since,
+        ))
     table = AsciiTable(table_data)
     table.inner_row_border = False
     table.inner_column_border = False
@@ -509,11 +499,9 @@ def do_where(ctx: click.Context, taskid: str) -> None:
         if item_type == "header":
             stdout.write("\n")
             print_formatted_text(
-                FormattedText(
-                    [
-                        ("ansiwhite", item_text),
-                    ]
-                )
+                FormattedText([
+                    ("ansiwhite", item_text),
+                ])
             )
         else:
             stdout.write(textwrap.indent(item_text.strip("\n"), "  "))
@@ -537,11 +525,9 @@ def do_where_terminated(ctx: click.Context, trace_id: str) -> None:
         if item_type == "header":
             stdout.write("\n")
             print_formatted_text(
-                FormattedText(
-                    [
-                        ("ansiwhite", item_text),
-                    ]
-                )
+                FormattedText([
+                    ("ansiwhite", item_text),
+                ])
             )
         else:
             stdout.write(textwrap.indent(item_text.strip("\n"), "  "))
