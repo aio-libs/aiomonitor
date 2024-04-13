@@ -35,13 +35,11 @@ def do_hello(ctx: click.Context) -> None:
     from prompt_toolkit.formatted_text import FormattedText
 
     print_formatted_text(
-        FormattedText(
-            [
-                ("ansibrightblue", "Hello, "),
-                ("ansibrightyellow", "world, "),
-                ("ansibrightmagenta", "with color!"),
-            ]
-        )
+        FormattedText([
+            ("ansibrightblue", "Hello, "),
+            ("ansibrightyellow", "world, "),
+            ("ansibrightmagenta", "with color!"),
+        ])
     )
 
     # or:

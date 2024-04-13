@@ -22,6 +22,9 @@ ignore = ["E203", "E731", "E501", "Q000"]
 known-first-party = ["aiomonitor"]
 split-on-trailing-comma = true
 
+[tool.ruff.format]
+preview = true
+
 [tool.mypy]
 ignore_missing_imports = true
 
