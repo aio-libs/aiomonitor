@@ -144,14 +144,23 @@ class Monitor:
         self._telemetry_enabled = telemetry_enabled
 
         self.prompt = "monitor >>> "
-        log.info(
-            "Starting aiomonitor at telnet://%(host)s:%(tport)d and http://%(host)s:%(wport)d",
-            {
-                "host": host,
-                "tport": termui_port,
-                "wport": webui_port,
-            },
-        )
+        if console_enabled:
+            log.info(
+                "Starting aiomonitor console at telnet://%(host)s:%(tport)d and http://%(host)s:%(wport)d",
+                {
+                    "host": host,
+                    "tport": termui_port,
+                    "wport": webui_port,
+                },
+            )
+        if telemetry_enabled:
+            log.info(
+                "Starting aiomonitor telemetry service at http://%(host)s:%(port)d",
+                {
+                    "host": host,
+                    "port": telemetry_port,
+                },
+            )
 
         self._closed = False
         self._started = False
