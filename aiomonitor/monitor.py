@@ -591,10 +591,9 @@ class Monitor:
             port=self._termui_port,
         )
         telnet_server.start()
-        async with (
-            self._webapp_ctx(lambda: init_webui(self), self._webui_port),
-            self._webapp_ctx(lambda: init_telemetry(self), self._telemetry_port),
-        ):
+        async with self._webapp_ctx(
+            lambda: init_webui(self), self._webui_port
+        ), self._webapp_ctx(lambda: init_telemetry(self), self._telemetry_port):
             await asyncio.sleep(0)
             self._ui_started.set()
             try:
