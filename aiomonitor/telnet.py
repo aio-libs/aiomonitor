@@ -6,7 +6,7 @@ import fcntl
 import os
 import struct
 import sys
-import telnetlib
+import telnetlib3
 import termios
 from typing import Dict, Optional, TextIO, Tuple
 
@@ -61,7 +61,7 @@ class TelnetClient:
 
     def determine_mode(self, mode: ModeDef) -> ModeDef:
         # Reference: https://github.com/jquast/telnetlib3/blob/b90616f/telnetlib3/client_shell.py#L76
-        if not self._remote_options[telnetlib.ECHO]:
+        if not self._remote_options[telnetlib3.ECHO]:
             return mode
         iflag = mode.iflag & ~(
             termios.BRKINT
@@ -160,31 +160,31 @@ class TelnetClient:
             pass
 
     async def _handle_nego(self, command: bytes, option: bytes) -> None:
-        if command == telnetlib.DO and option == telnetlib.TTYPE:
-            self._conn_writer.write(telnetlib.IAC + telnetlib.WILL + telnetlib.TTYPE)
-            self._conn_writer.write(telnetlib.IAC + telnetlib.SB + telnetlib.TTYPE)
-            self._conn_writer.write(telnetlib.BINARY + self._term.encode("ascii"))
-            self._conn_writer.write(telnetlib.IAC + telnetlib.SE)
+        if command == telnetlib3.DO and option == telnetlib3.TTYPE:
+            self._conn_writer.write(telnetlib3.IAC + telnetlib3.WILL + telnetlib3.TTYPE)
+            self._conn_writer.write(telnetlib3.IAC + telnetlib3.SB + telnetlib3.TTYPE)
+            self._conn_writer.write(telnetlib3.BINARY + self._term.encode("ascii"))
+            self._conn_writer.write(telnetlib3.IAC + telnetlib3.SE)
             await self._conn_writer.drain()
-        elif command == telnetlib.DO and option == telnetlib.NAWS:
-            self._conn_writer.write(telnetlib.IAC + telnetlib.WILL + telnetlib.NAWS)
-            self._conn_writer.write(telnetlib.IAC + telnetlib.SB + telnetlib.NAWS)
+        elif command == telnetlib3.DO and option == telnetlib3.NAWS:
+            self._conn_writer.write(telnetlib3.IAC + telnetlib3.WILL + telnetlib3.NAWS)
+            self._conn_writer.write(telnetlib3.IAC + telnetlib3.SB + telnetlib3.NAWS)
             fmt = "HHHH"
             buf = b"\x00" * struct.calcsize(fmt)
             try:
                 buf = fcntl.ioctl(self._stdin.fileno(), termios.TIOCGWINSZ, buf)
                 rows, cols, _, _ = struct.unpack(fmt, buf)
                 self._conn_writer.write(struct.pack(">HH", cols, rows))
-                self._conn_writer.write(telnetlib.IAC + telnetlib.SE)
+                self._conn_writer.write(telnetlib3.IAC + telnetlib3.SE)
             except OSError:
                 rows, cols = 22, 80
             await self._conn_writer.drain()
-        elif command == telnetlib.WILL:
+        elif command == telnetlib3.WILL:
             self._remote_options[option] = True
-            if option in (telnetlib.ECHO, telnetlib.BINARY, telnetlib.SGA):
-                self._conn_writer.write(telnetlib.IAC + telnetlib.DO + option)
+            if option in (telnetlib3.ECHO, telnetlib3.BINARY, telnetlib3.SGA):
+                self._conn_writer.write(telnetlib3.IAC + telnetlib3.DO + option)
                 await self._conn_writer.drain()
-        elif command == telnetlib.WONT:
+        elif command == telnetlib3.WONT:
             self._remote_options[option] = False
 
     async def _handle_sb(self, option: bytes, chunk: bytes) -> None:
@@ -196,7 +196,7 @@ class TelnetClient:
             while not self._conn_reader.at_eof():
                 buf += await self._conn_reader.read(128)
                 while buf:
-                    cmd_begin = buf.find(telnetlib.IAC)
+                    cmd_begin = buf.find(telnetlib3.IAC)
                     if cmd_begin == -1:
                         self._stdout_writer.write(buf)
                         await self._stdout_writer.drain()
@@ -212,20 +212,20 @@ class TelnetClient:
                         self._stdout_writer.write(buf_before)
                         await self._stdout_writer.drain()
                         if command in (
-                            telnetlib.WILL,
-                            telnetlib.WONT,
-                            telnetlib.DO,
-                            telnetlib.DONT,
+                            telnetlib3.WILL,
+                            telnetlib3.WONT,
+                            telnetlib3.DO,
+                            telnetlib3.DONT,
                         ):
                             await self._handle_nego(command, option)
-                        elif command == telnetlib.SB:
-                            subnego_end = buf_after.find(telnetlib.IAC + telnetlib.SE)
+                        elif command == telnetlib3.SB:
+                            subnego_end = buf_after.find(telnetlib3.IAC + telnetlib3.SE)
                             if subnego_end == -1:
                                 subnego_chunk = (
                                     buf_after
                                     + (
                                         await self._conn_reader.readuntil(
-                                            telnetlib.IAC + telnetlib.SE
+                                            telnetlib3.IAC + telnetlib3.SE
                                         )
                                     )[:-2]
                                 )
