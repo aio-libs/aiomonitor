@@ -6,9 +6,10 @@ import fcntl
 import os
 import struct
 import sys
-import telnetlib3
 import termios
 from typing import Dict, Optional, TextIO, Tuple
+
+import telnetlib3
 
 ModeDef = collections.namedtuple(
     "ModeDef", ["iflag", "oflag", "cflag", "lflag", "ispeed", "ospeed", "cc"]
