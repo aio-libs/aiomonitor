@@ -473,7 +473,7 @@ def do_ps_terminated(
     table.inner_column_border = False
     if filter_ or persistent:
         stdout.write(
-            f"{len(tasks)} tasks terminated " f"(showing {len(table_data) - 1} tasks)\n"
+            f"{len(tasks)} tasks terminated (showing {len(table_data) - 1} tasks)\n"
         )
     else:
         stdout.write(f"{len(tasks)} tasks terminated (old ones may be stripped)\n")

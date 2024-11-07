@@ -110,9 +110,7 @@ html_theme = "alabaster"
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-aiomonitor_desc = (
-    "module that adds monitor and cli capabilities" "for asyncio application"
-)
+aiomonitor_desc = "module that adds monitor and cli capabilitiesfor asyncio application"
 html_theme_options = {
     "description": aiomonitor_desc,
     "github_user": "aio-libs",
