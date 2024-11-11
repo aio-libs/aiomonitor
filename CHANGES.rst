@@ -3,8 +3,15 @@ CHANGES
 
 .. towncrier release notes start
 
+0.7.1 (2024-11-12)
+------------------
+
+- Added Python 3.13 support by replacing telnetlib with telnetlib3 and dropped Python 3.8 support
+  (`#411 <https://github.com/aio-libs/aiomonitor/issues/411>`_)
+
+
 0.7.0 (2023-12-21)
----------------------------------
+------------------
 
 - Overhauled the documentation
   (`#393 <https://github.com/aio-libs/aiomonitor/issues/393>`_)
