@@ -47,7 +47,7 @@ Monitor has context manager interface:
 
 .. code:: python
 
-    import aiomonitor
+    import aiomonitor, asyncio
 
     async def main():
         loop = asyncio.get_running_loop()
