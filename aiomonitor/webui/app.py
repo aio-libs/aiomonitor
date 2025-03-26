@@ -89,6 +89,9 @@ nav_menus: Mapping[str, NavigationItem] = {
 }
 
 
+ctx_key = web.AppKey("ctx_key", WebUIContext)
+
+
 def get_navigation_info(
     route: str,
 ) -> Tuple[NavigationItem, Mapping[str, NavigationItem]]:
@@ -105,7 +108,7 @@ def get_navigation_info(
 
 
 async def show_list_page(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     nav_info, nav_items = get_navigation_info(request.path)
     template = ctx.jenv.get_template("index.html")
     async with check_params(request, TaskTypeParams) as params:
@@ -124,7 +127,7 @@ async def show_list_page(request: web.Request) -> web.Response:
 
 
 async def show_about_page(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     nav_info, nav_items = get_navigation_info(request.path)
     template = ctx.jenv.get_template("about.html")
     output = template.render(
@@ -137,7 +140,7 @@ async def show_about_page(request: web.Request) -> web.Response:
 
 
 async def show_trace_page(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     template = ctx.jenv.get_template("trace.html")
     async with check_params(request, TaskIdParams) as params:
         if request.path.startswith("/trace-running"):
@@ -166,7 +169,7 @@ async def get_version(request: web.Request) -> web.Response:
 
 async def get_task_count(request: web.Request) -> web.Response:
     async with check_params(request, TaskTypeParams) as params:
-        ctx: WebUIContext = request.app["ctx"]
+        ctx: WebUIContext = request.app[ctx_key]
         if params.task_type == TaskTypes.RUNNING:
             count = len(asyncio.all_tasks(ctx.monitor._monitored_loop))
         elif params.task_type == TaskTypes.TERMINATED:
@@ -181,7 +184,7 @@ async def get_task_count(request: web.Request) -> web.Response:
 
 
 async def get_live_task_list(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     async with check_params(request, ListFilterParams) as params:
         tasks = ctx.monitor.format_running_task_list(
             params.filter,
@@ -206,7 +209,7 @@ async def get_live_task_list(request: web.Request) -> web.Response:
 
 
 async def get_terminated_task_list(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     async with check_params(request, ListFilterParams) as params:
         tasks = ctx.monitor.format_terminated_task_list(
             params.filter,
@@ -229,7 +232,7 @@ async def get_terminated_task_list(request: web.Request) -> web.Response:
 
 
 async def cancel_task(request: web.Request) -> web.Response:
-    ctx: WebUIContext = request.app["ctx"]
+    ctx: WebUIContext = request.app[ctx_key]
     async with check_params(request, TaskIdParams) as params:
         try:
             coro_repr = await ctx.monitor.cancel_monitored_task(params.task_id)
@@ -251,7 +254,7 @@ async def init_webui(monitor: Monitor) -> web.Application:
         loader=PackageLoader("aiomonitor.webui"), autoescape=select_autoescape()
     )
     app = web.Application()
-    app["ctx"] = WebUIContext(
+    app[ctx_key] = WebUIContext(
         monitor=monitor,
         jenv=jenv,
     )
