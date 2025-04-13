@@ -43,7 +43,7 @@ jobs:
     - name: Build artifacts
       run: python -m build
     - name: Upload built artifacts for testing
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.sdist-artifact }}
         # NOTE: Exact expected file names are specified here
@@ -93,7 +93,7 @@ jobs:
     - name: Run tests
       run: python -m pytest --cov=aiomonitor -v tests
     - name: Upload coverage data
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
 
   check:  # This job does nothing and is only used for the branch protection
     name: ✅ Ensure the required checks passing
@@ -122,7 +122,7 @@ jobs:
 
     steps:
     - name: Download the sdist artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ env.sdist-artifact }}
         path: dist
