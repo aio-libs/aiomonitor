@@ -75,7 +75,7 @@ def get_navigation_info(
     current_item = None
     for path, item in nav_menus.items():
         is_current = path == route
-        nav_items[path] = NavigationItem(item.title, is_current)
+        nav_items[path] = NavigationItem(title=item.title, current=is_current)
         if is_current:
             current_item = item
     if current_item is None:
