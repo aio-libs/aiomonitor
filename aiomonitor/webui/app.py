@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import sys
 from importlib.metadata import version
 from pathlib import Path
@@ -12,9 +11,9 @@ if sys.version_info >= (3, 11):
 else:
     from backports.strenum import StrEnum
 
-import trafaret as t
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
+from pydantic import Field
 
 from .utils import APIParams, check_params
 
@@ -22,10 +21,10 @@ if TYPE_CHECKING:
     from ..monitor import Monitor
 
 
-@dataclasses.dataclass
 class WebUIContext:
-    monitor: Monitor
-    jenv: Environment
+    def __init__(self, monitor: Monitor, jenv: Environment):
+        self.monitor = monitor
+        self.jenv = jenv
 
 
 class TaskTypes(StrEnum):
@@ -33,48 +32,23 @@ class TaskTypes(StrEnum):
     TERMINATED = "terminated"
 
 
-@dataclasses.dataclass
 class TaskTypeParams(APIParams):
-    task_type: TaskTypes
-
-    @classmethod
-    def get_checker(cls):
-        return t.Dict({
-            t.Key("task_type", default=TaskTypes.RUNNING): t.Enum(
-                TaskTypes.RUNNING,
-                TaskTypes.TERMINATED,
-            ),
-        })
+    task_type: TaskTypes = Field(default=TaskTypes.RUNNING)
 
 
-@dataclasses.dataclass
 class TaskIdParams(APIParams):
     task_id: str
 
-    @classmethod
-    def get_checker(cls) -> t.Trafaret:
-        return t.Dict({
-            t.Key("task_id"): t.String,
-        })
 
-
-@dataclasses.dataclass
 class ListFilterParams(APIParams):
-    filter: str
-    persistent: bool
-
-    @classmethod
-    def get_checker(cls) -> t.Trafaret:
-        return t.Dict({
-            t.Key("filter", default=""): t.String(allow_blank=True),
-            t.Key("persistent", default=False): t.ToBool,
-        })
+    filter: str = Field(default="")
+    persistent: bool = Field(default=False)
 
 
-@dataclasses.dataclass
 class NavigationItem:
-    title: str
-    current: bool
+    def __init__(self, title: str, current: bool):
+        self.title = title
+        self.current = current
 
 
 nav_menus: Mapping[str, NavigationItem] = {
