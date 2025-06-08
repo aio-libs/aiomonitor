@@ -13,7 +13,7 @@ else:
 
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from .utils import APIParams, check_params
 
@@ -22,6 +22,9 @@ if TYPE_CHECKING:
 
 
 class WebUIContext:
+    monitor: Monitor
+    jenv: Environment
+
     def __init__(self, monitor: Monitor, jenv: Environment):
         self.monitor = monitor
         self.jenv = jenv
@@ -45,10 +48,9 @@ class ListFilterParams(APIParams):
     persistent: bool = Field(default=False)
 
 
-class NavigationItem:
-    def __init__(self, title: str, current: bool):
-        self.title = title
-        self.current = current
+class NavigationItem(BaseModel):
+    title: str
+    current: bool
 
 
 nav_menus: Mapping[str, NavigationItem] = {
