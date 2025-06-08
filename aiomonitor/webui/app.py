@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import sys
 from importlib.metadata import version
 from pathlib import Path
@@ -13,7 +14,7 @@ else:
 
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from .utils import APIParams, check_params
 
@@ -21,13 +22,10 @@ if TYPE_CHECKING:
     from ..monitor import Monitor
 
 
+@dataclasses.dataclass
 class WebUIContext:
     monitor: Monitor
     jenv: Environment
-
-    def __init__(self, monitor: Monitor, jenv: Environment):
-        self.monitor = monitor
-        self.jenv = jenv
 
 
 class TaskTypes(StrEnum):
@@ -48,7 +46,8 @@ class ListFilterParams(APIParams):
     persistent: bool = Field(default=False)
 
 
-class NavigationItem(BaseModel):
+@dataclasses.dataclass
+class NavigationItem:
     title: str
     current: bool
 
