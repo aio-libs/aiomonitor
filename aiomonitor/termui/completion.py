@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
-from typing import TYPE_CHECKING, Iterable, List
+from typing import TYPE_CHECKING, Iterable, List, Union
 
 import click
 from click.shell_completion import (
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class ClickCompleter(Completer):
-    def __init__(self, root_command: click.Command) -> None:
+    def __init__(self, root_command: Union[click.Command, click.Group]) -> None:
         self._root_command = root_command
 
     def get_completions(
@@ -29,7 +29,7 @@ class ClickCompleter(Completer):
         document: Document,
         complete_event: CompleteEvent,
     ) -> Iterable[Completion]:
-        args = split_arg_string(document.current_line)
+        args = list(split_arg_string(document.current_line))
         incomplete = document.get_word_under_cursor()
         if incomplete and args and args[-1] == incomplete:
             args.pop()

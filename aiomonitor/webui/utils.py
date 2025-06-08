@@ -23,7 +23,7 @@ async def check_params(
             data = dict(request.query)
         else:
             body = await request.post()
-            data = dict(body)
+            data = {k: v for k, v in body.items()}
         params = model_class.model_validate(data)
         yield params
     except ValidationError as e:
