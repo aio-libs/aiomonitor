@@ -5,8 +5,12 @@ import signal
 from typing import TYPE_CHECKING, Iterable, List, Union
 
 import click
-from click.parser import split_arg_string
-from click.shell_completion import CompletionItem, _resolve_context, _resolve_incomplete
+from click.shell_completion import (
+    CompletionItem,
+    _resolve_context,
+    _resolve_incomplete,
+    split_arg_string,
+)
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
 

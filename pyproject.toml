@@ -26,6 +26,7 @@ split-on-trailing-comma = true
 preview = true
 
 [tool.mypy]
+files = ["aiomonitor/", "examples/", "tests/"]
 ignore_missing_imports = true
 
 [tool.towncrier]
