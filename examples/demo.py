@@ -88,7 +88,7 @@ async def main(
                 t.cancel()
                 await t
 
-        app.on_cleanup.append(_shutdown_timer_loop_task)
+        app.on_cleanup.append(_shutdown_timer_loop_task)  # type: ignore[arg-type]
         log_aiohttp_server.info(
             "started a sample aiohttp server: http://localhost:8090/"
         )
