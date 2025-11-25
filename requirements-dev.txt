@@ -8,7 +8,7 @@ ipdb==0.13.13
 mypy==1.18.2
 pre-commit==3.5.0
 pytest-asyncio==0.24.0
-pytest-cov==4.0.0
+pytest-cov==7.0.0
 pytest-sugar==0.9.7
 pytest==8.3.3
 ruff==0.14.2
