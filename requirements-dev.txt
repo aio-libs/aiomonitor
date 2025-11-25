@@ -5,7 +5,7 @@ aiotools==1.7.0
 attrs==24.2.0
 docutils==0.21.2
 ipdb==0.13.13
-mypy==1.13.0
+mypy==1.18.2
 pre-commit==3.5.0
 pytest-asyncio==0.24.0
 pytest-cov==4.0.0
