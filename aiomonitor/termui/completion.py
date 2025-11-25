@@ -5,8 +5,12 @@ import signal
 from typing import TYPE_CHECKING, Iterable, List
 
 import click
-from click.parser import split_arg_string
-from click.shell_completion import CompletionItem, _resolve_context, _resolve_incomplete
+from click.shell_completion import (
+    CompletionItem,
+    _resolve_context,
+    _resolve_incomplete,
+    split_arg_string,
+)
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
 
@@ -17,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class ClickCompleter(Completer):
-    def __init__(self, root_command: click.BaseCommand) -> None:
+    def __init__(self, root_command: click.Command) -> None:
         self._root_command = root_command
 
     def get_completions(

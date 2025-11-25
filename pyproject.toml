@@ -8,6 +8,9 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 line-length = 88
 src = ["aiomonitor", "tests", "examples"]
+preview = true
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -18,7 +21,7 @@ select = [
 ]
 ignore = ["E203", "E731", "E501", "Q000"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["aiomonitor"]
 split-on-trailing-comma = true
 
@@ -26,6 +29,7 @@ split-on-trailing-comma = true
 preview = true
 
 [tool.mypy]
+mypy_path = ["."]
 ignore_missing_imports = true
 
 [tool.towncrier]
@@ -36,3 +40,11 @@ title_format = "{version} ({project_date})"
 template = "changes/template.rst"
 underlines = ["-", "~", "^"]
 issue_format = "(`#{issue} <https://github.com/aio-libs/aiomonitor/issues/{issue}>`_)"
+
+[tool.pyright]
+include = [
+    ".",
+]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
