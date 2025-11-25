@@ -4,7 +4,7 @@ ci:
   autoupdate_schedule: quarterly
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  rev: v6.0.0
   hooks:
   - id: check-yaml
   - id: end-of-file-fixer
@@ -22,7 +22,7 @@ repos:
     additional_dependencies:
     - types-requests
 - repo: https://github.com/adrienverge/yamllint.git
-  rev: v1.35.1
+  rev: v1.37.1
   hooks:
   - id: yamllint
     types:
@@ -31,6 +31,6 @@ repos:
     args:
     - --strict
 - repo: https://github.com/twisted/towncrier
-  rev: 24.8.0
+  rev: 25.8.0
   hooks:
   - id: towncrier-check
