@@ -1,6 +1,6 @@
 -e .
 aioconsole==0.8.1
-aiohttp==3.10.10
+aiohttp==3.13.2
 aiotools==1.7.0
 attrs==24.2.0
 docutils==0.21.2
