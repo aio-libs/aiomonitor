@@ -12,9 +12,9 @@ if sys.version_info >= (3, 11):
 else:
     from backports.strenum import StrEnum
 
-import trafaret as t
 from aiohttp import web
 from jinja2 import Environment, PackageLoader, select_autoescape
+from pydantic import Field
 
 from .utils import APIParams, check_params
 
@@ -33,42 +33,17 @@ class TaskTypes(StrEnum):
     TERMINATED = "terminated"
 
 
-@dataclasses.dataclass
 class TaskTypeParams(APIParams):
-    task_type: TaskTypes
-
-    @classmethod
-    def get_checker(cls):
-        return t.Dict({
-            t.Key("task_type", default=TaskTypes.RUNNING): t.Enum(
-                TaskTypes.RUNNING,
-                TaskTypes.TERMINATED,
-            ),
-        })
+    task_type: TaskTypes = Field(default=TaskTypes.RUNNING)
 
 
-@dataclasses.dataclass
 class TaskIdParams(APIParams):
     task_id: str
 
-    @classmethod
-    def get_checker(cls) -> t.Trafaret:
-        return t.Dict({
-            t.Key("task_id"): t.String,
-        })
 
-
-@dataclasses.dataclass
 class ListFilterParams(APIParams):
-    filter: str
-    persistent: bool
-
-    @classmethod
-    def get_checker(cls) -> t.Trafaret:
-        return t.Dict({
-            t.Key("filter", default=""): t.String(allow_blank=True),
-            t.Key("persistent", default=False): t.ToBool,
-        })
+    filter: str = Field(default="")
+    persistent: bool = Field(default=False)
 
 
 @dataclasses.dataclass
@@ -99,7 +74,7 @@ def get_navigation_info(
     current_item = None
     for path, item in nav_menus.items():
         is_current = path == route
-        nav_items[path] = NavigationItem(item.title, is_current)
+        nav_items[path] = NavigationItem(title=item.title, current=is_current)
         if is_current:
             current_item = item
     if current_item is None:
