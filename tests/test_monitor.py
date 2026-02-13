@@ -11,6 +11,7 @@ from typing import Sequence
 
 import click
 import pytest
+from aiohttp.test_utils import TestClient, TestServer
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
@@ -26,10 +27,11 @@ from aiomonitor.termui.commands import (
     monitor_cli,
     print_ok,
 )
+from aiomonitor.webui.app import init_webui
 
 
 @contextlib.contextmanager
-def monitor_common():
+def monitor_common(readonly: bool = False):
     def make_baz():
         return "baz"
 
@@ -40,7 +42,7 @@ def monitor_common():
     # > fut = asyncio.wrap_future(asyncio.run_coroutine_threadsafe(...))
     # > await fut
     test_loop = asyncio.get_running_loop()
-    mon = Monitor(test_loop, locals=locals_)
+    mon = Monitor(test_loop, locals=locals_, readonly=readonly)
     with mon:
         yield mon
 
@@ -48,6 +50,12 @@ def monitor_common():
 @pytest.fixture
 async def monitor(request, event_loop):
     with monitor_common() as monitor_instance:
+        yield monitor_instance
+
+
+@pytest.fixture
+async def readonly_monitor(request, event_loop):
+    with monitor_common(readonly=True) as monitor_instance:
         yield monitor_instance
 
 
@@ -286,3 +294,88 @@ async def test_custom_monitor_command(monitor: Monitor):
 
     resp = await invoke_command(monitor, ["something", "someargument"])
     assert "doing something with someargument" in resp
+
+
+@pytest.mark.asyncio
+async def test_readonly_cancel_termui(readonly_monitor: Monitor) -> None:
+    async def sleeper():
+        await asyncio.sleep(100)
+
+    test_loop = readonly_monitor._monitored_loop
+    t = test_loop.create_task(sleeper())
+    t_id = id(t)
+    await asyncio.sleep(0.1)
+
+    resp = await invoke_command(readonly_monitor, ["cancel", str(t_id)])
+    assert "not available in read-only mode" in resp
+    assert not t.done()
+    t.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await t
+
+
+@pytest.mark.asyncio
+async def test_readonly_signal_termui(readonly_monitor: Monitor) -> None:
+    resp = await invoke_command(readonly_monitor, ["signal", "SIGUSR1"])
+    assert "not available in read-only mode" in resp
+
+
+@pytest.mark.asyncio
+async def test_readonly_console_termui(readonly_monitor: Monitor) -> None:
+    resp = await invoke_command(readonly_monitor, ["console"])
+    assert "not available in read-only mode" in resp
+
+
+@pytest.mark.asyncio
+async def test_readonly_cancel_monitored_task(readonly_monitor: Monitor) -> None:
+    async def sleeper():
+        await asyncio.sleep(100)
+
+    test_loop = readonly_monitor._monitored_loop
+    t = test_loop.create_task(sleeper())
+    t_id = id(t)
+    await asyncio.sleep(0.1)
+
+    with pytest.raises(PermissionError, match="read-only mode"):
+        await readonly_monitor.cancel_monitored_task(t_id)
+    assert not t.done()
+    t.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await t
+
+
+@pytest.mark.asyncio
+async def test_readonly_ps_still_works(readonly_monitor: Monitor) -> None:
+    resp = await invoke_command(readonly_monitor, ["ps"])
+    assert "tasks running" in resp
+
+
+@pytest.mark.asyncio
+async def test_readonly_ctor() -> None:
+    test_loop = asyncio.get_running_loop()
+    with Monitor(test_loop, readonly=True) as m:
+        assert m._readonly is True
+        await asyncio.sleep(0.01)
+    with Monitor(test_loop, readonly=False) as m:
+        assert m._readonly is False
+        await asyncio.sleep(0.01)
+
+
+@pytest.mark.asyncio
+async def test_readonly_cancel_webui(readonly_monitor: Monitor) -> None:
+    app = await init_webui(readonly_monitor)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.delete("/api/task", params={"task_id": "123"})
+        assert resp.status == 403
+        data = await resp.json()
+        assert "read-only mode" in data["msg"]
+
+
+@pytest.mark.asyncio
+async def test_webui_cancel_allowed_when_not_readonly(monitor: Monitor) -> None:
+    app = await init_webui(monitor)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.delete("/api/task", params={"task_id": "123"})
+        # Should not be 403 (will be 500 since cancel_monitored_task
+        # runs on a different loop and the task ID is invalid)
+        assert resp.status != 403
