@@ -372,6 +372,7 @@ def do_console(ctx: click.Context) -> None:
         return
     if not self._console_enabled:
         print_fail("Python console is disabled for this session!")
+        command_done.get().set()
         return
 
     @auto_async_command_done

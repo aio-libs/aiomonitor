@@ -26,6 +26,7 @@
 {% endblock %}
 {% block content %}
 {% if readonly %}
+<style>.task-cancel-btn { display: none !important; }</style>
 <div class="rounded-md bg-yellow-50 p-3 mb-4">
   <div class="flex">
     <div class="flex-shrink-0">
@@ -129,8 +130,7 @@
     {{^is_root}}
     <button
       type="button"
-      x-data x-show="!$store.config.readonly"
-      class="notify-result rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:opacity-50"
+      class="task-cancel-btn notify-result rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:opacity-50"
       hx-delete="/api/task"
       hx-params="not persistent,filter"
       hx-vals='{"task_id": "{{ task_id }}"}'
@@ -251,9 +251,6 @@
   document.addEventListener("alpine:init", () => {
     Alpine.store("filters", {
       persistent: false,
-    });
-    Alpine.store("config", {
-      readonly: {{ "true" if readonly else "false" }},
     });
     console.log("init filters")
   });

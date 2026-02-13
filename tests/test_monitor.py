@@ -11,6 +11,7 @@ from typing import Sequence
 
 import click
 import pytest
+from aiohttp.test_utils import TestClient, TestServer
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
@@ -26,6 +27,7 @@ from aiomonitor.termui.commands import (
     monitor_cli,
     print_ok,
 )
+from aiomonitor.webui.app import init_webui
 
 
 @contextlib.contextmanager
@@ -357,3 +359,23 @@ async def test_readonly_ctor() -> None:
     with Monitor(test_loop, readonly=False) as m:
         assert m._readonly is False
         await asyncio.sleep(0.01)
+
+
+@pytest.mark.asyncio
+async def test_readonly_cancel_webui(readonly_monitor: Monitor) -> None:
+    app = await init_webui(readonly_monitor)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.delete("/api/task", params={"task_id": "123"})
+        assert resp.status == 403
+        data = await resp.json()
+        assert "read-only mode" in data["msg"]
+
+
+@pytest.mark.asyncio
+async def test_webui_cancel_allowed_when_not_readonly(monitor: Monitor) -> None:
+    app = await init_webui(monitor)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.delete("/api/task", params={"task_id": "123"})
+        # Should not be 403 (will be 500 since cancel_monitored_task
+        # runs on a different loop and the task ID is invalid)
+        assert resp.status != 403
