@@ -25,7 +25,6 @@ async def check_params(
             body = await request.post()
             data = {k: str(v) for k, v in body.items()}
         params = model_class.model_validate(data)
-        yield params
     except ValidationError as e:
         error_messages = []
         for error in e.errors():
@@ -37,6 +36,8 @@ async def check_params(
             content_type="application/json",
             body=json.dumps({"msg": "Invalid parameters", "detail": detail}),
         ) from None
+    try:
+        yield params
     except Exception as e:
         raise web.HTTPInternalServerError(
             content_type="application/json",
