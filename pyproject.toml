@@ -2,8 +2,89 @@
 requires = ["setuptools>=69.2", "setuptools_scm[toml]>=8.0"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "aiomonitor"
+dynamic = ["version", "readme"]
+description = "Adds monitor and Python REPL capabilities for asyncio applications"
+keywords = ["asyncio", "aiohttp", "monitor", "debugging", "utility", "devtool"]
+license = "Apache-2.0"
+authors = [
+    {name = "Nikolay Novik", email = "nickolainovik@gmail.com"},
+]
+maintainers = [
+    {name = "Joongi Kim", email = "me@daybreaker.info"},
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX",
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "attrs>=20",
+    "aiohttp>=3.8.5",
+    "click>=8.0",
+    "janus>=1.0",
+    "jinja2>=3.1.2",
+    "backports.strenum>=1.2.4; python_version<'3.11'",
+    "terminaltables",
+    "trafaret>=2.1.1",
+    "typing-extensions>=4.1",
+    "prompt_toolkit>=3.0",
+    "aioconsole>=0.7.0",
+    "telnetlib3>=2.0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/aio-libs/aiomonitor"
+Documentation = "https://aiomonitor.readthedocs.io"
+Repository = "https://github.com/aio-libs/aiomonitor"
+Issues = "https://github.com/aio-libs/aiomonitor/issues"
+Changelog = "https://github.com/aio-libs/aiomonitor/blob/main/CHANGES.rst"
+Chat = "https://matrix.to/#/!aio-libs:matrix.org"
+
+[dependency-groups]
+dev = [
+    "aioconsole==0.8.2",
+    "aiohttp==3.10.10",
+    "aiotools==1.7.0",
+    "attrs==24.2.0",
+    "build==1.3.0",
+    "docutils==0.21.2",
+    "ipdb==0.13.13",
+    "mypy==1.18.2",
+    "pre-commit==3.5.0",
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==7.0.0",
+    "pytest-sugar==1.1.1",
+    "ruff==0.14.2",
+    "terminaltables==3.1.10",
+    "towncrier==24.8.0",
+    "types-requests",
+    "telnetlib3==2.0.4",
+    "uvloop==0.21.0",
+]
+doc = [
+    "sphinx~=7.2",
+    "sphinx-click~=5.1.0",
+    "sphinx-autodoc-typehints~=1.25",
+]
+
 [tool.setuptools_scm]
 # enables setuptools_scm to provide the dynamic version
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst"}
+
+[tool.setuptools.packages.find]
+exclude = ["examples*", "tools*"]
 
 [tool.ruff]
 line-length = 88

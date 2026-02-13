@@ -1,4 +1,0 @@
--e .
-sphinx~=7.2
-sphinx_click~=5.1.0
-sphinx_autodoc_typehints~=1.25

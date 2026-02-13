@@ -15,8 +15,6 @@ on:  # yamllint disable-line rule:truthy
 
 env:
   FORCE_COLOR: "1"  # Make tools pretty.
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
-  PIP_NO_PYTHON_VERSION_WARNING: "1"
   PYTHON_LATEST: "3.13"
 
   # For re-actors/checkout-python-sdist
@@ -33,15 +31,12 @@ jobs:
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@v5
       with:
         python-version: ${{ env.PYTHON_LATEST }}
-        cache: pip
-    - run: python -m pip install build
-      name: Install core libraries for build and install
     - name: Build artifacts
-      run: python -m build
+      run: uv build
     - name: Upload built artifacts for testing
       uses: actions/upload-artifact@v6
       with:
@@ -65,33 +60,27 @@ jobs:
       fail-fast: true
       matrix:
         python-version:
-        - "3.9"
         - "3.10"
         - "3.11"
         - "3.12"
         - "3.13"
         experimental: [false]
         # include:
-        # - python-version: "~3.12.0-0"
+        # - python-version: "~3.14.0-0"
         #   experimental: true
     steps:
     - name: Checkout the source code
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@v5
       with:
         python-version: ${{ matrix.python-version }}
-        cache: pip
-        cache-dependency-path: |
-          setup.cfg
-          requirements-dev.txt
     - name: Install dependencies
-      run: |
-        pip install -U -r requirements-dev.txt
+      run: uv sync --group dev
     - name: Run tests
-      run: python -m pytest --cov=aiomonitor -v tests
+      run: uv run pytest --cov=aiomonitor -v tests
     - name: Upload coverage data
       uses: codecov/codecov-action@v5
 
