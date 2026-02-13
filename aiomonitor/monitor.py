@@ -123,6 +123,7 @@ class Monitor:
         hook_task_factory: bool = False,
         max_termination_history: int = 1000,
         locals: Optional[Dict[str, Any]] = None,
+        readonly: bool = False,
     ) -> None:
         self._monitored_loop = loop or asyncio.get_running_loop()
         self._host = host
@@ -144,6 +145,8 @@ class Monitor:
                 "wport": webui_port,
             },
         )
+
+        self._readonly = readonly
 
         self._closed = False
         self._started = False
@@ -315,6 +318,8 @@ class Monitor:
         return tasks
 
     async def cancel_monitored_task(self, task_id: str | int) -> str:
+        if self._readonly:
+            raise PermissionError("Cannot cancel tasks in read-only mode")
         task_id_ = int(task_id)
         task = task_by_id(task_id_, self._monitored_loop)
         if task is not None:
@@ -637,6 +642,7 @@ def start_monitor(
     hook_task_factory: bool = False,
     max_termination_history: Optional[int] = None,
     locals: Optional[Dict[str, Any]] = None,
+    readonly: bool = False,
 ) -> Monitor:
     """
     Factory function, creates instance of :class:`Monitor` and starts
@@ -651,6 +657,8 @@ def start_monitor(
         to start with instance of monitor.
     :param dict locals: dictionary with variables exposed in python console
         environment
+    :param bool readonly: when True, disables destructive operations like
+        task cancellation, signal sending, and console access.
     """
     m = monitor_cls(
         loop,
@@ -666,6 +674,7 @@ def start_monitor(
             else get_default_args(monitor_cls.__init__)["max_termination_history"]
         ),
         locals=locals,
+        readonly=readonly,
     )
     m.start()
     return m

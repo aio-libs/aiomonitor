@@ -89,8 +89,9 @@ async def interact(self: Monitor, connection: TelnetConnection) -> None:
     await asyncio.sleep(0.3)  # wait until telnet negotiation is done
     tasknum = len(asyncio.all_tasks(loop=self._monitored_loop))  # TODO: refactor
     s = "" if tasknum == 1 else "s"
+    mode_indicator = " (read-only)" if self._readonly else ""
     intro = (
-        f"\nAsyncio Monitor: {tasknum} task{s} running\n"
+        f"\nAsyncio Monitor: {tasknum} task{s} running{mode_indicator}\n"
         f"Type help for available commands\n"
     )
     print(intro, file=connection.stdout)
@@ -305,6 +306,10 @@ def do_help(ctx: click.Context) -> None:
 @auto_command_done
 def do_signal(ctx: click.Context, signame: str) -> None:
     """Send a Unix signal"""
+    self: Monitor = ctx.obj
+    if self._readonly:
+        print_fail("This command is not available in read-only mode.")
+        return
     if hasattr(signal, signame):
         os.kill(os.getpid(), getattr(signal, signame))
         print_ok(f"Sent signal to {signame} PID {os.getpid()}")
@@ -331,6 +336,10 @@ def do_stacktrace(ctx: click.Context) -> None:
 def do_cancel(ctx: click.Context, taskid: str) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
+    if self._readonly:
+        print_fail("This command is not available in read-only mode.")
+        command_done.get().set()
+        return
 
     @auto_async_command_done
     async def _do_cancel(ctx: click.Context) -> None:
@@ -357,6 +366,10 @@ def do_exit(ctx: click.Context) -> None:
 def do_console(ctx: click.Context) -> None:
     """Switch to async Python REPL"""
     self: Monitor = ctx.obj
+    if self._readonly:
+        print_fail("This command is not available in read-only mode.")
+        command_done.get().set()
+        return
     if not self._console_enabled:
         print_fail("Python console is disabled for this session!")
         return
