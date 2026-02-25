@@ -648,7 +648,9 @@ def start_monitor(
     Factory function, creates instance of :class:`Monitor` and starts
     monitoring thread.
 
-    :param Type[Monitor] monitor: Monitor class to use
+    :param Type[Monitor] monitor: Monitor class to use. This is primarily an
+        internal extension hook; custom monitor classes must keep a constructor
+        signature compatible with :class:`Monitor`, including ``readonly``.
     :param str host: hostname to serve monitor telnet server
     :param int port: monitor port (terminal UI), by default 20101
     :param int webui_port: monitor port (web UI), by default 20102
