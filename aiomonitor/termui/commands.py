@@ -35,6 +35,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_READONLY_MSG = "This command is not available in read-only mode."
+
 __all__ = (
     "interact",
     "monitor_cli",
@@ -308,7 +310,7 @@ def do_signal(ctx: click.Context, signame: str) -> None:
     """Send a Unix signal"""
     self: Monitor = ctx.obj
     if self._readonly:
-        print_fail("This command is not available in read-only mode.")
+        print_fail(_READONLY_MSG)
         return
     if hasattr(signal, signame):
         os.kill(os.getpid(), getattr(signal, signame))
@@ -337,7 +339,7 @@ def do_cancel(ctx: click.Context, taskid: str) -> None:
     """Cancel an indicated task"""
     self: Monitor = ctx.obj
     if self._readonly:
-        print_fail("This command is not available in read-only mode.")
+        print_fail(_READONLY_MSG)
         command_done.get().set()
         return
 
@@ -367,7 +369,7 @@ def do_console(ctx: click.Context) -> None:
     """Switch to async Python REPL"""
     self: Monitor = ctx.obj
     if self._readonly:
-        print_fail("This command is not available in read-only mode.")
+        print_fail(_READONLY_MSG)
         command_done.get().set()
         return
     if not self._console_enabled:

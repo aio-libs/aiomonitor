@@ -296,16 +296,19 @@ async def test_custom_monitor_command(monitor: Monitor):
     assert "doing something with someargument" in resp
 
 
-@pytest.mark.asyncio
-async def test_readonly_cancel_termui(readonly_monitor: Monitor) -> None:
-    async def sleeper():
+async def _create_sleeper_task(monitor: Monitor) -> tuple[asyncio.Task[None], int]:
+    async def sleeper() -> None:
         await asyncio.sleep(100)
 
-    test_loop = readonly_monitor._monitored_loop
-    t = test_loop.create_task(sleeper())
+    t = monitor._monitored_loop.create_task(sleeper())
     t_id = id(t)
     await asyncio.sleep(0.1)
+    return t, t_id
 
+
+@pytest.mark.asyncio
+async def test_readonly_cancel_termui(readonly_monitor: Monitor) -> None:
+    t, t_id = await _create_sleeper_task(readonly_monitor)
     resp = await invoke_command(readonly_monitor, ["cancel", str(t_id)])
     assert "not available in read-only mode" in resp
     assert not t.done()
@@ -315,27 +318,19 @@ async def test_readonly_cancel_termui(readonly_monitor: Monitor) -> None:
 
 
 @pytest.mark.asyncio
-async def test_readonly_signal_termui(readonly_monitor: Monitor) -> None:
-    resp = await invoke_command(readonly_monitor, ["signal", "SIGUSR1"])
-    assert "not available in read-only mode" in resp
-
-
-@pytest.mark.asyncio
-async def test_readonly_console_termui(readonly_monitor: Monitor) -> None:
-    resp = await invoke_command(readonly_monitor, ["console"])
+@pytest.mark.parametrize(
+    "command", [["signal", "SIGUSR1"], ["console"]], ids=["signal", "console"]
+)
+async def test_readonly_simple_termui_commands(
+    readonly_monitor: Monitor, command: list[str]
+) -> None:
+    resp = await invoke_command(readonly_monitor, command)
     assert "not available in read-only mode" in resp
 
 
 @pytest.mark.asyncio
 async def test_readonly_cancel_monitored_task(readonly_monitor: Monitor) -> None:
-    async def sleeper():
-        await asyncio.sleep(100)
-
-    test_loop = readonly_monitor._monitored_loop
-    t = test_loop.create_task(sleeper())
-    t_id = id(t)
-    await asyncio.sleep(0.1)
-
+    t, t_id = await _create_sleeper_task(readonly_monitor)
     with pytest.raises(PermissionError, match="read-only mode"):
         await readonly_monitor.cancel_monitored_task(t_id)
     assert not t.done()
@@ -351,13 +346,11 @@ async def test_readonly_ps_still_works(readonly_monitor: Monitor) -> None:
 
 
 @pytest.mark.asyncio
-async def test_readonly_ctor() -> None:
+@pytest.mark.parametrize("readonly", [True, False])
+async def test_readonly_ctor(readonly: bool) -> None:
     test_loop = asyncio.get_running_loop()
-    with Monitor(test_loop, readonly=True) as m:
-        assert m._readonly is True
-        await asyncio.sleep(0.01)
-    with Monitor(test_loop, readonly=False) as m:
-        assert m._readonly is False
+    with Monitor(test_loop, readonly=readonly) as m:
+        assert m._readonly is readonly
         await asyncio.sleep(0.01)
 
 
