@@ -13,7 +13,7 @@ sphinx:
 formats: []
 
 build:
-  os: ubuntu-24.04
+  os: ubuntu-lts-latest
   tools:
     python: >-  # PyYAML parses it as float but RTD demands an explicit string
       3.13
