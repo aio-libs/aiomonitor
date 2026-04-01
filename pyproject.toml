@@ -72,7 +72,7 @@ dev = [
     "uvloop==0.21.0",
 ]
 doc = [
-    "sphinx~=7.2",
+    "sphinx>=7.2,<9.0",
     "sphinx-click~=5.1.0",
     "sphinx-autodoc-typehints~=1.25",
 ]
