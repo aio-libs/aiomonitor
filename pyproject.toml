@@ -107,7 +107,7 @@ known-first-party = ["aiomonitor"]
 split-on-trailing-comma = true
 
 [tool.ruff.format]
-preview = true
+preview = true  # enable the black's preview style
 
 [tool.mypy]
 mypy_path = ["."]
