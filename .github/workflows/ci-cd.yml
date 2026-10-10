@@ -38,7 +38,7 @@ jobs:
     - name: Build artifacts
       run: uv build
     - name: Upload built artifacts for testing
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.sdist-artifact }}
         # NOTE: Exact expected file names are specified here
