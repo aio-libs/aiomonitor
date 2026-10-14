@@ -97,6 +97,7 @@ async def show_list_page(request: web.Request) -> web.Response:
                 {"id": TaskTypes.RUNNING, "title": "Running"},
                 {"id": TaskTypes.TERMINATED, "title": "Terminated"},
             ],
+            readonly=ctx.monitor._readonly,
         )
         return web.Response(body=output, content_type="text/html")
 
@@ -208,6 +209,11 @@ async def get_terminated_task_list(request: web.Request) -> web.Response:
 
 async def cancel_task(request: web.Request) -> web.Response:
     ctx: WebUIContext = request.app[ctx_key]
+    if ctx.monitor._readonly:
+        return web.json_response(
+            status=403,
+            data={"msg": "Cannot cancel tasks in read-only mode"},
+        )
     async with check_params(request, TaskIdParams) as params:
         try:
             coro_repr = await ctx.monitor.cancel_monitored_task(params.task_id)
