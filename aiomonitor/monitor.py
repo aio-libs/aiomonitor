@@ -5,6 +5,7 @@ import contextlib
 import contextvars
 import functools
 import logging
+import socket
 import sys
 import textwrap
 import threading
@@ -569,7 +570,7 @@ class Monitor:
             webui_runner,
             str(self._host),
             self._webui_port,
-            reuse_port=True,
+            reuse_port=hasattr(socket, "SO_REUSEPORT"),
         )
         await webui_site.start()
         telnet_server.start()

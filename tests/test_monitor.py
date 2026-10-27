@@ -5,12 +5,14 @@ import contextlib
 import contextvars
 import functools
 import io
+import socket
 import sys
 import unittest.mock
 from typing import Sequence
 
 import click
 import pytest
+from aiohttp import ClientSession
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
@@ -122,6 +124,7 @@ def console_enabled(request):
 async def test_ctor(event_loop, console_enabled):
     with Monitor(event_loop, console_enabled=console_enabled):
         await asyncio.sleep(0.01)
+
     with start_monitor(event_loop, console_enabled=console_enabled) as m:
         await asyncio.sleep(0.01)
     assert m.closed
@@ -144,6 +147,43 @@ async def test_ctor(event_loop, console_enabled):
     # make sure that monitor inside async func can exit correctly
     with Monitor(event_loop, console_enabled=console_enabled):
         await asyncio.sleep(0.01)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reuse_port_available", [True, False])
+async def test_webui_without_reuse_port(monkeypatch, unused_port, reuse_port_available):
+    if not reuse_port_available:
+        monkeypatch.delattr(socket, "SO_REUSEPORT", raising=False)
+    mon = Monitor(
+        asyncio.get_running_loop(),
+        termui_port=unused_port(),
+        webui_port=unused_port(),
+        console_enabled=False,
+    )
+    ui_task = asyncio.create_task(mon._ui_main_async())
+
+    async def wait_started():
+        while not mon._ui_started.is_set():
+            if ui_task.done():
+                await ui_task
+            await asyncio.sleep(0.01)
+
+    try:
+        await asyncio.wait_for(wait_started(), timeout=5)
+        async with ClientSession() as client:
+            async with client.get(f"http://127.0.0.1:{mon._webui_port}/") as response:
+                assert response.status == 200
+    finally:
+        ui_task.cancel()
+        await asyncio.gather(ui_task, return_exceptions=True)
+        # Startup can fail before the UI coroutine's shutdown handler is entered.
+        mon._ui_termination_handler_task.cancel()
+        mon._ui_cancellation_handler_task.cancel()
+        await asyncio.gather(
+            mon._ui_termination_handler_task,
+            mon._ui_cancellation_handler_task,
+            return_exceptions=True,
+        )
 
 
 @pytest.mark.asyncio

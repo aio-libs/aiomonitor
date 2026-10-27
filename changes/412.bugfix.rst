@@ -1,0 +1,1 @@
+Allow the web UI to start when the socket module does not support port reuse.
